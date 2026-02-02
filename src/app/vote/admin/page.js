@@ -18,11 +18,12 @@ export default function AdminPage() {
     const [votes, setVotes] = useState([]);
     const [selectedVote, setSelectedVote] = useState(null);
     const [isCreating, setIsCreating] = useState(false);
-
     const [newVote, setNewVote] = useState({
         title: '',
-        start_at: '',
-        end_at: '',
+        startDate: '',
+        startTime: '',
+        endDate: '',
+        endTime: '',
         options: ['']
     });
 
@@ -62,12 +63,25 @@ export default function AdminPage() {
     };
 
     const handleCreateVote = async () => {
+        if (!newVote.title || !newVote.startDate || !newVote.startTime || !newVote.endDate || !newVote.endTime) {
+            alert('모든 필드를 입력해주세요.');
+            return;
+        }
+
+        const startAt = new Date(`${newVote.startDate}T${newVote.startTime}`).toISOString();
+        const endAt = new Date(`${newVote.endDate}T${newVote.endTime}`).toISOString();
+
+        if (new Date(endAt) <= new Date(startAt)) {
+            alert('종료 시간은 시작 시간보다 늦어야 합니다.');
+            return;
+        }
+
         const { data: voteData, error: voteError } = await supabase
             .from('votes')
             .insert({
                 title: newVote.title,
-                start_at: new Date(newVote.start_at).toISOString(),
-                end_at: new Date(newVote.end_at).toISOString()
+                start_at: startAt,
+                end_at: endAt
             })
             .select()
             .single();
@@ -90,6 +104,14 @@ export default function AdminPage() {
         } else {
             alert('투표가 생성되었습니다.');
             setIsCreating(false);
+            setNewVote({
+                title: '',
+                startDate: '',
+                startTime: '',
+                endDate: '',
+                endTime: '',
+                options: ['']
+            });
             fetchVotes();
         }
     };
@@ -106,6 +128,17 @@ export default function AdminPage() {
         if (selectedVote?.id === voteId) {
             setSelectedVote(prev => ({ ...prev, end_at: new Date().toISOString() }));
         }
+    };
+
+    const removeOption = (indexToRemove) => {
+        if (newVote.options.length <= 1) {
+            alert('최소 1개의 항목이 필요합니다.');
+            return;
+        }
+        setNewVote({
+            ...newVote,
+            options: newVote.options.filter((_, idx) => idx !== indexToRemove)
+        });
     };
 
     if (!isAuthenticated) {
@@ -185,44 +218,68 @@ export default function AdminPage() {
                             <div className="grid grid-cols-2 gap-4">
                                 <div>
                                     <label className="block text-sm font-medium text-gray-700 mb-1">시작 시간</label>
-                                    <input
-                                        type="datetime-local"
-                                        className="w-full p-3 border rounded-lg"
-                                        value={newVote.start_at}
-                                        onChange={e => setNewVote({ ...newVote, start_at: e.target.value })}
-                                    />
+                                    <div className="flex gap-2">
+                                        <input
+                                            type="date"
+                                            className="w-full p-3 border rounded-lg"
+                                            value={newVote.startDate}
+                                            onChange={e => setNewVote({ ...newVote, startDate: e.target.value })}
+                                        />
+                                        <input
+                                            type="time"
+                                            className="w-full p-3 border rounded-lg"
+                                            value={newVote.startTime}
+                                            onChange={e => setNewVote({ ...newVote, startTime: e.target.value })}
+                                        />
+                                    </div>
                                 </div>
                                 <div>
                                     <label className="block text-sm font-medium text-gray-700 mb-1">종료 시간</label>
-                                    <input
-                                        type="datetime-local"
-                                        className="w-full p-3 border rounded-lg"
-                                        value={newVote.end_at}
-                                        onChange={e => setNewVote({ ...newVote, end_at: e.target.value })}
-                                    />
+                                    <div className="flex gap-2">
+                                        <input
+                                            type="date"
+                                            className="w-full p-3 border rounded-lg"
+                                            value={newVote.endDate}
+                                            onChange={e => setNewVote({ ...newVote, endDate: e.target.value })}
+                                        />
+                                        <input
+                                            type="time"
+                                            className="w-full p-3 border rounded-lg"
+                                            value={newVote.endTime}
+                                            onChange={e => setNewVote({ ...newVote, endTime: e.target.value })}
+                                        />
+                                    </div>
                                 </div>
                             </div>
                             <div>
                                 <label className="block text-sm font-medium text-gray-700 mb-1">투표 항목</label>
                                 {newVote.options.map((opt, idx) => (
-                                    <input
-                                        key={idx}
-                                        type="text"
-                                        className="w-full p-3 border rounded-lg mb-2"
-                                        placeholder={`항목 ${idx + 1}`}
-                                        value={opt}
-                                        onChange={e => {
-                                            const newOpts = [...newVote.options];
-                                            newOpts[idx] = e.target.value;
-                                            setNewVote({ ...newVote, options: newOpts });
-                                        }}
-                                    />
+                                    <div key={idx} className="flex gap-2 mb-2">
+                                        <input
+                                            type="text"
+                                            className="flex-1 p-3 border rounded-lg"
+                                            placeholder={`항목 ${idx + 1}`}
+                                            value={opt}
+                                            onChange={e => {
+                                                const newOpts = [...newVote.options];
+                                                newOpts[idx] = e.target.value;
+                                                setNewVote({ ...newVote, options: newOpts });
+                                            }}
+                                        />
+                                        <button
+                                            onClick={() => removeOption(idx)}
+                                            className="p-3 text-red-500 hover:bg-red-50 rounded-lg"
+                                            title="항목 제거"
+                                        >
+                                            <Trash2 size={20} />
+                                        </button>
+                                    </div>
                                 ))}
                                 <button
                                     onClick={() => setNewVote({ ...newVote, options: [...newVote.options, ''] })}
-                                    className="text-blue-500 text-sm hover:underline"
+                                    className="text-blue-500 text-sm hover:underline flex items-center gap-1 mt-2"
                                 >
-                                    + 항목 추가
+                                    <Plus size={16} /> 항목 추가
                                 </button>
                             </div>
                             <button
