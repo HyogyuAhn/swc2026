@@ -39,6 +39,7 @@ export default function AdminPage() {
     const [error, setError] = useState('');
 
     const [view, setView] = useState('DASHBOARD');
+    const [dashboardFilter, setDashboardFilter] = useState('ACTIVE');
     const [votes, setVotes] = useState([]);
     const [selectedVote, setSelectedVote] = useState(null);
     const [voteRecords, setVoteRecords] = useState([]);
@@ -500,12 +501,37 @@ export default function AdminPage() {
                         </div>
 
                         {/* Active & Ended Votes List */}
-                        <h3 className="font-bold text-lg text-gray-700 mb-4">투표 관리 및 현황</h3>
+                        <div className="flex justify-between items-end mb-4">
+                            <h3 className="font-bold text-lg text-gray-700">투표 관리 및 현황</h3>
+                            <div className="flex bg-white p-1 rounded-lg border shadow-sm">
+                                {['ALL', 'ACTIVE', 'UPCOMING', 'ENDED'].map(cat => (
+                                    <button
+                                        key={cat}
+                                        onClick={() => setDashboardFilter(cat)}
+                                        className={`px-3 py-1.5 text-xs font-bold rounded-md transition-all
+                                        ${dashboardFilter === cat
+                                                ? 'bg-blue-600 text-white shadow-sm'
+                                                : 'text-gray-500 hover:text-gray-800 hover:bg-gray-50'}`}
+                                    >
+                                        {cat === 'ALL' ? '전체' : cat === 'ACTIVE' ? '진행중' : cat === 'UPCOMING' ? '시작 전' : '종료됨'}
+                                    </button>
+                                ))}
+                            </div>
+                        </div>
+
                         <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden mb-10">
-                            {votes.filter(v => getStatus(v) !== 'UPCOMING').length === 0 ? (
-                                <div className="p-8 text-center text-gray-400">진행 중이거나 종료된 투표가 없습니다.</div>
+                            {votes.filter(v => {
+                                if (dashboardFilter === 'ALL') return true;
+                                return getStatus(v) === dashboardFilter;
+                            }).length === 0 ? (
+                                <div className="p-8 text-center text-gray-400">
+                                    {dashboardFilter === 'ALL' ? '등록된 투표가 없습니다.' : '해당 카테고리의 투표가 없습니다.'}
+                                </div>
                             ) : (
-                                votes.filter(v => getStatus(v) !== 'UPCOMING').map(vote => {
+                                votes.filter(v => {
+                                    if (dashboardFilter === 'ALL') return true;
+                                    return getStatus(v) === dashboardFilter;
+                                }).map(vote => {
                                     const total = voteStats[vote.id]?.total || 0;
 
                                     return (
@@ -534,9 +560,11 @@ export default function AdminPage() {
                                                     <button onClick={() => startEdit(vote)} className="px-4 py-2 bg-white border border-gray-200 rounded-lg text-sm font-medium hover:bg-gray-50">
                                                         설정
                                                     </button>
-                                                    <button onClick={() => handleEarlyEnd(vote)} className="px-4 py-2 bg-red-50 text-red-600 rounded-lg text-sm font-medium hover:bg-red-100">
-                                                        종료
-                                                    </button>
+                                                    {getStatus(vote) === 'ACTIVE' && (
+                                                        <button onClick={() => handleEarlyEnd(vote)} className="px-4 py-2 bg-red-50 text-red-600 rounded-lg text-sm font-medium hover:bg-red-100">
+                                                            종료
+                                                        </button>
+                                                    )}
                                                 </div>
                                             </div>
 
