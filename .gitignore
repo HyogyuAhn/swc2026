@@ -21,3 +21,10 @@ yarn-error.log*
 .env.development.local
 .env.test.local
 .env.production.local
+
+# Next.js
+.next/
+out/
+build/
+dist/
+next-env.d.ts
