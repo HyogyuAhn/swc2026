@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { createClient } from '@supabase/supabase-js';
-import { LogOut, User, Clock, CheckCircle, BarChart2 } from 'lucide-react';
+import { LogOut, User, Clock, CheckCircle, BarChart2, AlertCircle, X } from 'lucide-react';
 
 const supabase = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL,
