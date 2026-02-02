@@ -2,12 +2,35 @@
 
 import { useState, useEffect } from 'react';
 import { createClient } from '@supabase/supabase-js';
-import { LogOut, Plus, Trash2, StopCircle, CheckCircle, Clock, LayoutDashboard, Settings, List, X, Edit3, Eye, EyeOff } from 'lucide-react';
+import { LogOut, Plus, Trash2, StopCircle, CheckCircle, Clock, LayoutDashboard, Settings, List, X, Edit3, Eye, EyeOff, BarChart2, Users, AlertCircle } from 'lucide-react';
 
 const supabase = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
 );
+
+const TimeSelector = ({ prefix, formData, setFormData, disabled }) => {
+    const handleChange = (field, value) => {
+        setFormData(prev => ({ ...prev, [field]: value }));
+    };
+
+    return (
+        <div className="flex gap-1 w-full text-sm">
+            <select disabled={disabled} className="p-2 border rounded bg-white" value={formData[`${prefix}AmPm`]} onChange={e => handleChange(`${prefix}AmPm`, e.target.value)}>
+                <option value="AM">오전</option><option value="PM">오후</option>
+            </select>
+            <select disabled={disabled} className="p-2 border rounded bg-white" value={formData[`${prefix}Hour`]} onChange={e => handleChange(`${prefix}Hour`, e.target.value)}>
+                {Array.from({ length: 12 }, (_, i) => i + 1).map(h => <option key={h} value={h}>{h}시</option>)}
+            </select>
+            <select disabled={disabled} className="p-2 border rounded bg-white" value={formData[`${prefix}Minute`]} onChange={e => handleChange(`${prefix}Minute`, e.target.value)}>
+                {Array.from({ length: 60 }, (_, i) => i).map(m => <option key={m} value={m.toString().padStart(2, '0')}>{m.toString().padStart(2, '0')}분</option>)}
+            </select>
+            <select disabled={disabled} className="p-2 border rounded bg-white" value={formData[`${prefix}Second`]} onChange={e => handleChange(`${prefix}Second`, e.target.value)}>
+                {Array.from({ length: 60 }, (_, i) => i).map(s => <option key={s} value={s.toString().padStart(2, '0')}>{s.toString().padStart(2, '0')}초</option>)}
+            </select>
+        </div>
+    );
+};
 
 export default function AdminPage() {
     const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -18,9 +41,14 @@ export default function AdminPage() {
     const [view, setView] = useState('DASHBOARD');
     const [votes, setVotes] = useState([]);
     const [selectedVote, setSelectedVote] = useState(null);
+    const [voteRecords, setVoteRecords] = useState([]);
+    const [showDetailsModal, setShowDetailsModal] = useState(false);
+    const [detailsVote, setDetailsVote] = useState(null);
 
     const [counts, setCounts] = useState({ upcoming: 0, active: 0, ended: 0 });
     const [currentTime, setCurrentTime] = useState(new Date());
+
+    const [voteStats, setVoteStats] = useState({});
 
     const [formData, setFormData] = useState({
         title: '',
@@ -92,12 +120,55 @@ export default function AdminPage() {
     };
 
     const fetchVotes = async () => {
-        const { data } = await supabase
+        const { data: votesData } = await supabase
             .from('votes')
             .select('*, vote_options(*)')
             .order('created_at', { ascending: false });
 
-        if (data) setVotes(data);
+        if (votesData) {
+            setVotes(votesData);
+
+            const { data: records } = await supabase
+                .from('vote_records')
+                .select('vote_id, option_id')
+                .eq('is_valid', true);
+
+            if (records) {
+                const stats = {};
+                records.forEach(r => {
+                    if (!stats[r.vote_id]) stats[r.vote_id] = { total: 0 };
+                    if (!stats[r.vote_id][r.option_id]) stats[r.vote_id][r.option_id] = 0;
+
+                    stats[r.vote_id][r.option_id]++;
+                    stats[r.vote_id].total++;
+                });
+                setVoteStats(stats);
+            }
+        }
+    };
+
+    const fetchVoteDetails = async (vote) => {
+        setDetailsVote(vote);
+        const { data } = await supabase
+            .from('vote_records')
+            .select('*')
+            .eq('vote_id', vote.id)
+            .order('created_at', { ascending: false });
+
+        if (data) setVoteRecords(data);
+        setShowDetailsModal(true);
+    };
+
+    const toggleValidity = async (recordId, currentStatus) => {
+        const { error } = await supabase
+            .from('vote_records')
+            .update({ is_valid: !currentStatus })
+            .eq('id', recordId);
+
+        if (!error) {
+            setVoteRecords(prev => prev.map(r => r.id === recordId ? { ...r, is_valid: !currentStatus } : r));
+            fetchVotes();
+        }
     };
 
     const getStatus = (vote) => {
@@ -288,23 +359,6 @@ export default function AdminPage() {
         );
     }
 
-    const TimeSelector = ({ prefix, disabled }) => (
-        <div className="flex gap-1 w-full text-sm">
-            <select disabled={disabled} className="p-2 border rounded bg-white" value={formData[`${prefix}AmPm`]} onChange={e => setFormData({ ...formData, [`${prefix}AmPm`]: e.target.value })}>
-                <option value="AM">오전</option><option value="PM">오후</option>
-            </select>
-            <select disabled={disabled} className="p-2 border rounded bg-white" value={formData[`${prefix}Hour`]} onChange={e => setFormData({ ...formData, [`${prefix}Hour`]: e.target.value })}>
-                {Array.from({ length: 12 }, (_, i) => i + 1).map(h => <option key={h} value={h}>{h}시</option>)}
-            </select>
-            <select disabled={disabled} className="p-2 border rounded bg-white" value={formData[`${prefix}Minute`]} onChange={e => setFormData({ ...formData, [`${prefix}Minute`]: e.target.value })}>
-                {Array.from({ length: 60 }, (_, i) => i).map(m => <option key={m} value={m.toString().padStart(2, '0')}>{m.toString().padStart(2, '0')}분</option>)}
-            </select>
-            <select disabled={disabled} className="p-2 border rounded bg-white" value={formData[`${prefix}Second`]} onChange={e => setFormData({ ...formData, [`${prefix}Second`]: e.target.value })}>
-                {Array.from({ length: 60 }, (_, i) => i).map(s => <option key={s} value={s.toString().padStart(2, '0')}>{s.toString().padStart(2, '0')}초</option>)}
-            </select>
-        </div>
-    );
-
     return (
         <div className="min-h-screen bg-gray-50 flex">
             {/* Sidebar */}
@@ -346,7 +400,7 @@ export default function AdminPage() {
             </div>
 
             {/* Main Content */}
-            <div className="flex-1 overflow-y-auto">
+            <div className="flex-1 overflow-y-auto relative">
                 {view === 'DASHBOARD' && (
                     <div className="p-10 max-w-5xl mx-auto">
                         <h2 className="text-3xl font-bold mb-8 text-gray-800">대시보드</h2>
@@ -376,33 +430,67 @@ export default function AdminPage() {
                             </div>
                         </div>
 
-                        {/* Active Votes Actions */}
+                        {/* Active Votes Actions with Results */}
                         <h3 className="font-bold text-lg text-gray-700 mb-4">진행 중인 투표 관리</h3>
-                        <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+                        <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden mb-10">
                             {votes.filter(v => getStatus(v) === 'ACTIVE').length === 0 ? (
                                 <div className="p-8 text-center text-gray-400">현재 진행 중인 투표가 없습니다.</div>
                             ) : (
-                                votes.filter(v => getStatus(v) === 'ACTIVE').map(vote => (
-                                    <div key={vote.id} className="p-6 border-b last:border-0 hover:bg-gray-50 flex items-center justify-between">
-                                        <div>
-                                            <h4 className="font-bold text-lg mb-1 flex items-center gap-2">
-                                                {vote.title}
-                                                <span className="text-sm font-mono bg-blue-50 text-blue-600 px-2 py-0.5 rounded border border-blue-100">
-                                                    {getRemainingTime(vote.end_at)}
-                                                </span>
-                                            </h4>
-                                            <p className="text-sm text-gray-500">~ {new Date(vote.end_at).toLocaleString()} 종료 예정</p>
+                                votes.filter(v => getStatus(v) === 'ACTIVE').map(vote => {
+                                    const total = voteStats[vote.id]?.total || 0;
+
+                                    return (
+                                        <div key={vote.id} className="p-6 border-b last:border-0 hover:bg-gray-50">
+                                            <div className="flex items-center justify-between mb-4">
+                                                <div>
+                                                    <h4 className="font-bold text-lg mb-1 flex items-center gap-2">
+                                                        {vote.title}
+                                                        <span className="text-sm font-mono bg-blue-50 text-blue-600 px-2 py-0.5 rounded border border-blue-100">
+                                                            {getRemainingTime(vote.end_at)}
+                                                        </span>
+                                                    </h4>
+                                                    <p className="text-sm text-gray-500">~ {new Date(vote.end_at).toLocaleString()} 종료 예정</p>
+                                                </div>
+                                                <div className="flex gap-2">
+                                                    <button onClick={() => fetchVoteDetails(vote)} className="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-bold hover:bg-blue-700 shadow-sm">
+                                                        상세 보기
+                                                    </button>
+                                                    <button onClick={() => startEdit(vote)} className="px-4 py-2 bg-white border border-gray-200 rounded-lg text-sm font-medium hover:bg-gray-50">
+                                                        설정
+                                                    </button>
+                                                    <button onClick={() => handleEarlyEnd(vote)} className="px-4 py-2 bg-red-50 text-red-600 rounded-lg text-sm font-medium hover:bg-red-100">
+                                                        종료
+                                                    </button>
+                                                </div>
+                                            </div>
+
+                                            {/* Unconditional Results View */}
+                                            <div className="bg-gray-100 rounded-lg p-4">
+                                                <div className="flex justify-between items-end mb-2">
+                                                    <h5 className="text-xs font-bold text-gray-500 flex items-center gap-1"><BarChart2 size={14} /> 실시간 현황 (관리자 전용)</h5>
+                                                    <span className="text-xs font-bold text-blue-600">총 {total}명 투표</span>
+                                                </div>
+                                                <div className="space-y-2">
+                                                    {vote.vote_options.map(opt => {
+                                                        const count = voteStats[vote.id]?.[opt.id] || 0;
+                                                        const percent = total === 0 ? 0 : Math.round((count / total) * 100);
+                                                        return (
+                                                            <div key={opt.id} className="relative text-sm">
+                                                                <div className="flex justify-between mb-1 px-1">
+                                                                    <span className="font-medium text-gray-700">{opt.name}</span>
+                                                                    <span className="font-bold text-gray-900">{percent}% ({count}표)</span>
+                                                                </div>
+                                                                <div className="h-1.5 bg-gray-200 rounded-full overflow-hidden">
+                                                                    <div className={`h-full rounded-full ${percent > 0 ? 'bg-blue-500' : 'bg-transparent'}`} style={{ width: `${percent}%` }}></div>
+                                                                </div>
+                                                            </div>
+                                                        )
+                                                    })}
+                                                </div>
+                                            </div>
                                         </div>
-                                        <div className="flex gap-2">
-                                            <button onClick={() => startEdit(vote)} className="px-4 py-2 bg-white border border-gray-200 rounded-lg text-sm font-medium hover:bg-gray-50">
-                                                관리 / 설정
-                                            </button>
-                                            <button onClick={() => handleEarlyEnd(vote)} className="px-4 py-2 bg-red-50 text-red-600 rounded-lg text-sm font-medium hover:bg-red-100">
-                                                조기 종료
-                                            </button>
-                                        </div>
-                                    </div>
-                                ))
+                                    );
+                                })
                             )}
                         </div>
                     </div>
@@ -423,10 +511,11 @@ export default function AdminPage() {
                             )}
                         </div>
 
-                        {view === 'EDIT' && (getStatus(selectedVote) === 'ACTIVE' || getStatus(selectedVote) === 'ENDED') && (
-                            <div className="mb-6 p-4 bg-orange-50 text-orange-800 rounded-lg text-sm border border-orange-100 flex items-center gap-2">
-                                <AlertCircle size={16} />
-                                <span>진행 중이거나 종료된 투표는 <b>공개 설정</b>만 변경 가능합니다. (내용 수정 불가)</span>
+                        {view === 'EDIT' && (
+                            <div className="mb-6 flex gap-2">
+                                <button onClick={() => fetchVoteDetails(selectedVote)} className="w-full py-3 bg-blue-600 text-white font-bold rounded-xl hover:bg-blue-700 shadow flex items-center justify-center gap-2">
+                                    <Users size={20} /> 투표 내역 및 유효성 관리 (상세보기)
+                                </button>
                             </div>
                         )}
 
@@ -456,7 +545,7 @@ export default function AdminPage() {
                                             value={formData.startDate}
                                             onChange={e => setFormData({ ...formData, startDate: e.target.value })}
                                         />
-                                        <TimeSelector prefix="start" disabled={view === 'EDIT' && (getStatus(selectedVote) === 'ACTIVE' || getStatus(selectedVote) === 'ENDED')} />
+                                        <TimeSelector prefix="start" disabled={view === 'EDIT' && (getStatus(selectedVote) === 'ACTIVE' || getStatus(selectedVote) === 'ENDED')} formData={formData} setFormData={setFormData} />
                                     </div>
                                     <div className="bg-gray-50 p-4 rounded-xl border border-gray-100">
                                         <span className="text-xs font-bold text-gray-500 block mb-2">종료</span>
@@ -467,7 +556,7 @@ export default function AdminPage() {
                                             value={formData.endDate}
                                             onChange={e => setFormData({ ...formData, endDate: e.target.value })}
                                         />
-                                        <TimeSelector prefix="end" disabled={view === 'EDIT' && (getStatus(selectedVote) === 'ACTIVE' || getStatus(selectedVote) === 'ENDED')} />
+                                        <TimeSelector prefix="end" disabled={view === 'EDIT' && (getStatus(selectedVote) === 'ACTIVE' || getStatus(selectedVote) === 'ENDED')} formData={formData} setFormData={setFormData} />
                                     </div>
                                 </div>
                             </div>
@@ -553,11 +642,75 @@ export default function AdminPage() {
                         </div>
                     </div>
                 )}
+
+                {/* Details Modal */}
+                {showDetailsModal && detailsVote && (
+                    <div className="absolute inset-0 bg-black/50 z-50 flex items-center justify-center p-10">
+                        <div className="bg-white rounded-2xl shadow-2xl w-full max-w-4xl max-h-full flex flex-col overflow-hidden">
+                            <div className="p-6 border-b flex justify-between items-center">
+                                <div>
+                                    <h3 className="font-bold text-xl text-gray-800">투표 내역 상세</h3>
+                                    <p className="text-sm text-gray-500">{detailsVote.title}</p>
+                                </div>
+                                <button onClick={() => setShowDetailsModal(false)} className="p-2 rounded-full hover:bg-gray-100">
+                                    <X size={24} />
+                                </button>
+                            </div>
+                            <div className="flex-1 overflow-y-auto p-6">
+                                <table className="w-full text-sm text-left">
+                                    <thead className="bg-gray-50 text-gray-700 font-bold uppercase">
+                                        <tr>
+                                            <th className="px-4 py-3">학번</th>
+                                            <th className="px-4 py-3">선택 항목</th>
+                                            <th className="px-4 py-3">투표 시간</th>
+                                            <th className="px-4 py-3">상태 (유효성)</th>
+                                            <th className="px-4 py-3 text-right">관리</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody className="divide-y divide-gray-100">
+                                        {voteRecords.map(record => {
+                                            const optionName = detailsVote.vote_options?.find(o => o.id === record.option_id)?.name || '알수없음';
+                                            return (
+                                                <tr key={record.id} className="hover:bg-gray-50">
+                                                    <td className="px-4 py-3 font-medium text-gray-900">{record.student_id}</td>
+                                                    <td className="px-4 py-3 text-gray-600">{optionName}</td>
+                                                    <td className="px-4 py-3 text-gray-500">{new Date(record.created_at).toLocaleString()}</td>
+                                                    <td className="px-4 py-3">
+                                                        {record.is_valid ? (
+                                                            <span className="bg-green-100 text-green-700 px-2 py-1 rounded text-xs font-bold">유효함</span>
+                                                        ) : (
+                                                            <span className="bg-red-100 text-red-700 px-2 py-1 rounded text-xs font-bold">무효처리됨</span>
+                                                        )}
+                                                    </td>
+                                                    <td className="px-4 py-3 text-right">
+                                                        <button
+                                                            onClick={() => toggleValidity(record.id, record.is_valid)}
+                                                            className={`px-3 py-1 rounded border text-xs font-bold transition
+                                                            ${record.is_valid
+                                                                    ? 'border-red-200 text-red-600 hover:bg-red-50'
+                                                                    : 'border-green-200 text-green-600 hover:bg-green-50'}`}
+                                                        >
+                                                            {record.is_valid ? '무효 처리' : '유효 복구'}
+                                                        </button>
+                                                    </td>
+                                                </tr>
+                                            )
+                                        })}
+                                        {voteRecords.length === 0 && (
+                                            <tr>
+                                                <td colSpan="5" className="px-4 py-8 text-center text-gray-400">투표 기록이 없습니다.</td>
+                                            </tr>
+                                        )}
+                                    </tbody>
+                                </table>
+                            </div>
+                            <div className="p-4 border-t bg-gray-50 text-right">
+                                <p className="text-xs text-gray-500">무효 처리된 표는 집계에서 제외됩니다.</p>
+                            </div>
+                        </div>
+                    </div>
+                )}
             </div>
         </div>
     );
-}
-
-function AlertCircle({ size }) {
-    return <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>;
 }

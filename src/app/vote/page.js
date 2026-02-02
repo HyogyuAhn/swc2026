@@ -78,7 +78,7 @@ export default function VotePage() {
         if (votesData) {
             setVotes(votesData);
 
-            const { data: records } = await supabase.from('vote_records').select('vote_id, option_id');
+            const { data: records } = await supabase.from('vote_records').select('vote_id, option_id').eq('is_valid', true);
 
             if (records) {
                 const counts = {};
