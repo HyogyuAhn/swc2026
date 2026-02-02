@@ -179,7 +179,7 @@ export default function VotePage() {
                 <div className="max-w-md w-full bg-white p-8 rounded-2xl shadow-xl border border-blue-50">
                     <div className="text-center mb-8">
                         <h1 className="text-3xl font-extrabold text-blue-900 mb-2">SW융합대학 투표시스템</h1>
-                        <p className="text-gray-500">학이시습지면 불역열호아</p>
+                        <p className="text-gray-500">2026 새내기배움터</p>
                     </div>
                     <form onSubmit={handleLogin} className="space-y-4">
                         <div>
