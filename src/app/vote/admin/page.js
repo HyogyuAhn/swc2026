@@ -56,7 +56,12 @@ export default function AdminPage() {
         endDate: '', endAmPm: 'AM', endHour: '12', endMinute: '00', endSecond: '00',
         options: [''],
         showLiveResults: false,
-        showFinalResults: false
+        liveResultType: 'BOTH',
+        liveResultShowTotal: true,
+        showFinalResults: false,
+        finalResultType: 'BOTH',
+        finalResultShowTotal: true,
+        showAfterEnd: true
     });
 
     useEffect(() => {
@@ -120,18 +125,28 @@ export default function AdminPage() {
     };
 
     const fetchVotes = async () => {
-        const { data: votesData } = await supabase
+        const { data: votesData, error: voteError } = await supabase
             .from('votes')
             .select('*, vote_options(*)')
             .order('created_at', { ascending: false });
 
+        if (voteError) {
+            console.error('Error fetching votes:', voteError);
+            return;
+        }
+
         if (votesData) {
             setVotes(votesData);
 
-            const { data: records } = await supabase
+            const { data: records, error: recordError } = await supabase
                 .from('vote_records')
                 .select('vote_id, option_id')
                 .eq('is_valid', true);
+
+            if (recordError) {
+                console.error('Error fetching records:', recordError);
+                return;
+            }
 
             if (records) {
                 const stats = {};
@@ -169,6 +184,16 @@ export default function AdminPage() {
             setVoteRecords(prev => prev.map(r => r.id === recordId ? { ...r, is_valid: !currentStatus } : r));
             fetchVotes();
         }
+    };
+
+    const handlePin = async (voteId) => {
+        // Unpin all first (Single Pin Mode as requested)
+        await supabase.from('votes').update({ is_pinned: false }).neq('id', '00000000-0000-0000-0000-000000000000');
+
+        if (voteId !== 'NONE') {
+            await supabase.from('votes').update({ is_pinned: true }).eq('id', voteId);
+        }
+        fetchVotes();
     };
 
     const getStatus = (vote) => {
@@ -214,7 +239,12 @@ export default function AdminPage() {
             endDate: '', endAmPm: 'AM', endHour: '12', endMinute: '00', endSecond: '00',
             options: [''],
             showLiveResults: false,
-            showFinalResults: false
+            liveResultType: 'BOTH',
+            liveResultShowTotal: true,
+            showFinalResults: false,
+            finalResultType: 'BOTH',
+            finalResultShowTotal: true,
+            showAfterEnd: true
         });
         setView('CREATE');
     };
@@ -230,7 +260,12 @@ export default function AdminPage() {
             endDate: end.date, endAmPm: end.ampm, endHour: end.hour, endMinute: end.minute, endSecond: end.second,
             options: vote.vote_options.map(o => o.name),
             showLiveResults: vote.show_live_results || false,
-            showFinalResults: vote.show_final_results || false
+            liveResultType: vote.live_result_type || 'BOTH',
+            liveResultShowTotal: vote.live_result_show_total ?? true,
+            showFinalResults: vote.show_final_results || false,
+            finalResultType: vote.final_result_type || 'BOTH',
+            finalResultShowTotal: vote.final_result_show_total ?? true,
+            showAfterEnd: vote.show_after_end ?? true
         });
         setSelectedVote(vote);
         setView('EDIT');
@@ -264,16 +299,33 @@ export default function AdminPage() {
             title: formData.title,
             start_at: startAt,
             end_at: endAt,
+            end_at: endAt,
             show_live_results: formData.showLiveResults,
-            show_final_results: formData.showFinalResults
+            live_result_type: formData.liveResultType,
+            live_result_show_total: formData.liveResultShowTotal,
+            show_final_results: formData.showFinalResults,
+            final_result_type: formData.finalResultType,
+            final_result_show_total: formData.finalResultShowTotal,
+            show_after_end: formData.showAfterEnd
         };
+
+        // Auto-unpin if hiding after end
+        if (!formData.showAfterEnd) {
+            votePayload.is_pinned = false;
+        }
 
         if (view === 'EDIT' && isRestricted) {
             const { error } = await supabase
                 .from('votes')
                 .update({
                     show_live_results: formData.showLiveResults,
+                    live_result_type: formData.liveResultType,
+                    live_result_show_total: formData.liveResultShowTotal,
                     show_final_results: formData.showFinalResults,
+                    final_result_type: formData.finalResultType,
+                    final_result_show_total: formData.finalResultShowTotal,
+                    show_after_end: formData.showAfterEnd,
+                    ...(formData.showAfterEnd ? {} : { is_pinned: false }) // Unpin if hidden
                 })
                 .eq('id', selectedVote.id);
 
@@ -370,7 +422,7 @@ export default function AdminPage() {
                 </div>
                 <div className="p-4 border-b border-gray-100 flex justify-between items-center bg-gray-50">
                     <span className="text-xs font-bold text-gray-500">LIST VIEW</span>
-                    <button onClick={() => { setView('CREATE'); setSelectedVote(null); }} className="p-1 bg-white border rounded hover:bg-blue-50 text-blue-600">
+                    <button onClick={startCreate} className="p-1 bg-white border rounded hover:bg-blue-50 text-blue-600">
                         <Plus size={16} />
                     </button>
                 </div>
@@ -403,7 +455,26 @@ export default function AdminPage() {
             <div className="flex-1 overflow-y-auto relative">
                 {view === 'DASHBOARD' && (
                     <div className="p-10 max-w-5xl mx-auto">
-                        <h2 className="text-3xl font-bold mb-8 text-gray-800">대시보드</h2>
+                        <div className="flex justify-between items-center mb-8">
+                            <h2 className="text-3xl font-bold text-gray-800">대시보드</h2>
+                            <div className="flex items-center gap-3 bg-white p-3 rounded-xl border shadow-sm">
+                                <span className="text-sm font-bold text-gray-500 flex items-center gap-1"><AlertCircle size={16} /> 메인 고정 (Pin)</span>
+                                <select
+                                    className="p-2 border rounded-lg text-sm min-w-[200px]"
+                                    value={votes.find(v => v.is_pinned)?.id || 'NONE'}
+                                    onChange={(e) => handlePin(e.target.value)}
+                                >
+                                    <option value="NONE">고정 안함</option>
+                                    {votes
+                                        .filter(v => getStatus(v) === 'ACTIVE' || (getStatus(v) === 'ENDED' && v.show_after_end))
+                                        .map(v => (
+                                            <option key={v.id} value={v.id}>
+                                                [{getStatus(v) === 'ACTIVE' ? '진행중' : '종료'}] {v.title}
+                                            </option>
+                                        ))}
+                                </select>
+                            </div>
+                        </div>
 
                         {/* Status Cards */}
                         <div className="grid grid-cols-3 gap-6 mb-10">
@@ -430,13 +501,13 @@ export default function AdminPage() {
                             </div>
                         </div>
 
-                        {/* Active Votes Actions with Results */}
-                        <h3 className="font-bold text-lg text-gray-700 mb-4">진행 중인 투표 관리</h3>
+                        {/* Active & Ended Votes List */}
+                        <h3 className="font-bold text-lg text-gray-700 mb-4">투표 관리 및 현황</h3>
                         <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden mb-10">
-                            {votes.filter(v => getStatus(v) === 'ACTIVE').length === 0 ? (
-                                <div className="p-8 text-center text-gray-400">현재 진행 중인 투표가 없습니다.</div>
+                            {votes.filter(v => getStatus(v) !== 'UPCOMING').length === 0 ? (
+                                <div className="p-8 text-center text-gray-400">진행 중이거나 종료된 투표가 없습니다.</div>
                             ) : (
-                                votes.filter(v => getStatus(v) === 'ACTIVE').map(vote => {
+                                votes.filter(v => getStatus(v) !== 'UPCOMING').map(vote => {
                                     const total = voteStats[vote.id]?.total || 0;
 
                                     return (
@@ -445,9 +516,16 @@ export default function AdminPage() {
                                                 <div>
                                                     <h4 className="font-bold text-lg mb-1 flex items-center gap-2">
                                                         {vote.title}
-                                                        <span className="text-sm font-mono bg-blue-50 text-blue-600 px-2 py-0.5 rounded border border-blue-100">
-                                                            {getRemainingTime(vote.end_at)}
-                                                        </span>
+                                                        {getStatus(vote) === 'ACTIVE' && (
+                                                            <span className="text-sm font-mono bg-blue-50 text-blue-600 px-2 py-0.5 rounded border border-blue-100">
+                                                                {getRemainingTime(vote.end_at)}
+                                                            </span>
+                                                        )}
+                                                        {getStatus(vote) === 'ENDED' && (
+                                                            <span className="text-sm font-bold bg-gray-100 text-gray-500 px-2 py-0.5 rounded border border-gray-200">
+                                                                종료됨
+                                                            </span>
+                                                        )}
                                                     </h4>
                                                     <p className="text-sm text-gray-500">~ {new Date(vote.end_at).toLocaleString()} 종료 예정</p>
                                                 </div>
@@ -598,29 +676,110 @@ export default function AdminPage() {
                                 <label className="block text-sm font-bold text-gray-700 mb-4 flex items-center gap-2">
                                     <Settings size={18} /> 공개 설정
                                 </label>
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                    <label className={`flex items-center p-4 rounded-xl border cursor-pointer transition
+                                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                    {/* Live Results Config */}
+                                    <div className={`p-4 rounded-xl border transition space-y-3
                                   ${formData.showLiveResults ? 'bg-blue-50 border-blue-200' : 'bg-white border-gray-200'}`}>
-                                        <input type="checkbox" className="w-5 h-5 mr-3"
-                                            checked={formData.showLiveResults}
-                                            onChange={e => setFormData({ ...formData, showLiveResults: e.target.checked })}
-                                        />
-                                        <div>
-                                            <span className="font-bold block text-gray-800">실시간 결과 공개</span>
-                                            <span className="text-xs text-gray-500">진행 중에 득표율을 공개합니다.</span>
-                                        </div>
-                                    </label>
-                                    <label className={`flex items-center p-4 rounded-xl border cursor-pointer transition
+                                        <label className="flex items-center cursor-pointer mb-2">
+                                            <input type="checkbox" className="w-5 h-5 mr-3"
+                                                checked={formData.showLiveResults}
+                                                onChange={e => setFormData({ ...formData, showLiveResults: e.target.checked })}
+                                            />
+                                            <span className="font-bold text-gray-800">실시간 결과 공개</span>
+                                        </label>
+
+                                        {formData.showLiveResults && (
+                                            <div className="pl-8 space-y-2 text-sm text-gray-700 animate-fadeIn">
+                                                <div className="font-bold text-xs text-blue-600">표시 항목 설정</div>
+                                                <div className="flex gap-2">
+                                                    {['BOTH', 'COUNT', 'PERCENT'].map(type => (
+                                                        <label key={type} className="flex items-center cursor-pointer">
+                                                            <input
+                                                                type="radio"
+                                                                name="liveResultType"
+                                                                value={type}
+                                                                checked={formData.liveResultType === type}
+                                                                onChange={e => setFormData({ ...formData, liveResultType: e.target.value })}
+                                                                className="mr-1"
+                                                            />
+                                                            {type === 'BOTH' ? '모두' : type === 'COUNT' ? '투표수' : '비율'}
+                                                        </label>
+                                                    ))}
+                                                </div>
+                                                <label className="flex items-center cursor-pointer pt-1 border-t border-blue-200/50">
+                                                    <input
+                                                        type="checkbox"
+                                                        checked={formData.liveResultShowTotal}
+                                                        onChange={e => setFormData({ ...formData, liveResultShowTotal: e.target.checked })}
+                                                        className="mr-2"
+                                                    />
+                                                    총 투표 인원수 공개
+                                                </label>
+                                            </div>
+                                        )}
+                                    </div>
+
+                                    {/* Final Results Config */}
+                                    <div className={`p-4 rounded-xl border transition space-y-3
                                   ${formData.showFinalResults ? 'bg-blue-50 border-blue-200' : 'bg-white border-gray-200'}`}>
-                                        <input type="checkbox" className="w-5 h-5 mr-3"
-                                            checked={formData.showFinalResults}
-                                            onChange={e => setFormData({ ...formData, showFinalResults: e.target.checked })}
-                                        />
-                                        <div>
-                                            <span className="font-bold block text-gray-800">종료 후 결과 공개</span>
-                                            <span className="text-xs text-gray-500">투표 종료 시 결과를 공개합니다.</span>
-                                        </div>
-                                    </label>
+                                        <label className="flex items-center cursor-pointer mb-2">
+                                            <input type="checkbox" className="w-5 h-5 mr-3"
+                                                checked={formData.showFinalResults}
+                                                onChange={e => setFormData({ ...formData, showFinalResults: e.target.checked })}
+                                            />
+                                            <span className="font-bold text-gray-800">종료 후 결과 공개</span>
+                                        </label>
+
+                                        {formData.showFinalResults && (
+                                            <div className="pl-8 space-y-2 text-sm text-gray-700 animate-fadeIn">
+                                                <div className="font-bold text-xs text-blue-600">표시 항목 설정</div>
+                                                <div className="flex gap-2">
+                                                    {['BOTH', 'COUNT', 'PERCENT'].map(type => (
+                                                        <label key={type} className="flex items-center cursor-pointer">
+                                                            <input
+                                                                type="radio"
+                                                                name="finalResultType"
+                                                                value={type}
+                                                                checked={formData.finalResultType === type}
+                                                                onChange={e => setFormData({ ...formData, finalResultType: e.target.value })}
+                                                                className="mr-1"
+                                                            />
+                                                            {type === 'BOTH' ? '모두' : type === 'COUNT' ? '투표수' : '비율'}
+                                                        </label>
+                                                    ))}
+                                                </div>
+                                                <label className="flex items-center cursor-pointer pt-1 border-t border-blue-200/50">
+                                                    <input
+                                                        type="checkbox"
+                                                        checked={formData.finalResultShowTotal}
+                                                        onChange={e => setFormData({ ...formData, finalResultShowTotal: e.target.checked })}
+                                                        className="mr-2"
+                                                    />
+                                                    총 투표 인원수 공개
+                                                </label>
+                                            </div>
+                                        )}
+                                    </div>
+
+                                    {/* Show After End Config (New) */}
+                                    <div className={`p-4 rounded-xl border transition flex flex-col justify-center
+                                  ${formData.showAfterEnd ? 'bg-white border-gray-200' : 'bg-gray-50 border-gray-200'}`}>
+                                        <label className="flex items-center cursor-pointer">
+                                            <input type="checkbox" className="w-5 h-5 mr-3"
+                                                checked={formData.showAfterEnd}
+                                                onChange={e => setFormData({ ...formData, showAfterEnd: e.target.checked })}
+                                            />
+                                            <div>
+                                                <span className="font-bold block text-gray-800">종료 후 투표 노출</span>
+                                                <span className="text-xs text-gray-500">체크 해제 시 종료된 투표가 목록에서 사라집니다.</span>
+                                            </div>
+                                        </label>
+                                        {!formData.showAfterEnd && (
+                                            <p className="text-xs text-red-500 mt-2 font-bold ml-8">
+                                                * 비공개 시 핀 고정도 해제됩니다.
+                                            </p>
+                                        )}
+                                    </div>
                                 </div>
                             </div>
 
