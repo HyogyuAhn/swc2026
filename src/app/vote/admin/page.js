@@ -61,6 +61,17 @@ export default function AdminPage() {
     const [showDeleteModal, setShowDeleteModal] = useState(false);
     const [deleteTarget, setDeleteTarget] = useState(null);
 
+    useEffect(() => {
+        if (showDetailsModal || showStudentModal || showDeleteModal || view === 'CREATE' || view === 'EDIT') {
+        }
+        if (showDetailsModal || showStudentModal || showDeleteModal) {
+            document.body.style.overflow = 'hidden';
+        } else {
+            document.body.style.overflow = 'unset';
+        }
+        return () => { document.body.style.overflow = 'unset'; };
+    }, [showDetailsModal, showStudentModal, showDeleteModal]);
+
     const [forceVoteData, setForceVoteData] = useState({
         targetStudentId: '',
         targetVoteId: '',
