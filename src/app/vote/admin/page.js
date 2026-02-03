@@ -39,7 +39,7 @@ export default function AdminPage() {
     const [error, setError] = useState('');
 
     const [view, setView] = useState('DASHBOARD');
-    const [dashboardFilter, setDashboardFilter] = useState('ACTIVE');
+    const [dashboardFilter, setDashboardFilter] = useState('ALL');
     const [votes, setVotes] = useState([]);
     const [selectedVote, setSelectedVote] = useState(null);
     const [voteRecords, setVoteRecords] = useState([]);
@@ -855,10 +855,10 @@ export default function AdminPage() {
                                                     <td className="px-6 py-4 text-right space-x-2 flex justify-end">
                                                         <button
                                                             onClick={() => handleResetStudentVotes(student)}
-                                                            className="text-gray-500 hover:bg-gray-100 px-2 py-1.5 rounded"
+                                                            className="text-gray-500 hover:bg-gray-100 px-3 py-1.5 rounded font-medium border border-transparent hover:border-gray-200"
                                                             title="투표 기록 초기화"
                                                         >
-                                                            <StopCircle size={16} />
+                                                            초기화
                                                         </button>
                                                         <button
                                                             onClick={() => handleStudentDetails(student)}
