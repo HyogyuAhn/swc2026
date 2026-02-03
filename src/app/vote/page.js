@@ -39,7 +39,7 @@ export default function VotePage() {
 
         const poller = setInterval(() => {
             fetchVotesData(localStorage.getItem('swc_vote_student_id'));
-        }, 5000);
+        }, 2000);
 
         return () => {
             clearInterval(timer);
@@ -109,9 +109,15 @@ export default function VotePage() {
                 .from('students')
                 .select('is_suspended')
                 .eq('student_id', idToCheck)
-                .single();
+                .maybeSingle();
 
-            if (studentData?.is_suspended) {
+            if (!studentData) {
+                alert('등록되지 않은 학번입니다.\n자동으로 로그아웃됩니다.');
+                handleLogout();
+                return;
+            }
+
+            if (studentData.is_suspended) {
                 alert('정지되어있는 학번입니다.\n새터준비위원회에게 문의해주세요.');
                 handleLogout();
                 return;
@@ -375,7 +381,7 @@ export default function VotePage() {
                                                                     <div className="flex justify-between items-end mb-1">
                                                                         <span className="text-xs font-bold text-blue-800">전체 투표율</span>
                                                                         <span className="text-xs font-bold text-blue-600">
-                                                                            {Math.round((totalVotes / totalStudents) * 100)}% ({totalVotes}/{totalStudents})
+                                                                            {Math.round((totalVotes / totalStudents) * 100)}%
                                                                         </span>
                                                                     </div>
                                                                     <div className="h-2 bg-blue-100 rounded-full overflow-hidden">

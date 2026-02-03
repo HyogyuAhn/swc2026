@@ -192,6 +192,7 @@ export default function AdminPage() {
 
         if (!error) {
             setVoteRecords(prev => prev.map(r => r.id === recordId ? { ...r, is_valid: !currentStatus } : r));
+            setStudentHistory(prev => prev.map(r => r.id === recordId ? { ...r, is_valid: !currentStatus } : r));
             fetchVotes();
         }
     };
@@ -507,9 +508,26 @@ export default function AdminPage() {
                         <LayoutDashboard size={20} /> ADMIN
                     </h1>
                 </div>
-                <div className="p-4 border-b border-gray-100 flex justify-between items-center bg-gray-50">
-                    <span className="text-xs font-bold text-gray-500">LIST VIEW</span>
-                    <button onClick={startCreate} className="p-1 bg-white border rounded hover:bg-blue-50 text-blue-600">
+                <div className="p-4 border-b border-gray-100 space-y-2">
+                    <button
+                        onClick={() => setView('DASHBOARD')}
+                        className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl font-bold transition-all text-sm
+                        ${view === 'DASHBOARD' ? 'bg-blue-600 text-white shadow-md' : 'bg-gray-50 text-gray-600 hover:bg-gray-100'}`}
+                    >
+                        <LayoutDashboard size={18} /> 대시보드
+                    </button>
+                    <button
+                        onClick={() => { fetchStudents(); setView('STUDENTS'); }}
+                        className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl font-bold transition-all text-sm
+                        ${view === 'STUDENTS' ? 'bg-blue-600 text-white shadow-md' : 'bg-gray-50 text-gray-600 hover:bg-gray-100'}`}
+                    >
+                        <Users size={18} /> 학번(유권자) 관리
+                    </button>
+                </div>
+
+                <div className="p-4 border-b border-gray-100 flex justify-between items-center bg-white">
+                    <span className="text-xs font-bold text-gray-500">투표 목록 (LIST VIEW)</span>
+                    <button onClick={startCreate} className="p-1 bg-blue-50 border border-blue-100 rounded hover:bg-blue-100 text-blue-600">
                         <Plus size={16} />
                     </button>
                 </div>
@@ -531,13 +549,6 @@ export default function AdminPage() {
                         );
 
                     })}
-                </div>
-
-                <div className="p-4 border-t border-gray-100 bg-gray-50 flex justify-between items-center">
-                    <span className="text-xs font-bold text-gray-500">STUDENT VIEW</span>
-                    <button onClick={() => { fetchStudents(); setView('STUDENTS'); }} className="p-1 bg-white border rounded hover:bg-blue-50 text-blue-600">
-                        <Users size={16} />
-                    </button>
                 </div>
 
                 <div className="p-4 border-t">
