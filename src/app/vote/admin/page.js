@@ -263,7 +263,21 @@ export default function AdminPage() {
     };
 
     const handleDeleteStudent = async (id) => {
-        if (!confirm(`${id} 학번을 정말 삭제하시겠습니까?\n관련된 모든 투표 기록이 함께 삭제될 수 있습니다.`)) return;
+        if (!confirm(`${id} 학번을 삭제하시겠습니까?`)) return;
+
+        const deleteHistory = confirm(`${id} 학번의 투표 기록도 모두 삭제하시겠습니까?\n\n[확인]: 학생 + 투표기록 모두 삭제 (초기화)\n[취소]: 학생만 삭제 (기록 유지, 재등록 시 복구됨)`);
+
+        if (deleteHistory) {
+            const { error: historyError } = await supabase
+                .from('vote_records')
+                .delete()
+                .eq('student_id', id);
+
+            if (historyError) {
+                alert('투표 기록 삭제 실패: ' + historyError.message);
+                return;
+            }
+        }
 
         const { error } = await supabase
             .from('students')
@@ -271,7 +285,10 @@ export default function AdminPage() {
             .eq('student_id', id);
 
         if (error) alert('삭제 실패: ' + error.message);
-        else fetchStudents();
+        else {
+            alert(deleteHistory ? '학생 및 투표 기록이 삭제되었습니다.' : '학생 계정이 삭제되었습니다. (투표 기록 유지)');
+            fetchStudents();
+        }
     };
 
     const handleStudentDetails = async (student) => {
@@ -521,12 +538,12 @@ export default function AdminPage() {
                         className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl font-bold transition-all text-sm
                         ${view === 'STUDENTS' ? 'bg-blue-600 text-white shadow-md' : 'bg-gray-50 text-gray-600 hover:bg-gray-100'}`}
                     >
-                        <Users size={18} /> 학번(유권자) 관리
+                        <Users size={18} /> 학번 관리
                     </button>
                 </div>
 
                 <div className="p-4 border-b border-gray-100 flex justify-between items-center bg-white">
-                    <span className="text-xs font-bold text-gray-500">투표 목록 (LIST VIEW)</span>
+                    <span className="text-xs font-bold text-gray-500">투표 목록</span>
                     <button onClick={startCreate} className="p-1 bg-blue-50 border border-blue-100 rounded hover:bg-blue-100 text-blue-600">
                         <Plus size={16} />
                     </button>
