@@ -307,10 +307,8 @@ export default function VotePage() {
                             const isLive = status === 'ACTIVE';
                             const isEnded = status === 'ENDED';
 
-                            const showTotal = (isLive && (vote.live_result_show_total ?? true)) || (isEnded && (vote.final_result_show_total ?? true));
-                            const showTurnout = (isLive && vote.live_result_show_turnout && totalStudents > 0) || (isEnded && vote.final_result_show_turnout && totalStudents > 0);
-
-                            const totalVotes = voteCounts[vote.id]?.total || 0;
+                            const totalConfig = isLive ? (vote.live_result_show_total ?? true) : (vote.final_result_show_total ?? true);
+                            const turnoutConfig = isLive ? (vote.live_result_show_turnout ?? false) : (vote.final_result_show_turnout ?? false);
 
                             return (
                                 <div key={vote.id} className={`bg-white rounded-2xl shadow-sm border overflow-hidden transition-all
@@ -359,9 +357,9 @@ export default function VotePage() {
                                         ) : (
                                             <div className="space-y-6">
                                                 {/* Global Stats Area (Total & Turnout) */}
-                                                {(showTotal || showTurnout) && (
+                                                {(totalConfig || (turnoutConfig && totalStudents > 0)) && (
                                                     <div>
-                                                        {showTotal && (
+                                                        {totalConfig && (
                                                             <div className="flex justify-between items-end mb-3">
                                                                 <h3 className="font-bold text-gray-700 flex items-center gap-2">
                                                                     <BarChart2 size={18} /> 투표 현황
@@ -369,7 +367,7 @@ export default function VotePage() {
                                                                 <span className="text-sm text-gray-500 font-medium">총 {totalVotes}명 참여</span>
                                                             </div>
                                                         )}
-                                                        {showTurnout && (
+                                                        {turnoutConfig && totalStudents > 0 && (
                                                             <div className="mb-4 p-3 bg-blue-50/50 rounded-xl border border-blue-100">
                                                                 <div className="flex justify-between items-end mb-1">
                                                                     <span className="text-xs font-bold text-blue-800">전체 투표율</span>

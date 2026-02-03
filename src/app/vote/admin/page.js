@@ -1280,7 +1280,7 @@ export default function AdminPage() {
 
                                             {/* Summary Stats - Always Visible */}
                                             <div className="mb-4 space-y-2 p-3 bg-gray-50 rounded-lg border border-gray-100">
-                                                <div className="text-xs font-bold text-gray-500 mb-2">전체 통계 설정 (항상 적용)</div>
+                                                <div className="text-xs font-bold text-gray-500 mb-2">전체 통계 설정</div>
                                                 <label className="flex items-center cursor-pointer group">
                                                     <div className={`w-4 h-4 rounded border flex items-center justify-center mr-2 transition-colors ${formData.finalResultShowTotal ? 'bg-blue-500 border-blue-500' : 'bg-white border-gray-300'}`}>
                                                         {formData.finalResultShowTotal && <CheckCircle size={10} className="text-white" />}
