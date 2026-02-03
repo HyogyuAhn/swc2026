@@ -310,6 +310,8 @@ export default function VotePage() {
                             const totalConfig = isLive ? (vote.live_result_show_total ?? true) : (vote.final_result_show_total ?? true);
                             const turnoutConfig = isLive ? (vote.live_result_show_turnout ?? true) : (vote.final_result_show_turnout ?? true);
 
+                            const totalVotes = voteCounts[vote.id]?.total || 0;
+
                             return (
                                 <div key={vote.id} className={`bg-white rounded-2xl shadow-sm border overflow-hidden transition-all
                         ${status === 'ACTIVE' ? 'border-blue-200 ring-1 ring-blue-100' : 'border-gray-200 opacity-90 hover:opacity-100'}`}>
@@ -318,7 +320,7 @@ export default function VotePage() {
                                     <div className="p-6 border-b border-gray-100 flex justify-between items-start gap-4">
                                         <div>
                                             <div className="flex items-center gap-2 mb-2">
-                                                {vote.is_pinned === true && (
+                                                {!!vote.is_pinned && (
                                                     <span className="flex items-center gap-1 text-xs font-bold text-indigo-700 bg-indigo-100 px-2.5 py-0.5 rounded-full ring-1 ring-indigo-200">
                                                         <Pin size={14} className="fill-current" /> 고정됨
                                                     </span>
