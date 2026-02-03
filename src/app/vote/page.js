@@ -304,6 +304,12 @@ export default function VotePage() {
                             const visibleResults = (status === 'ACTIVE' && vote.show_live_results) ||
                                 (status === 'ENDED' && vote.show_final_results);
 
+                            const isLive = status === 'ACTIVE';
+                            const isEnded = status === 'ENDED';
+
+                            const showTotal = (isLive && (vote.live_result_show_total ?? true)) || (isEnded && (vote.final_result_show_total ?? true));
+                            const showTurnout = (isLive && vote.live_result_show_turnout && totalStudents > 0) || (isEnded && vote.final_result_show_turnout && totalStudents > 0);
+
                             const totalVotes = voteCounts[vote.id]?.total || 0;
 
                             return (
@@ -351,83 +357,84 @@ export default function VotePage() {
                                                 </div>
                                             </div>
                                         ) : (
-                                            <div className="space-y-4">
-                                                {status === 'ENDED' && !vote.show_final_results ? (
-                                                    <div className="bg-gray-50 rounded-xl p-5 text-center border border-gray-100">
-                                                        <p className="font-bold text-gray-600">결과가 비공개 되어 있습니다!</p>
-                                                        <p className="text-sm text-gray-400 mt-1">투표 결과는 추후 공개될 예정입니다.</p>
-                                                    </div>
-                                                ) : (status === 'ACTIVE' && isVoted && !vote.show_live_results) ? (
-                                                    <div className="bg-gray-50 rounded-xl p-5 text-center border border-gray-100">
-                                                        <p className="font-bold text-blue-600">투표가 완료되었습니다!</p>
-                                                        <p className="text-sm text-gray-400 mt-1">투표가 종료된 후 결과가 공개됩니다.</p>
-                                                    </div>
-                                                ) : visibleResults && (
-                                                    <div className="mb-6">
-                                                        {((status === 'ACTIVE' && (vote.live_result_show_total ?? true)) ||
-                                                            (status === 'ENDED' && (vote.final_result_show_total ?? true))) && (
-                                                                <div className="flex justify-between items-end mb-3">
-                                                                    <h3 className="font-bold text-gray-700 flex items-center gap-2">
-                                                                        <BarChart2 size={18} /> 투표 현황
-                                                                    </h3>
-                                                                    <span className="text-sm text-gray-500 font-medium">총 {totalVotes}명 참여</span>
+                                            <div className="space-y-6">
+                                                {/* Global Stats Area (Total & Turnout) */}
+                                                {(showTotal || showTurnout) && (
+                                                    <div>
+                                                        {showTotal && (
+                                                            <div className="flex justify-between items-end mb-3">
+                                                                <h3 className="font-bold text-gray-700 flex items-center gap-2">
+                                                                    <BarChart2 size={18} /> 투표 현황
+                                                                </h3>
+                                                                <span className="text-sm text-gray-500 font-medium">총 {totalVotes}명 참여</span>
+                                                            </div>
+                                                        )}
+                                                        {showTurnout && (
+                                                            <div className="mb-4 p-3 bg-blue-50/50 rounded-xl border border-blue-100">
+                                                                <div className="flex justify-between items-end mb-1">
+                                                                    <span className="text-xs font-bold text-blue-800">전체 투표율</span>
+                                                                    <span className="text-xs font-bold text-blue-600">
+                                                                        {Math.round((totalVotes / totalStudents) * 100)}%
+                                                                    </span>
                                                                 </div>
-                                                            )}
+                                                                <div className="h-2 bg-blue-100 rounded-full overflow-hidden">
+                                                                    <div
+                                                                        className="h-full bg-blue-500 rounded-full transition-all duration-1000"
+                                                                        style={{ width: `${Math.min(100, (totalVotes / totalStudents) * 100)}%` }}
+                                                                    ></div>
+                                                                </div>
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                )}
 
-                                                        {/* Turnout Gauge */}
-                                                        {((status === 'ACTIVE' && vote.live_result_show_turnout && totalStudents > 0) ||
-                                                            (status === 'ENDED' && vote.final_result_show_turnout && totalStudents > 0)) && (
-                                                                <div className="mb-4 p-3 bg-blue-50/50 rounded-xl border border-blue-100">
-                                                                    <div className="flex justify-between items-end mb-1">
-                                                                        <span className="text-xs font-bold text-blue-800">전체 투표율</span>
-                                                                        <span className="text-xs font-bold text-blue-600">
-                                                                            {Math.round((totalVotes / totalStudents) * 100)}%
+                                                {/* Detailed Options or Hidden Message */}
+                                                {!visibleResults ? (
+                                                    ((status === 'ENDED') || (status === 'ACTIVE' && isVoted)) && (
+                                                        <div className="bg-gray-50 rounded-xl p-5 text-center border border-gray-100">
+                                                            <p className="font-bold text-gray-600">
+                                                                {status === 'ENDED' ? '결과가 비공개 되어 있습니다!' : '투표가 완료되었습니다!'}
+                                                            </p>
+                                                            <p className="text-sm text-gray-400 mt-1">
+                                                                {status === 'ENDED' ? '투표 결과는 추후 공개될 예정입니다.' : '투표가 종료된 후 결과가 공개됩니다.'}
+                                                            </p>
+                                                        </div>
+                                                    )
+                                                ) : (
+                                                    <div className="space-y-3">
+                                                        {vote.vote_options.map(opt => {
+                                                            const count = voteCounts[vote.id]?.[opt.id] || 0;
+                                                            const percent = totalVotes === 0 ? 0 : Math.round((count / totalVotes) * 100);
+
+                                                            const type = status === 'ACTIVE'
+                                                                ? (vote.live_result_type || 'ALL')
+                                                                : (vote.final_result_type || 'ALL');
+
+                                                            const showCount = type === 'ALL' || type === 'BOTH' || type.includes('COUNT');
+                                                            const showPercent = type === 'ALL' || type === 'BOTH' || type.includes('PERCENT');
+                                                            const showGauge = type === 'ALL' || type === 'BOTH' || type.includes('GAUGE');
+
+                                                            return (
+                                                                <div key={opt.id} className="relative">
+                                                                    <div className="flex justify-between text-sm mb-1 px-1">
+                                                                        <span className="font-medium text-gray-700">{opt.name}</span>
+                                                                        <span className="font-bold text-gray-900">
+                                                                            {showPercent && showCount && `${percent}% (${count}표)`}
+                                                                            {showPercent && !showCount && `${percent}%`}
+                                                                            {!showPercent && showCount && `${count}표`}
                                                                         </span>
                                                                     </div>
-                                                                    <div className="h-2 bg-blue-100 rounded-full overflow-hidden">
-                                                                        <div
-                                                                            className="h-full bg-blue-500 rounded-full transition-all duration-1000"
-                                                                            style={{ width: `${Math.min(100, (totalVotes / totalStudents) * 100)}%` }}
-                                                                        ></div>
-                                                                    </div>
-                                                                </div>
-                                                            )}
-
-                                                        <div className="space-y-3">
-                                                            {vote.vote_options.map(opt => {
-                                                                const count = voteCounts[vote.id]?.[opt.id] || 0;
-                                                                const percent = totalVotes === 0 ? 0 : Math.round((count / totalVotes) * 100);
-
-                                                                const type = status === 'ACTIVE'
-                                                                    ? (vote.live_result_type || 'ALL')
-                                                                    : (vote.final_result_type || 'ALL');
-
-                                                                const showCount = type === 'ALL' || type === 'BOTH' || type.includes('COUNT');
-                                                                const showPercent = type === 'ALL' || type === 'BOTH' || type.includes('PERCENT');
-                                                                const showGauge = type === 'ALL' || type === 'BOTH' || type.includes('GAUGE');
-
-                                                                return (
-                                                                    <div key={opt.id} className="relative">
-                                                                        <div className="flex justify-between text-sm mb-1 px-1">
-                                                                            <span className="font-medium text-gray-700">{opt.name}</span>
-                                                                            <span className="font-bold text-gray-900">
-                                                                                {showPercent && showCount && `${percent}% (${count}표)`}
-                                                                                {showPercent && !showCount && `${percent}%`}
-                                                                                {!showPercent && showCount && `${count}표`}
-                                                                            </span>
+                                                                    {showGauge && (
+                                                                        <div className="h-2.5 bg-gray-100 rounded-full overflow-hidden">
+                                                                            <div
+                                                                                className={`h-full rounded-full transition-all duration-1000 ${percent > 0 ? 'bg-blue-500' : 'bg-transparent'}`}
+                                                                                style={{ width: `${percent}%` }}
+                                                                            ></div>
                                                                         </div>
-                                                                        {showGauge && (
-                                                                            <div className="h-2.5 bg-gray-100 rounded-full overflow-hidden">
-                                                                                <div
-                                                                                    className={`h-full rounded-full transition-all duration-1000 ${percent > 0 ? 'bg-blue-500' : 'bg-transparent'}`}
-                                                                                    style={{ width: `${percent}%` }}
-                                                                                ></div>
-                                                                            </div>
-                                                                        )}
-                                                                    </div>
-                                                                );
-                                                            })}
-                                                        </div>
+                                                                    )}
+                                                                </div>
+                                                            );
+                                                        })}
                                                     </div>
                                                 )}
 

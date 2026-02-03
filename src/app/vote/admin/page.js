@@ -1181,6 +1181,25 @@ export default function AdminPage() {
                                                 })}
                                             </div>
 
+                                            {/* Summary Stats - Always Visible */}
+                                            <div className="mb-4 space-y-2 p-3 bg-gray-50 rounded-lg border border-gray-100">
+                                                <div className="text-xs font-bold text-gray-500 mb-2">전체 통계 설정 (항상 적용)</div>
+                                                <label className="flex items-center cursor-pointer group">
+                                                    <div className={`w-4 h-4 rounded border flex items-center justify-center mr-2 transition-colors ${formData.liveResultShowTotal ? 'bg-blue-500 border-blue-500' : 'bg-white border-gray-300'}`}>
+                                                        {formData.liveResultShowTotal && <CheckCircle size={10} className="text-white" />}
+                                                    </div>
+                                                    <input type="checkbox" className="hidden" checked={formData.liveResultShowTotal} onChange={e => setFormData({ ...formData, liveResultShowTotal: e.target.checked })} />
+                                                    <span className="text-sm text-gray-600 font-medium">참여 인원수 표시</span>
+                                                </label>
+                                                <label className="flex items-center cursor-pointer group">
+                                                    <div className={`w-4 h-4 rounded border flex items-center justify-center mr-2 transition-colors ${formData.liveResultShowTurnout ? 'bg-blue-500 border-blue-500' : 'bg-white border-gray-300'}`}>
+                                                        {formData.liveResultShowTurnout && <CheckCircle size={10} className="text-white" />}
+                                                    </div>
+                                                    <input type="checkbox" className="hidden" checked={formData.liveResultShowTurnout} onChange={e => setFormData({ ...formData, liveResultShowTurnout: e.target.checked })} />
+                                                    <span className="text-sm text-gray-600 font-medium">총 투표율 표시 (게이지)</span>
+                                                </label>
+                                            </div>
+
                                             {formData.showLiveResults && formData.liveResultType !== 'ALL' && (
                                                 <div className="space-y-3 pt-2 border-t border-blue-100 animate-fadeIn">
                                                     <div className="text-xs font-bold text-gray-500 mb-2">항목별 표시 설정 (1개 이상 선택)</div>
@@ -1214,23 +1233,7 @@ export default function AdminPage() {
                                                             )
                                                         })}
                                                     </div>
-                                                    <div className="text-xs font-bold text-gray-500 mt-3 mb-2">전체 통계 설정</div>
-                                                    <div className="space-y-2">
-                                                        <label className="flex items-center cursor-pointer group">
-                                                            <div className={`w-4 h-4 rounded border flex items-center justify-center mr-2 transition-colors ${formData.liveResultShowTotal ? 'bg-blue-500 border-blue-500' : 'bg-white border-gray-300'}`}>
-                                                                {formData.liveResultShowTotal && <CheckCircle size={10} className="text-white" />}
-                                                            </div>
-                                                            <input type="checkbox" className="hidden" checked={formData.liveResultShowTotal} onChange={e => setFormData({ ...formData, liveResultShowTotal: e.target.checked })} />
-                                                            <span className="text-sm text-gray-600 font-medium">참여 인원수 표시</span>
-                                                        </label>
-                                                        <label className="flex items-center cursor-pointer group">
-                                                            <div className={`w-4 h-4 rounded border flex items-center justify-center mr-2 transition-colors ${formData.liveResultShowTurnout ? 'bg-blue-500 border-blue-500' : 'bg-white border-gray-300'}`}>
-                                                                {formData.liveResultShowTurnout && <CheckCircle size={10} className="text-white" />}
-                                                            </div>
-                                                            <input type="checkbox" className="hidden" checked={formData.liveResultShowTurnout} onChange={e => setFormData({ ...formData, liveResultShowTurnout: e.target.checked })} />
-                                                            <span className="text-sm text-gray-600 font-medium">총 투표율 표시 (게이지)</span>
-                                                        </label>
-                                                    </div>
+
                                                 </div>
                                             )}
                                         </div>
@@ -1274,9 +1277,29 @@ export default function AdminPage() {
                                                     );
                                                 })}
                                             </div>
+
+                                            {/* Summary Stats - Always Visible */}
+                                            <div className="mb-4 space-y-2 p-3 bg-gray-50 rounded-lg border border-gray-100">
+                                                <div className="text-xs font-bold text-gray-500 mb-2">전체 통계 설정 (항상 적용)</div>
+                                                <label className="flex items-center cursor-pointer group">
+                                                    <div className={`w-4 h-4 rounded border flex items-center justify-center mr-2 transition-colors ${formData.finalResultShowTotal ? 'bg-blue-500 border-blue-500' : 'bg-white border-gray-300'}`}>
+                                                        {formData.finalResultShowTotal && <CheckCircle size={10} className="text-white" />}
+                                                    </div>
+                                                    <input type="checkbox" className="hidden" checked={formData.finalResultShowTotal} onChange={e => setFormData({ ...formData, finalResultShowTotal: e.target.checked })} />
+                                                    <span className="text-sm text-gray-600 font-medium">참여 인원수 표시</span>
+                                                </label>
+                                                <label className="flex items-center cursor-pointer group">
+                                                    <div className={`w-4 h-4 rounded border flex items-center justify-center mr-2 transition-colors ${formData.finalResultShowTurnout ? 'bg-blue-500 border-blue-500' : 'bg-white border-gray-300'}`}>
+                                                        {formData.finalResultShowTurnout && <CheckCircle size={10} className="text-white" />}
+                                                    </div>
+                                                    <input type="checkbox" className="hidden" checked={formData.finalResultShowTurnout} onChange={e => setFormData({ ...formData, finalResultShowTurnout: e.target.checked })} />
+                                                    <span className="text-sm text-gray-600 font-medium">총 투표율 표시 (게이지)</span>
+                                                </label>
+                                            </div>
+
                                             {formData.showFinalResults && formData.finalResultType !== 'ALL' && (
                                                 <div className="space-y-3 pt-2 border-t border-blue-100 animate-fadeIn">
-                                                    <div className="text-xs font-bold text-gray-500 mb-2">항목별 표시 설정 (1개 이상 선택)</div>
+                                                    <div className="text-xs font-bold text-gray-500 mb-2">항목별 표시 설정</div>
                                                     <div className="flex flex-wrap gap-2">
                                                         {[
                                                             { id: 'COUNT', label: '투표수' },
@@ -1306,23 +1329,6 @@ export default function AdminPage() {
                                                                 </button>
                                                             )
                                                         })}
-                                                    </div>
-                                                    <div className="text-xs font-bold text-gray-500 mt-3 mb-2">전체 통계 설정</div>
-                                                    <div className="space-y-2">
-                                                        <label className="flex items-center cursor-pointer group">
-                                                            <div className={`w-4 h-4 rounded border flex items-center justify-center mr-2 transition-colors ${formData.finalResultShowTotal ? 'bg-blue-500 border-blue-500' : 'bg-white border-gray-300'}`}>
-                                                                {formData.finalResultShowTotal && <CheckCircle size={10} className="text-white" />}
-                                                            </div>
-                                                            <input type="checkbox" className="hidden" checked={formData.finalResultShowTotal} onChange={e => setFormData({ ...formData, finalResultShowTotal: e.target.checked })} />
-                                                            <span className="text-sm text-gray-600 font-medium">참여 인원수 표시</span>
-                                                        </label>
-                                                        <label className="flex items-center cursor-pointer group">
-                                                            <div className={`w-4 h-4 rounded border flex items-center justify-center mr-2 transition-colors ${formData.finalResultShowTurnout ? 'bg-blue-500 border-blue-500' : 'bg-white border-gray-300'}`}>
-                                                                {formData.finalResultShowTurnout && <CheckCircle size={10} className="text-white" />}
-                                                            </div>
-                                                            <input type="checkbox" className="hidden" checked={formData.finalResultShowTurnout} onChange={e => setFormData({ ...formData, finalResultShowTurnout: e.target.checked })} />
-                                                            <span className="text-sm text-gray-600 font-medium">총 투표율 표시 (게이지)</span>
-                                                        </label>
                                                     </div>
                                                 </div>
                                             )}
