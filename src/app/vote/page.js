@@ -399,25 +399,31 @@ export default function VotePage() {
                                                                 const percent = totalVotes === 0 ? 0 : Math.round((count / totalVotes) * 100);
 
                                                                 const type = status === 'ACTIVE'
-                                                                    ? (vote.live_result_type || 'BOTH')
-                                                                    : (vote.final_result_type || 'BOTH');
+                                                                    ? (vote.live_result_type || 'ALL')
+                                                                    : (vote.final_result_type || 'ALL');
+
+                                                                const showCount = type === 'ALL' || type === 'BOTH' || type.includes('COUNT');
+                                                                const showPercent = type === 'ALL' || type === 'BOTH' || type.includes('PERCENT');
+                                                                const showGauge = type === 'ALL' || type === 'BOTH' || type.includes('GAUGE');
 
                                                                 return (
                                                                     <div key={opt.id} className="relative">
                                                                         <div className="flex justify-between text-sm mb-1 px-1">
                                                                             <span className="font-medium text-gray-700">{opt.name}</span>
                                                                             <span className="font-bold text-gray-900">
-                                                                                {type === 'BOTH' && `${percent}% (${count}표)`}
-                                                                                {type === 'PERCENT' && `${percent}%`}
-                                                                                {type === 'COUNT' && `${count}표`}
+                                                                                {showPercent && showCount && `${percent}% (${count}표)`}
+                                                                                {showPercent && !showCount && `${percent}%`}
+                                                                                {!showPercent && showCount && `${count}표`}
                                                                             </span>
                                                                         </div>
-                                                                        <div className="h-2.5 bg-gray-100 rounded-full overflow-hidden">
-                                                                            <div
-                                                                                className={`h-full rounded-full transition-all duration-1000 ${percent > 0 ? 'bg-blue-500' : 'bg-transparent'}`}
-                                                                                style={{ width: `${percent}%` }}
-                                                                            ></div>
-                                                                        </div>
+                                                                        {showGauge && (
+                                                                            <div className="h-2.5 bg-gray-100 rounded-full overflow-hidden">
+                                                                                <div
+                                                                                    className={`h-full rounded-full transition-all duration-1000 ${percent > 0 ? 'bg-blue-500' : 'bg-transparent'}`}
+                                                                                    style={{ width: `${percent}%` }}
+                                                                                ></div>
+                                                                            </div>
+                                                                        )}
                                                                     </div>
                                                                 );
                                                             })}
