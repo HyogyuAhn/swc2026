@@ -223,7 +223,7 @@ export default function VotePage() {
             <div className="min-h-screen flex flex-col items-center justify-center p-6 bg-gradient-to-br from-blue-50 to-white">
                 <div className="max-w-md w-full bg-white p-8 rounded-2xl shadow-xl border border-blue-50">
                     <div className="text-center mb-8">
-                        <h1 className="text-3xl font-extrabold text-blue-900 mb-2">SW융합대학 투표시스템</h1>
+                        <h1 className="text-3xl font-extrabold text-blue-900 mb-2">소프트웨어융합대학 투표시스템</h1>
                         <p className="text-gray-500">2026 새내기배움터</p>
                     </div>
                     <form onSubmit={handleLogin} className="space-y-4">
@@ -241,7 +241,7 @@ export default function VotePage() {
                             type="submit"
                             className="w-full py-4 bg-blue-600 text-white rounded-xl font-bold text-lg hover:bg-blue-700 hover:shadow-lg hover:-translate-y-0.5 transition-all"
                         >
-                            입장하기
+                            입장
                         </button>
                     </form>
                 </div>
@@ -254,7 +254,7 @@ export default function VotePage() {
             {/* Header */}
             <header className="bg-white border-b sticky top-0 z-10 shadow-sm">
                 <div className="max-w-4xl mx-auto px-6 py-4 flex justify-between items-center">
-                    <h1 className="font-bold text-xl text-blue-900">INHA SW VOTE</h1>
+                    <h1 className="font-bold text-xl text-blue-900">소프트웨어융합대학 투표</h1>
                     <div className="flex items-center gap-4">
                         <div className="flex items-center gap-2 text-gray-600 bg-gray-100 px-3 py-1.5 rounded-full text-sm">
                             <User size={16} />
@@ -318,7 +318,11 @@ export default function VotePage() {
                                     <div className="p-6 border-b border-gray-100 flex justify-between items-start gap-4">
                                         <div>
                                             <div className="flex items-center gap-2 mb-2">
-                                                {vote.is_pinned && <span className="flex items-center gap-1 text-xs font-bold text-indigo-700 bg-indigo-100 px-2.5 py-0.5 rounded-full"><Pin size={10} className="fill-current" /> 고정됨</span>}
+                                                {vote.is_pinned === true && (
+                                                    <span className="flex items-center gap-1 text-xs font-bold text-indigo-700 bg-indigo-100 px-2.5 py-0.5 rounded-full ring-1 ring-indigo-200">
+                                                        <Pin size={14} className="fill-current" /> 고정됨
+                                                    </span>
+                                                )}
                                                 <span className={`px-2.5 py-0.5 rounded-full text-xs font-bold
                                         ${status === 'ACTIVE' ? 'bg-green-100 text-green-700' :
                                                         status === 'UPCOMING' ? 'bg-yellow-100 text-yellow-700' : 'bg-gray-100 text-gray-600'}`}>
@@ -358,7 +362,7 @@ export default function VotePage() {
                                         ) : (
                                             <div className="space-y-6">
                                                 {/* Global Stats Area (Total & Turnout) */}
-                                                {(totalConfig || (turnoutConfig && totalStudents > 0)) && (
+                                                {(totalConfig || turnoutConfig) && (
                                                     <div>
                                                         {totalConfig && (
                                                             <div className="flex justify-between items-end mb-3">
@@ -368,18 +372,19 @@ export default function VotePage() {
                                                                 <span className="text-sm text-gray-500 font-medium">총 {totalVotes}명 참여</span>
                                                             </div>
                                                         )}
-                                                        {turnoutConfig && totalStudents > 0 && (
+                                                        {turnoutConfig && (
                                                             <div className="mb-4 p-3 bg-blue-50/50 rounded-xl border border-blue-100">
                                                                 <div className="flex justify-between items-end mb-1">
                                                                     <span className="text-xs font-bold text-blue-800">전체 투표율</span>
                                                                     <span className="text-xs font-bold text-blue-600">
-                                                                        {Math.round((totalVotes / totalStudents) * 100)}%
+                                                                        {totalStudents > 0 ? Math.round((totalVotes / totalStudents) * 100) : 0}%
+                                                                        {totalStudents === 0 && <span className="ml-1 text-[10px] text-gray-400 font-normal">(학생 데이터 없음)</span>}
                                                                     </span>
                                                                 </div>
                                                                 <div className="h-2 bg-blue-100 rounded-full overflow-hidden">
                                                                     <div
                                                                         className="h-full bg-blue-500 rounded-full transition-all duration-1000"
-                                                                        style={{ width: `${Math.min(100, (totalVotes / totalStudents) * 100)}%` }}
+                                                                        style={{ width: `${totalStudents > 0 ? Math.min(100, (totalVotes / totalStudents) * 100) : 0}%` }}
                                                                     ></div>
                                                                 </div>
                                                             </div>
