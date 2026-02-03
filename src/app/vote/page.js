@@ -17,8 +17,9 @@ export default function VotePage() {
     const [filteredVotes, setFilteredVotes] = useState([]);
     const [userVotes, setUserVotes] = useState(new Set());
     const [voteCounts, setVoteCounts] = useState({});
+    const [totalStudents, setTotalStudents] = useState(0);
 
-    const [filter, setFilter] = useState('ACTIVE');
+    const [filter, setFilter] = useState('ALL');
     const [selectedOption, setSelectedOption] = useState(null);
     const [loading, setLoading] = useState(true);
     const [currentTime, setCurrentTime] = useState(new Date());
@@ -84,6 +85,9 @@ export default function VotePage() {
         if (votesData) {
             setVotes(votesData);
 
+            const { count } = await supabase.from('students').select('*', { count: 'exact', head: true });
+            if (count !== null) setTotalStudents(count);
+
             const { data: records } = await supabase.from('vote_records').select('vote_id, option_id').eq('is_valid', true);
 
             if (records) {
@@ -101,6 +105,18 @@ export default function VotePage() {
 
         const idToCheck = currentId || studentId || localStorage.getItem('swc_vote_student_id');
         if (idToCheck) {
+            const { data: studentData } = await supabase
+                .from('students')
+                .select('is_suspended')
+                .eq('student_id', idToCheck)
+                .single();
+
+            if (studentData?.is_suspended) {
+                alert('정지되어있는 학번입니다.\n새터준비위원회에게 문의해주세요.');
+                handleLogout();
+                return;
+            }
+
             const { data: myVotes } = await supabase
                 .from('vote_records')
                 .select('vote_id')
@@ -114,9 +130,26 @@ export default function VotePage() {
         setLoading(false);
     };
 
-    const handleLogin = (e) => {
+    const handleLogin = async (e) => {
         e.preventDefault();
         if (!studentId.trim()) return;
+
+        const { data: student, error } = await supabase
+            .from('students')
+            .select('is_suspended')
+            .eq('student_id', studentId)
+            .maybeSingle();
+
+        if (!student) {
+            alert('등록되지 않은 학번입니다.\n새터준비위원회에게 문의해주세요.');
+            return;
+        }
+
+        if (student.is_suspended) {
+            alert('정지되어있는 학번입니다.\n새터준비위원회에게 문의해주세요.');
+            return;
+        }
+
         localStorage.setItem('swc_vote_student_id', studentId);
         setIsLoggedIn(true);
         fetchVotesData(studentId);
@@ -318,6 +351,11 @@ export default function VotePage() {
                                                         <p className="font-bold text-gray-600">결과가 비공개 되어 있습니다!</p>
                                                         <p className="text-sm text-gray-400 mt-1">투표 결과는 추후 공개될 예정입니다.</p>
                                                     </div>
+                                                ) : (status === 'ACTIVE' && isVoted && !vote.show_live_results) ? (
+                                                    <div className="bg-gray-50 rounded-xl p-5 text-center border border-gray-100">
+                                                        <p className="font-bold text-blue-600">투표가 완료되었습니다!</p>
+                                                        <p className="text-sm text-gray-400 mt-1">투표가 종료된 후 결과가 공개됩니다.</p>
+                                                    </div>
                                                 ) : visibleResults && (
                                                     <div className="mb-6">
                                                         {((status === 'ACTIVE' && (vote.live_result_show_total ?? true)) ||
@@ -327,6 +365,25 @@ export default function VotePage() {
                                                                         <BarChart2 size={18} /> 투표 현황
                                                                     </h3>
                                                                     <span className="text-sm text-gray-500 font-medium">총 {totalVotes}명 참여</span>
+                                                                </div>
+                                                            )}
+
+                                                        {/* Turnout Gauge */}
+                                                        {((status === 'ACTIVE' && vote.live_result_show_turnout && totalStudents > 0) ||
+                                                            (status === 'ENDED' && vote.final_result_show_turnout && totalStudents > 0)) && (
+                                                                <div className="mb-4 p-3 bg-blue-50/50 rounded-xl border border-blue-100">
+                                                                    <div className="flex justify-between items-end mb-1">
+                                                                        <span className="text-xs font-bold text-blue-800">전체 투표율</span>
+                                                                        <span className="text-xs font-bold text-blue-600">
+                                                                            {Math.round((totalVotes / totalStudents) * 100)}% ({totalVotes}/{totalStudents})
+                                                                        </span>
+                                                                    </div>
+                                                                    <div className="h-2 bg-blue-100 rounded-full overflow-hidden">
+                                                                        <div
+                                                                            className="h-full bg-blue-500 rounded-full transition-all duration-1000"
+                                                                            style={{ width: `${Math.min(100, (totalVotes / totalStudents) * 100)}%` }}
+                                                                        ></div>
+                                                                    </div>
                                                                 </div>
                                                             )}
 
@@ -397,11 +454,6 @@ export default function VotePage() {
                                                         >
                                                             투표 완료
                                                         </button>
-                                                    </div>
-                                                ) : status === 'ACTIVE' && isVoted ? (
-                                                    <div className="bg-gray-50 p-4 rounded-xl text-center border border-gray-100">
-                                                        <p className="font-bold text-gray-600">이미 투표에 참여하셨습니다.</p>
-                                                        <p className="text-sm text-gray-400">결과가 공개되면 확인하실 수 있습니다.</p>
                                                     </div>
                                                 ) : null}
                                             </div>
