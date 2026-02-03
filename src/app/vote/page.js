@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { createClient } from '@supabase/supabase-js';
-import { LogOut, User, Clock, CheckCircle, BarChart2, AlertCircle, X } from 'lucide-react';
+import { LogOut, User, Clock, CheckCircle, BarChart2, AlertCircle, X, Pin } from 'lucide-react';
 
 const supabase = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -308,7 +308,7 @@ export default function VotePage() {
                             const isEnded = status === 'ENDED';
 
                             const totalConfig = isLive ? (vote.live_result_show_total ?? true) : (vote.final_result_show_total ?? true);
-                            const turnoutConfig = isLive ? (vote.live_result_show_turnout ?? false) : (vote.final_result_show_turnout ?? false);
+                            const turnoutConfig = isLive ? (vote.live_result_show_turnout ?? true) : (vote.final_result_show_turnout ?? true);
 
                             return (
                                 <div key={vote.id} className={`bg-white rounded-2xl shadow-sm border overflow-hidden transition-all
@@ -318,6 +318,7 @@ export default function VotePage() {
                                     <div className="p-6 border-b border-gray-100 flex justify-between items-start gap-4">
                                         <div>
                                             <div className="flex items-center gap-2 mb-2">
+                                                {vote.is_pinned && <span className="flex items-center gap-1 text-xs font-bold text-indigo-700 bg-indigo-100 px-2.5 py-0.5 rounded-full"><Pin size={10} className="fill-current" /> 고정됨</span>}
                                                 <span className={`px-2.5 py-0.5 rounded-full text-xs font-bold
                                         ${status === 'ACTIVE' ? 'bg-green-100 text-green-700' :
                                                         status === 'UPCOMING' ? 'bg-yellow-100 text-yellow-700' : 'bg-gray-100 text-gray-600'}`}>
