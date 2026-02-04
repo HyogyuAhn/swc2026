@@ -6,7 +6,7 @@ export default function Home() {
             <header>
                 <nav>
                     <div class="logo">
-                        <span>INHA SW 2026</span>
+                        <span>인하대학교 소프트웨어융합대학 2026 새내기배움터</span>
                     </div>
                     <ul>
                         <li><Link href="#about">소개</Link></li>
@@ -23,22 +23,22 @@ export default function Home() {
                         <h1>2026 인하대학교<br />소프트웨어융합대학<br />새내기배움터</h1>
                         <p>여러분들의 대학 생활을 응원합니다!</p>
                         <div className="cta-wrapper">
-                            <Link href="/vote" className="cta-button">투표 바로가기</Link>
+                            <Link href="/#prepare" className="cta-button">준비중</Link>
                         </div>
                     </div>
                 </section>
 
                 <section id="about" className="info-section">
                     <div className="container">
-                        <h2>Welcome to INHA SWC</h2>
+                        <h2>소프트웨어융합대학 새내기배움터에 초대합니다.</h2>
                         <div className="grid">
                             <div className="card">
-                                <h3>으악 귀찮아</h3>
-                                <p>선배들과 동기, 더 나아가 소프트웨어융합대학 소속 학우들과 함께 즐거운 시간을 보낼 수 있을까요..?</p>
+                                <h3>일정</h3>
+                                <p>26. 03. 07 ~ 26. 03. 08</p>
                             </div>
                             <div className="card">
-                                <h3>ㅠㅠ</h3>
-                                <p>다양한 레크레이션과 동아리 공연 등 재밌는 활동이 준비되어 있어요.....,,,,,</p>
+                                <h3>장소</h3>
+                                <p>시흥오이도컨벤션</p>
                             </div>
                         </div>
                     </div>
