@@ -33,11 +33,11 @@ export default function Home() {
                         <h2>소프트웨어융합대학 새내기배움터에 초대합니다.</h2>
                         <div className="grid">
                             <div className="card">
-                                <h3>일정</h3>
+                                <h3>🗓️ 일정</h3>
                                 <p>26. 03. 07 ~ 26. 03. 08</p>
                             </div>
                             <div className="card">
-                                <h3>장소</h3>
+                                <h3>📍 장소</h3>
                                 <p>시흥오이도컨벤션</p>
                             </div>
                         </div>
