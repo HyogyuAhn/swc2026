@@ -181,6 +181,8 @@ h2 {
 
 .card p {
     color: #222;
+    font-size: 1rem;
+    text-align: center;
 }
 
 footer {
