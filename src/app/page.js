@@ -45,7 +45,7 @@ export default function Home() {
 
             <footer>
                 <div className="container">
-                    <p>주최  |  인하대학교 제3대 소프트웨어융합대학 학생회    주관  |  인하대학교 소프트웨어융합대학 새터준비위원회</p>
+                    <p>주최  |  인하대학교 제3대 소프트웨어융합대학 학생회  /  주관  |  인하대학교 소프트웨어융합대학 새터준비위원회</p>
                     <p>문의: inha.swc@gmail.com</p>
                 </div>
             </footer>
