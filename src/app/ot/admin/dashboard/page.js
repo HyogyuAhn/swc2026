@@ -16,7 +16,7 @@ export default function AdminDashboard() {
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [editingStudent, setEditingStudent] = useState(null);
     const [filters, setFilters] = useState({
-        feeStatus: 'ALL',
+        verificationStatus: 'ALL',
         otAttendance: 'ALL',
         afterPartyAttendance: 'ALL',
         search: ''
@@ -51,14 +51,14 @@ export default function AdminDashboard() {
         setLoading(true);
         try {
             let query = supabase
-                .from('students')
+                .from('ot_students')
                 .select('*')
                 .eq('department', department)
                 .order('name', { ascending: true });
 
-            if (filters.feeStatus !== 'ALL') {
-                if (filters.feeStatus === 'PAID') query = query.eq('fee_status', 'PAID');
-                else if (filters.feeStatus === 'UNPAID') query = query.in('fee_status', ['UNPAID', 'NON_PARTICIPANT']);
+            if (filters.verificationStatus !== 'ALL') {
+                if (filters.verificationStatus === 'VERIFIED') query = query.eq('verification_status', 'VERIFIED');
+                else if (filters.verificationStatus === 'NOT_VERIFIED') query = query.in('verification_status', ['NOT_VERIFIED']);
             }
 
             if (filters.otAttendance !== 'ALL') {
@@ -92,7 +92,7 @@ export default function AdminDashboard() {
     const handleDelete = async (id) => {
         if (!confirm('정말 이 학생 정보를 삭제하시겠습니까?')) return;
 
-        const { error } = await supabase.from('students').delete().eq('id', id);
+        const { error } = await supabase.from('ot_students').delete().eq('id', id);
         if (error) {
             alert('학생 삭제에 실패했습니다.');
         } else {

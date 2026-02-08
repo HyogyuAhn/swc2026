@@ -15,13 +15,13 @@ export default function SearchFilter({ filters, setFilters, onSearch }) {
                         <Filter className="h-4 w-4 text-gray-400" />
                     </div>
                     <select
-                        value={filters.feeStatus}
-                        onChange={(e) => handleChange('feeStatus', e.target.value)}
+                        value={filters.verificationStatus}
+                        onChange={(e) => handleChange('verificationStatus', e.target.value)}
                         className="block w-full sm:w-32 pl-10 pr-8 py-2.5 text-sm border border-gray-200 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 rounded-xl bg-white shadow-sm hover:bg-gray-50 transition-colors cursor-pointer appearance-none text-gray-700"
                     >
                         <option value="ALL">상태 전체</option>
-                        <option value="PAID">인증 완료</option>
-                        <option value="UNPAID">미인증</option>
+                        <option value="VERIFIED">인증 완료</option>
+                        <option value="NOT_VERIFIED">미인증</option>
                     </select>
                 </div>
 

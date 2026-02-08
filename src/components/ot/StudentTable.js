@@ -13,9 +13,9 @@ export default function StudentTable({ students, loading, onEdit, onDelete, onRe
         }
 
         const { error } = await supabase
-            .from('students')
+            .from('ot_students')
             .update({
-                fee_status: 'PAID',
+                verification_status: 'VERIFIED',
                 verifier_name: verifierName
             })
             .eq('id', id);
@@ -86,15 +86,15 @@ export default function StudentTable({ students, loading, onEdit, onDelete, onRe
                                             {index + 1}
                                         </td>
                                         <td className="px-6 py-4 whitespace-nowrap">
-                                            <span className={`px-3 py-1 inline-flex text-xs leading-5 font-semibold rounded-full items-center gap-1.5 ${student.fee_status === 'PAID'
+                                            <span className={`px-3 py-1 inline-flex text-xs leading-5 font-semibold rounded-full items-center gap-1.5 ${student.verification_status === 'VERIFIED'
                                                 ? 'bg-green-100 text-green-800 border border-green-200'
                                                 : 'bg-red-100 text-red-800 border border-red-200'
                                                 }`}>
-                                                <span className={`w-1.5 h-1.5 rounded-full ${student.fee_status === 'PAID' ? 'bg-green-500' : 'bg-red-500'
+                                                <span className={`w-1.5 h-1.5 rounded-full ${student.verification_status === 'VERIFIED' ? 'bg-green-500' : 'bg-red-500'
                                                     }`}></span>
-                                                {student.fee_status === 'PAID' ? '참석(인증완료)' : '불참석(미인증)'}
+                                                {student.verification_status === 'VERIFIED' ? '참석(인증완료)' : '불참석(미인증)'}
                                             </span>
-                                            {student.fee_status === 'PAID' && student.verifier_name && (
+                                            {student.verification_status === 'VERIFIED' && student.verifier_name && (
                                                 <div className="text-xs text-gray-500 mt-1.5 pl-1">
                                                     확인자: <span className="font-medium text-gray-700">{student.verifier_name}</span>
                                                 </div>
@@ -140,7 +140,7 @@ export default function StudentTable({ students, loading, onEdit, onDelete, onRe
                                             </div>
                                         </td>
                                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                            {student.fee_status !== 'PAID' ? (
+                                            {student.verification_status !== 'VERIFIED' ? (
                                                 verifyingId === student.id ? (
                                                     <div className="flex items-center space-x-2">
                                                         <input

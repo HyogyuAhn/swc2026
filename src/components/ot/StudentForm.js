@@ -5,12 +5,11 @@ import { X } from 'lucide-react';
 export default function StudentForm({ isOpen, onClose, student, department, onSave }) {
     const [formData, setFormData] = useState({
         name: '',
-        student_id: '',
-        email: '',
         phone: '',
+        email: '',
         ot_attendance: 'Y',
         after_party_attendance: 'Y',
-        fee_status: 'UNPAID',
+        verification_status: 'NOT_VERIFIED',
         verifier_name: '',
     });
     const [loading, setLoading] = useState(false);
@@ -19,23 +18,21 @@ export default function StudentForm({ isOpen, onClose, student, department, onSa
         if (student) {
             setFormData({
                 name: student.name,
-                student_id: student.student_id || '',
-                email: student.email || '',
                 phone: student.phone,
+                email: student.email || '',
                 ot_attendance: student.ot_attendance,
                 after_party_attendance: student.after_party_attendance,
-                fee_status: student.fee_status,
+                verification_status: student.verification_status,
                 verifier_name: student.verifier_name || '',
             });
         } else {
             setFormData({
                 name: '',
-                student_id: '',
-                email: '',
                 phone: '',
+                email: '',
                 ot_attendance: 'Y',
                 after_party_attendance: 'Y',
-                fee_status: 'UNPAID',
+                verification_status: 'NOT_VERIFIED',
                 verifier_name: '',
             });
         }
@@ -57,27 +54,26 @@ export default function StudentForm({ isOpen, onClose, student, department, onSa
         try {
             const dataToSave = {
                 ...formData,
-                student_id: formData.student_id.trim() === '' ? null : formData.student_id,
                 department,
-                verifier_name: formData.fee_status === 'PAID' ? formData.verifier_name : null,
+                verifier_name: formData.verification_status === 'VERIFIED' ? formData.verifier_name : null,
             };
 
             if (student) {
                 const { error } = await supabase
-                    .from('students')
+                    .from('ot_students')
                     .update(dataToSave)
                     .eq('id', student.id);
                 if (error) throw error;
             } else {
                 const { error } = await supabase
-                    .from('students')
+                    .from('ot_students')
                     .insert([dataToSave]);
                 if (error) throw error;
             }
             onSave();
         } catch (error) {
             console.error('Error saving student:', error);
-            alert('학생 정보 저장에 실패했습니다. (학번 중복 등 확인 필요)');
+            alert('학생 정보 저장에 실패했습니다.');
         } finally {
             setLoading(false);
         }
@@ -104,15 +100,9 @@ export default function StudentForm({ isOpen, onClose, student, department, onSa
                     </div>
 
                     <form onSubmit={handleSubmit} className="space-y-5">
-                        <div className="grid grid-cols-2 gap-4">
-                            <div>
-                                <label className="block text-xs font-bold text-gray-500 mb-1.5 uppercase tracking-wide">이름</label>
-                                <input type="text" name="name" required value={formData.name} onChange={handleChange} className="block w-full rounded-xl border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 text-sm py-3 px-4 transition-all" placeholder="이름 입력" />
-                            </div>
-                            <div>
-                                <label className="block text-xs font-bold text-gray-500 mb-1.5 uppercase tracking-wide">학번 <span className="text-gray-300 font-normal normal-case">(선택)</span></label>
-                                <input type="text" name="student_id" value={formData.student_id} onChange={handleChange} className="block w-full rounded-xl border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 text-sm py-3 px-4 transition-all" placeholder="학번 (없으면 비워둠)" />
-                            </div>
+                        <div>
+                            <label className="block text-xs font-bold text-gray-500 mb-1.5 uppercase tracking-wide">이름</label>
+                            <input type="text" name="name" required value={formData.name} onChange={handleChange} className="block w-full rounded-xl border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 text-sm py-3 px-4 transition-all" placeholder="이름 입력" />
                         </div>
 
                         <div className="grid grid-cols-2 gap-4">
@@ -172,21 +162,21 @@ export default function StudentForm({ isOpen, onClose, student, department, onSa
                             <div className="flex rounded-xl bg-gray-100 p-1 mb-4">
                                 <button
                                     type="button"
-                                    onClick={() => handleSegmentChange('fee_status', 'UNPAID')}
-                                    className={`flex-1 py-2.5 text-sm font-bold rounded-lg transition-all ${formData.fee_status === 'UNPAID' ? 'bg-white text-red-500 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
+                                    onClick={() => handleSegmentChange('verification_status', 'NOT_VERIFIED')}
+                                    className={`flex-1 py-2.5 text-sm font-bold rounded-lg transition-all ${formData.verification_status === 'NOT_VERIFIED' ? 'bg-white text-red-500 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
                                 >
                                     미인증 (불참석)
                                 </button>
                                 <button
                                     type="button"
-                                    onClick={() => handleSegmentChange('fee_status', 'PAID')}
-                                    className={`flex-1 py-2.5 text-sm font-bold rounded-lg transition-all ${formData.fee_status === 'PAID' ? 'bg-white text-green-600 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
+                                    onClick={() => handleSegmentChange('verification_status', 'VERIFIED')}
+                                    className={`flex-1 py-2.5 text-sm font-bold rounded-lg transition-all ${formData.verification_status === 'VERIFIED' ? 'bg-white text-green-600 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
                                 >
                                     인증 완료 (참석)
                                 </button>
                             </div>
 
-                            {formData.fee_status === 'PAID' && (
+                            {formData.verification_status === 'VERIFIED' && (
                                 <div className="animate-fadeIn">
                                     <label className="block text-xs font-bold text-gray-500 mb-1.5 uppercase tracking-wide">확인자 이름</label>
                                     <input type="text" name="verifier_name" required value={formData.verifier_name} onChange={handleChange} className="block w-full rounded-xl border-indigo-200 ring-2 ring-indigo-50 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 text-sm py-3 px-4 transition-all" placeholder="누가 참석을 확인했나요?" />

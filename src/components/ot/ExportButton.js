@@ -14,7 +14,7 @@ export default function ExportButton({ students, department }) {
             '학과': s.department,
             'OT 참석 여부': s.ot_attendance === 'Y' ? '참석' : '불참',
             '뒤풀이 참석 여부': s.after_party_attendance === 'Y' ? '참석' : '불참',
-            '참석 인증 상태': s.fee_status === 'PAID' ? '참석(인증완료)' : '불참석(미인증)',
+            '참석 인증 상태': s.verification_status === 'VERIFIED' ? '참석(인증완료)' : '불참석(미인증)',
             '확인자': s.verifier_name || '',
             '생성일': new Date(s.created_at).toLocaleString(),
         }));

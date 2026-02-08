@@ -50,10 +50,9 @@ export default function ExportModal({ isOpen, onClose, onExportCSV, onExportXLSX
                                 </span>
                                 <div className="text-left">
                                     <span className="block text-base font-bold text-gray-900">Excel (.xlsx)</span>
-                                    <span className="block text-xs text-gray-500">스프레드시트 프로그램용</span>
+                                    <span className="block text-xs text-gray-500">스프레드시트(엑셀)용 파일</span>
                                 </div>
                             </div>
-                            <span className="text-indigo-600 font-semibold text-xs bg-indigo-50 px-2 py-1 rounded">추천</span>
                         </button>
 
                         <button
@@ -66,7 +65,7 @@ export default function ExportModal({ isOpen, onClose, onExportCSV, onExportXLSX
                                 </span>
                                 <div className="text-left">
                                     <span className="block text-base font-bold text-gray-900">CSV (.csv)</span>
-                                    <span className="block text-xs text-gray-500">범용 데이터 포맷</span>
+                                    <span className="block text-xs text-gray-500">범용 데이터 포맷 파일</span>
                                 </div>
                             </div>
                         </button>
