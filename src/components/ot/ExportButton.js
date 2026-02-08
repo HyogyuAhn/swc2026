@@ -5,10 +5,9 @@ import ExportModal from './ExportModal';
 export default function ExportButton({ students, department }) {
     const [isModalOpen, setIsModalOpen] = useState(false);
 
-    const getFormattedData = () => {
-        return students.map(s => ({
+    const getFormattedData = (filteredStudents) => {
+        return filteredStudents.map(s => ({
             '이름': s.name,
-
             '전화번호': s.phone,
             '이메일': s.email,
             '학과': s.department,
@@ -20,51 +19,65 @@ export default function ExportButton({ students, department }) {
         }));
     };
 
-    const exportToCSV = () => {
-        const data = getFormattedData();
-        if (data.length === 0) return;
+    const handleExport = async (format, filters) => {
+        // 1. Filter Data
+        let filteredStudents = [...students];
 
-        const headers = Object.keys(data[0]);
-        const csvContent = [
-            headers.join(','),
-            ...data.map(row => headers.map(header => `"${(row[header] || '').toString().replace(/"/g, '""')}"`).join(','))
-        ].join('\n');
+        if (filters.verificationStatus !== 'ALL') {
+            filteredStudents = filteredStudents.filter(s => s.verification_status === filters.verificationStatus);
+        }
+        if (filters.otAttendance !== 'ALL') {
+            filteredStudents = filteredStudents.filter(s => s.ot_attendance === filters.otAttendance);
+        }
+        if (filters.afterPartyAttendance !== 'ALL') {
+            filteredStudents = filteredStudents.filter(s => s.after_party_attendance === filters.afterPartyAttendance);
+        }
 
-        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-        const link = document.createElement('a');
-        const url = URL.createObjectURL(blob);
+        if (filteredStudents.length === 0) {
+            alert('내보낼 데이터가 없습니다.');
+            return;
+        }
 
-        link.setAttribute('href', url);
-        link.setAttribute('download', `students_${department}_${new Date().toISOString().slice(0, 10)}.csv`);
-        link.style.visibility = 'hidden';
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-        setIsModalOpen(false);
-    };
+        const data = getFormattedData(filteredStudents);
+        const fileName = `students_${department}_${new Date().toISOString().slice(0, 10)}`;
 
-    const exportToXLSX = async () => {
-        try {
-            const XLSX = await import('xlsx');
-            const { saveAs } = await import('file-saver');
+        // 2. Export based on format
+        if (format === 'csv') {
+            const headers = Object.keys(data[0]);
+            const csvContent = [
+                headers.join(','),
+                ...data.map(row => headers.map(header => `"${(row[header] || '').toString().replace(/"/g, '""')}"`).join(','))
+            ].join('\n');
 
-            const data = getFormattedData();
-            const worksheet = XLSX.utils.json_to_sheet(data);
-            const workbook = XLSX.utils.book_new();
-            XLSX.utils.book_append_sheet(workbook, worksheet, "학생 명단");
+            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement('a');
+            const url = URL.createObjectURL(blob);
+            link.setAttribute('href', url);
+            link.setAttribute('download', `${fileName}.csv`);
+            link.style.visibility = 'hidden';
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
 
-            const excelBuffer = XLSX.write(workbook, { bookType: 'xlsx', type: 'array' });
-            const dataBlob = new Blob([excelBuffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;charset=UTF-8' });
+        } else if (format === 'xlsx') {
+            try {
+                const XLSX = await import('xlsx');
+                const { saveAs } = await import('file-saver');
 
-            saveAs(dataBlob, `students_${department}_${new Date().toISOString().slice(0, 10)}.xlsx`);
-            setIsModalOpen(false);
-        } catch (error) {
-            console.error('Export error:', error);
-            alert('XLSX 내보내기를 위해 필요한 라이브러리가 설치되지 않았습니다. npm install xlsx file-saver 명령어를 실행해주세요.');
-            if (confirm('대신 CSV로 내보내시겠습니까?')) {
-                exportToCSV();
+                const worksheet = XLSX.utils.json_to_sheet(data);
+                const workbook = XLSX.utils.book_new();
+                XLSX.utils.book_append_sheet(workbook, worksheet, "학생 명단");
+
+                const excelBuffer = XLSX.write(workbook, { bookType: 'xlsx', type: 'array' });
+                const dataBlob = new Blob([excelBuffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;charset=UTF-8' });
+
+                saveAs(dataBlob, `${fileName}.xlsx`);
+            } catch (error) {
+                console.error('Export error:', error);
+                alert('XLSX 내보내기 중 오류가 발생했습니다.');
             }
         }
+        setIsModalOpen(false);
     };
 
     return (
@@ -80,8 +93,7 @@ export default function ExportButton({ students, department }) {
             <ExportModal
                 isOpen={isModalOpen}
                 onClose={() => setIsModalOpen(false)}
-                onExportCSV={exportToCSV}
-                onExportXLSX={exportToXLSX}
+                onExport={handleExport}
             />
         </>
     );
