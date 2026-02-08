@@ -7,6 +7,8 @@ export default function ExportModal({ isOpen, onClose, onExport }) {
         verificationStatus: 'ALL',
         otAttendance: 'ALL',
         afterPartyAttendance: 'ALL',
+        includeDepartment: false,
+        includeCreatedAt: false,
     });
 
     useEffect(() => {
@@ -16,6 +18,8 @@ export default function ExportModal({ isOpen, onClose, onExport }) {
                 verificationStatus: 'ALL',
                 otAttendance: 'ALL',
                 afterPartyAttendance: 'ALL',
+                includeDepartment: false,
+                includeCreatedAt: false,
             });
         }
     }, [isOpen]);
@@ -69,8 +73,8 @@ export default function ExportModal({ isOpen, onClose, onExport }) {
                             <button
                                 onClick={() => setFormat('xlsx')}
                                 className={`flex-1 flex items-center justify-center gap-2 py-3 text-sm font-bold rounded-lg transition-all ${format === 'xlsx'
-                                        ? 'bg-white text-green-700 shadow-sm ring-1 ring-gray-200'
-                                        : 'text-gray-500 hover:text-gray-700'
+                                    ? 'bg-white text-green-700 shadow-sm ring-1 ring-gray-200'
+                                    : 'text-gray-500 hover:text-gray-700'
                                     }`}
                             >
                                 <FileSpreadsheet className={`h-5 w-5 ${format === 'xlsx' ? 'text-green-600' : 'text-gray-400'}`} />
@@ -80,8 +84,8 @@ export default function ExportModal({ isOpen, onClose, onExport }) {
                             <button
                                 onClick={() => setFormat('csv')}
                                 className={`flex-1 flex items-center justify-center gap-2 py-3 text-sm font-bold rounded-lg transition-all ${format === 'csv'
-                                        ? 'bg-white text-gray-800 shadow-sm ring-1 ring-gray-200'
-                                        : 'text-gray-500 hover:text-gray-700'
+                                    ? 'bg-white text-gray-800 shadow-sm ring-1 ring-gray-200'
+                                    : 'text-gray-500 hover:text-gray-700'
                                     }`}
                             >
                                 <FileText className={`h-5 w-5 ${format === 'csv' ? 'text-gray-600' : 'text-gray-400'}`} />
@@ -141,6 +145,26 @@ export default function ExportModal({ isOpen, onClose, onExport }) {
                                     </select>
                                     <ChevronsUpDown className="absolute right-0 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400 pointer-events-none" />
                                 </div>
+                            </div>
+
+                            {/* Include Options */}
+                            <div className="p-4 flex items-center justify-between">
+                                <label className="text-sm font-medium text-gray-500">학과 포함</label>
+                                <input
+                                    type="checkbox"
+                                    checked={filters.includeDepartment}
+                                    onChange={(e) => handleChange('includeDepartment', e.target.checked)}
+                                    className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded"
+                                />
+                            </div>
+                            <div className="p-4 flex items-center justify-between">
+                                <label className="text-sm font-medium text-gray-500">생성일(웹 등록일) 포함</label>
+                                <input
+                                    type="checkbox"
+                                    checked={filters.includeCreatedAt}
+                                    onChange={(e) => handleChange('includeCreatedAt', e.target.checked)}
+                                    className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded"
+                                />
                             </div>
                         </div>
 

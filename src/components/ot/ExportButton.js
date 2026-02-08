@@ -5,23 +5,32 @@ import ExportModal from './ExportModal';
 export default function ExportButton({ students, department }) {
     const [isModalOpen, setIsModalOpen] = useState(false);
 
-    const getFormattedData = (filteredStudents) => {
+    const getFormattedData = (filteredStudents, options) => {
         return filteredStudents.map(s => {
             let deptName = s.department;
             if (s.department === 'CS') deptName = '컴퓨터공학과';
             else if (s.department === 'AI') deptName = '인공지능공학과';
 
-            return {
+            const row = {
                 '이름': s.name,
                 '전화번호': s.phone,
                 '이메일': s.email,
-                '학과': deptName,
-                'OT 참석 여부': s.ot_attendance === 'Y' ? '참석' : '불참',
-                '뒤풀이 참석 여부': s.after_party_attendance === 'Y' ? '참석' : '불참',
-                '참석 인증 상태': s.verification_status === 'VERIFIED' ? '인증 완료' : '미인증',
-                '확인자': s.verifier_name || '',
-                '등록일': new Date(s.created_at).toLocaleString(),
             };
+
+            if (options.includeDepartment) {
+                row['학과'] = deptName;
+            }
+
+            row['OT 참석 여부'] = s.ot_attendance === 'Y' ? '참석' : '불참';
+            row['뒤풀이 참석 여부'] = s.after_party_attendance === 'Y' ? '참석' : '불참';
+            row['참석 인증 상태'] = s.verification_status === 'VERIFIED' ? '참석(인증완료)' : '불참석(미인증)';
+            row['확인자'] = s.verifier_name || '';
+
+            if (options.includeCreatedAt) {
+                row['등록일'] = new Date(s.created_at).toLocaleString();
+            }
+
+            return row;
         });
     };
 
@@ -43,8 +52,15 @@ export default function ExportButton({ students, department }) {
             return;
         }
 
-        const data = getFormattedData(filteredStudents);
-        const fileName = `students_${department}_${new Date().toISOString().slice(0, 10)}`;
+        const data = getFormattedData(filteredStudents, {
+            includeDepartment: filters.includeDepartment,
+            includeCreatedAt: filters.includeCreatedAt
+        });
+
+        const deptName = department === 'CS' ? '컴퓨터공학과' : '인공지능공학과';
+        const date = new Date();
+        const yymmdd = date.toLocaleDateString('ko-KR', { year: '2-digit', month: '2-digit', day: '2-digit' }).replace(/\./g, '').replace(/\s/g, '');
+        const fileName = `[${deptName}-${yymmdd}]_OT_명단`;
 
         if (format === 'csv') {
             const headers = Object.keys(data[0]);
