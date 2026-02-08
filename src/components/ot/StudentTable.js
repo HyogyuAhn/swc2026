@@ -1,12 +1,12 @@
 import { Edit2, Trash2, CheckCircle, XCircle } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { useState } from 'react';
+import VerificationModal from '@/components/ot/VerificationModal';
 
 export default function StudentTable({ students, loading, onEdit, onDelete, onRefresh }) {
-    const [verifyingId, setVerifyingId] = useState(null);
-    const [verifierName, setVerifierName] = useState('');
+    const [verifyingStudent, setVerifyingStudent] = useState(null);
 
-    const handleVerify = async (id) => {
+    const handleVerify = async (id, verifierName) => {
         if (!verifierName.trim()) {
             alert('확인자 이름을 입력해주세요.');
             return;
@@ -23,8 +23,7 @@ export default function StudentTable({ students, loading, onEdit, onDelete, onRe
         if (error) {
             alert('인증 처리에 실패했습니다.');
         } else {
-            setVerifyingId(null);
-            setVerifierName('');
+            setVerifyingStudent(null);
             onRefresh();
         }
     };
@@ -141,44 +140,15 @@ export default function StudentTable({ students, loading, onEdit, onDelete, onRe
                                         </td>
                                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                                             {student.verification_status !== 'VERIFIED' ? (
-                                                verifyingId === student.id ? (
-                                                    <div className="flex items-center space-x-2">
-                                                        <input
-                                                            type="text"
-                                                            className="shadow-sm focus:ring-indigo-500 focus:border-indigo-500 block w-24 sm:text-xs border border-gray-300 rounded-md p-1.5"
-                                                            placeholder="확인자 이름"
-                                                            value={verifierName}
-                                                            onChange={(e) => setVerifierName(e.target.value)}
-                                                            autoFocus
-                                                            onKeyDown={(e) => {
-                                                                if (e.key === 'Enter') handleVerify(student.id);
-                                                                if (e.key === 'Escape') { setVerifyingId(null); setVerifierName(''); }
-                                                            }}
-                                                        />
-                                                        <button
-                                                            onClick={() => handleVerify(student.id)}
-                                                            className="text-white bg-green-600 hover:bg-green-700 px-2 py-1 rounded text-xs font-medium transition-colors"
-                                                        >
-                                                            확인
-                                                        </button>
-                                                        <button
-                                                            onClick={() => { setVerifyingId(null); setVerifierName(''); }}
-                                                            className="text-gray-500 hover:text-gray-700 px-2 py-1 rounded text-xs bg-gray-100 hover:bg-gray-200 transition-colors"
-                                                        >
-                                                            취소
-                                                        </button>
-                                                    </div>
-                                                ) : (
-                                                    <button
-                                                        onClick={() => setVerifyingId(student.id)}
-                                                        className="text-white bg-indigo-600 hover:bg-indigo-700 px-3 py-1.5 rounded-lg text-xs font-bold shadow-sm transition-all flex items-center gap-1.5"
-                                                    >
-                                                        <CheckCircle className="h-3 w-3" />
-                                                        참석 확인
-                                                    </button>
-                                                )
+                                                <button
+                                                    onClick={() => setVerifyingStudent(student)}
+                                                    className="text-white bg-indigo-600 hover:bg-indigo-700 px-3 py-1.5 rounded-lg text-xs font-bold shadow-sm transition-all flex items-center gap-1.5 hover:shadow-indigo-200 hover:-translate-y-0.5"
+                                                >
+                                                    <CheckCircle className="h-3 w-3" />
+                                                    참석 확인
+                                                </button>
                                             ) : (
-                                                <span className="text-gray-400 text-xs flex items-center gap-1">
+                                                <span className="text-gray-400 text-xs flex items-center gap-1 bg-gray-50 px-2 py-1 rounded border border-gray-100">
                                                     <CheckCircle className="h-3 w-3" /> 완료됨
                                                 </span>
                                             )}
@@ -208,6 +178,13 @@ export default function StudentTable({ students, loading, onEdit, onDelete, onRe
                     </div>
                 </div>
             </div>
+
+            <VerificationModal
+                isOpen={!!verifyingStudent}
+                onClose={() => setVerifyingStudent(null)}
+                student={verifyingStudent}
+                onVerify={handleVerify}
+            />
         </div>
     );
 }
