@@ -13,7 +13,7 @@ export default function ExportButton({ students, department }) {
             '학과': s.department,
             'OT 참석 여부': s.ot_attendance === 'Y' ? '참석' : '불참',
             '뒤풀이 참석 여부': s.after_party_attendance === 'Y' ? '참석' : '불참',
-            '납부 상태': s.fee_status === 'PAID' ? '참석(인증완료)' : '불참석(미인증)',
+            '참석 인증 상태': s.fee_status === 'PAID' ? '참석(인증완료)' : '불참석(미인증)',
             '확인자': s.verifier_name || '',
             '생성일': new Date(s.created_at).toLocaleString(),
         }));
@@ -71,7 +71,7 @@ export default function ExportButton({ students, department }) {
             <div>
                 <button
                     onClick={() => setIsOpen(!isOpen)}
-                    className="inline-flex items-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none"
+                    className="inline-flex items-center px-4 py-2 border border-gray-200 shadow-sm text-sm font-medium rounded-xl text-gray-700 bg-white hover:bg-gray-50 focus:outline-none transition-colors"
                 >
                     <Download className="h-4 w-4 mr-2" />
                     내보내기
@@ -79,7 +79,7 @@ export default function ExportButton({ students, department }) {
             </div>
 
             {isOpen && (
-                <div className="origin-top-right absolute right-0 mt-2 w-32 rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5 z-10">
+                <div className="origin-top-right absolute right-0 mt-2 w-32 rounded-xl shadow-lg bg-white ring-1 ring-black ring-opacity-5 z-10 transition-all">
                     <div className="py-1" role="menu" aria-orientation="vertical" aria-labelledby="options-menu">
                         <button
                             onClick={exportToCSV}

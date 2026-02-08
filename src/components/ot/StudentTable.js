@@ -1,4 +1,4 @@
-import { Edit2, Trash2, CheckCircle, XCircle, AlertCircle } from 'lucide-react';
+import { Edit2, Trash2, CheckCircle, XCircle } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { useState } from 'react';
 
@@ -39,136 +39,176 @@ export default function StudentTable({ students, loading, onEdit, onDelete, onRe
 
     if (students.length === 0) {
         return (
-            <div className="text-center py-10 text-gray-500">
-                등록된 학생이 없습니다.
+            <div className="text-center py-20 text-gray-500 bg-white rounded-2xl shadow-sm border border-gray-100">
+                <div className="flex flex-col items-center justify-center gap-3">
+                    <p className="text-lg font-medium text-gray-900">등록된 학생이 없습니다.</p>
+                    <p className="text-sm text-gray-500">학생을 추가하거나 필터를 변경해보세요.</p>
+                </div>
             </div>
         );
     }
 
     return (
-        <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-gray-200">
-                <thead className="bg-gray-50">
-                    <tr>
-                        <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                            상태
-                        </th>
-                        <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                            이름 / 학번
-                        </th>
-                        <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                            연락처
-                        </th>
-                        <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                            OT / 뒤풀이
-                        </th>
-                        <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                            참석 인증
-                        </th>
-                        <th scope="col" className="relative px-6 py-3">
-                            <span className="sr-only">작업</span>
-                        </th>
-                    </tr>
-                </thead>
-                <tbody className="bg-white divide-y divide-gray-200">
-                    {students.map((student) => (
-                        <tr key={student.id}>
-                            <td className="px-6 py-4 whitespace-nowrap">
-                                <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${student.fee_status === 'PAID'
-                                    ? 'bg-green-100 text-green-800'
-                                    : 'bg-red-100 text-red-800'
-                                    }`}>
-                                    {student.fee_status === 'PAID' ? '참석(인증완료)' : '불참석(미인증)'}
-                                </span>
-                                {student.fee_status === 'PAID' && student.verifier_name && (
-                                    <div className="text-xs text-gray-500 mt-1">
-                                        확인자: {student.verifier_name}
-                                    </div>
-                                )}
-                            </td>
-                            <td className="px-6 py-4 whitespace-nowrap">
-                                <div className="text-sm font-medium text-gray-900">{student.name}</div>
-                                <div className="text-sm text-gray-500">{student.student_id || '-'}</div>
-                            </td>
-                            <td className="px-6 py-4 whitespace-nowrap">
-                                <div className="text-sm text-gray-900">{student.phone}</div>
-                                <div className="text-sm text-gray-500">{student.email || '-'}</div>
-                            </td>
-                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                <div className="flex items-center space-x-4">
-                                    <div className="flex items-center" title="OT 참석 여부">
-                                        <span className="mr-1 text-xs font-bold">OT:</span>
-                                        {student.ot_attendance === 'Y' ? (
-                                            <CheckCircle className="h-4 w-4 text-green-500" />
-                                        ) : (
-                                            <XCircle className="h-4 w-4 text-gray-400" />
-                                        )}
-                                    </div>
-                                    <div className="flex items-center" title="뒤풀이 참석 여부">
-                                        <span className="mr-1 text-xs font-bold">뒤풀이:</span>
-                                        {student.after_party_attendance === 'Y' ? (
-                                            <CheckCircle className="h-4 w-4 text-green-500" />
-                                        ) : (
-                                            <XCircle className="h-4 w-4 text-gray-400" />
-                                        )}
-                                    </div>
-                                </div>
-                            </td>
-                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                {student.fee_status !== 'PAID' ? (
-                                    verifyingId === student.id ? (
-                                        <div className="flex items-center space-x-2">
-                                            <input
-                                                type="text"
-                                                className="shadow-sm focus:ring-indigo-500 focus:border-indigo-500 block w-24 sm:text-xs border-gray-300 rounded-md"
-                                                placeholder="확인자 이름"
-                                                value={verifierName}
-                                                onChange={(e) => setVerifierName(e.target.value)}
-                                                autoFocus
-                                            />
-                                            <button
-                                                onClick={() => handleVerify(student.id)}
-                                                className="text-green-600 hover:text-green-900 text-xs font-medium"
-                                            >
-                                                확인
-                                            </button>
-                                            <button
-                                                onClick={() => { setVerifyingId(null); setVerifierName(''); }}
-                                                className="text-gray-400 hover:text-gray-600 text-xs"
-                                            >
-                                                취소
-                                            </button>
-                                        </div>
-                                    ) : (
-                                        <button
-                                            onClick={() => setVerifyingId(student.id)}
-                                            className="text-indigo-600 hover:text-indigo-900 font-medium text-xs flex items-center"
-                                        >
-                                            참석 인증
-                                        </button>
-                                    )
-                                ) : (
-                                    <span className="text-gray-400 text-xs">-</span>
-                                )}
-                            </td>
-                            <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                                <button
-                                    onClick={() => onEdit(student)}
-                                    className="text-indigo-600 hover:text-indigo-900 mr-4"
-                                >
-                                    <Edit2 className="h-4 w-4" />
-                                </button>
-                                <button
-                                    onClick={() => onDelete(student.id)}
-                                    className="text-red-600 hover:text-red-900"
-                                >
-                                    <Trash2 className="h-4 w-4" />
-                                </button>
-                            </td>
-                        </tr>
-                    ))}
-                </tbody>
-            </table>
+        <div className="flex flex-col">
+            <div className="-my-2 overflow-x-auto sm:-mx-6 lg:-mx-8">
+                <div className="py-2 align-middle inline-block min-w-full sm:px-6 lg:px-8">
+                    <div className="shadow-sm border border-gray-100 rounded-2xl overflow-hidden">
+                        <table className="min-w-full divide-y divide-gray-100">
+                            <thead className="bg-gray-50/80 backdrop-blur-sm">
+                                <tr>
+                                    <th scope="col" className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider w-12">
+                                        No.
+                                    </th>
+                                    <th scope="col" className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                                        상태
+                                    </th>
+                                    <th scope="col" className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                                        학생 정보
+                                    </th>
+                                    <th scope="col" className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                                        연락처
+                                    </th>
+                                    <th scope="col" className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                                        참석 조사
+                                    </th>
+                                    <th scope="col" className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                                        참석 인증
+                                    </th>
+                                    <th scope="col" className="relative px-6 py-4">
+                                        <span className="sr-only">Actions</span>
+                                    </th>
+                                </tr>
+                            </thead>
+                            <tbody className="bg-white divide-y divide-gray-100">
+                                {students.map((student, index) => (
+                                    <tr key={student.id} className="hover:bg-gray-50/50 transition-colors duration-150">
+                                        <td className="px-6 py-4 whitespace-nowrap text-xs text-gray-500 font-mono">
+                                            {index + 1}
+                                        </td>
+                                        <td className="px-6 py-4 whitespace-nowrap">
+                                            <span className={`px-3 py-1 inline-flex text-xs leading-5 font-semibold rounded-full items-center gap-1.5 ${student.fee_status === 'PAID'
+                                                    ? 'bg-green-100 text-green-800 border border-green-200'
+                                                    : 'bg-red-100 text-red-800 border border-red-200'
+                                                }`}>
+                                                <span className={`w-1.5 h-1.5 rounded-full ${student.fee_status === 'PAID' ? 'bg-green-500' : 'bg-red-500'
+                                                    }`}></span>
+                                                {student.fee_status === 'PAID' ? '참석(인증완료)' : '불참석(미인증)'}
+                                            </span>
+                                            {student.fee_status === 'PAID' && student.verifier_name && (
+                                                <div className="text-xs text-gray-500 mt-1.5 pl-1">
+                                                    확인자: <span className="font-medium text-gray-700">{student.verifier_name}</span>
+                                                </div>
+                                            )}
+                                        </td>
+                                        <td className="px-6 py-4 whitespace-nowrap">
+                                            <div className="flex flex-col">
+                                                <div className="text-sm font-bold text-gray-900">{student.name}</div>
+                                                <div className="text-xs text-gray-500 font-mono mt-0.5">{student.student_id || '-'}</div>
+                                            </div>
+                                        </td>
+                                        <td className="px-6 py-4 whitespace-nowrap">
+                                            <div className="flex flex-col text-sm">
+                                                <div className="text-gray-900">{student.phone}</div>
+                                                <div className="text-xs text-gray-400 mt-0.5">{student.email || '-'}</div>
+                                            </div>
+                                        </td>
+                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                            <div className="flex flex-col space-y-2">
+                                                <div className="flex items-center gap-2" title="OT 참석 여부">
+                                                    <span className="w-12 text-xs font-medium text-gray-500">OT</span>
+                                                    {student.ot_attendance === 'Y' ? (
+                                                        <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-green-50 text-green-700 border border-green-100">
+                                                            <CheckCircle className="h-3 w-3 mr-1" /> 참석
+                                                        </span>
+                                                    ) : (
+                                                        <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-gray-50 text-gray-600 border border-gray-100">
+                                                            <XCircle className="h-3 w-3 mr-1" /> 불참
+                                                        </span>
+                                                    )}
+                                                </div>
+                                                <div className="flex items-center gap-2" title="뒤풀이 참석 여부">
+                                                    <span className="w-12 text-xs font-medium text-gray-500">뒤풀이</span>
+                                                    {student.after_party_attendance === 'Y' ? (
+                                                        <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-green-50 text-green-700 border border-green-100">
+                                                            <CheckCircle className="h-3 w-3 mr-1" /> 참석
+                                                        </span>
+                                                    ) : (
+                                                        <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-gray-50 text-gray-600 border border-gray-100">
+                                                            <XCircle className="h-3 w-3 mr-1" /> 불참
+                                                        </span>
+                                                    )}
+                                                </div>
+                                            </div>
+                                        </td>
+                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                            {student.fee_status !== 'PAID' ? (
+                                                verifyingId === student.id ? (
+                                                    <div className="flex items-center space-x-2">
+                                                        <input
+                                                            type="text"
+                                                            className="shadow-sm focus:ring-indigo-500 focus:border-indigo-500 block w-24 sm:text-xs border border-gray-300 rounded-md p-1.5"
+                                                            placeholder="확인자 이름"
+                                                            value={verifierName}
+                                                            onChange={(e) => setVerifierName(e.target.value)}
+                                                            autoFocus
+                                                            onKeyDown={(e) => {
+                                                                if (e.key === 'Enter') handleVerify(student.id);
+                                                                if (e.key === 'Escape') { setVerifyingId(null); setVerifierName(''); }
+                                                            }}
+                                                        />
+                                                        <button
+                                                            onClick={() => handleVerify(student.id)}
+                                                            className="text-white bg-green-600 hover:bg-green-700 px-2 py-1 rounded text-xs font-medium transition-colors"
+                                                        >
+                                                            확인
+                                                        </button>
+                                                        <button
+                                                            onClick={() => { setVerifyingId(null); setVerifierName(''); }}
+                                                            className="text-gray-500 hover:text-gray-700 px-2 py-1 rounded text-xs bg-gray-100 hover:bg-gray-200 transition-colors"
+                                                        >
+                                                            취소
+                                                        </button>
+                                                    </div>
+                                                ) : (
+                                                    <button
+                                                        onClick={() => setVerifyingId(student.id)}
+                                                        className="text-white bg-indigo-600 hover:bg-indigo-700 px-3 py-1.5 rounded-lg text-xs font-bold shadow-sm transition-all flex items-center gap-1.5"
+                                                    >
+                                                        <CheckCircle className="h-3 w-3" />
+                                                        참석 확인
+                                                    </button>
+                                                )
+                                            ) : (
+                                                <span className="text-gray-400 text-xs flex items-center gap-1">
+                                                    <CheckCircle className="h-3 w-3" /> 완료됨
+                                                </span>
+                                            )}
+                                        </td>
+                                        <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                                            <div className="flex justify-end items-center gap-2">
+                                                <button
+                                                    onClick={() => onEdit(student)}
+                                                    className="text-gray-400 hover:text-indigo-600 transition-colors p-1.5 bg-gray-50 rounded-lg hover:bg-indigo-50 border border-transparent hover:border-indigo-100"
+                                                    title="수정"
+                                                >
+                                                    <Edit2 className="h-4 w-4" />
+                                                </button>
+                                                <button
+                                                    onClick={() => onDelete(student.id)}
+                                                    className="text-gray-400 hover:text-red-600 transition-colors p-1.5 bg-gray-50 rounded-lg hover:bg-red-50 border border-transparent hover:border-red-100"
+                                                    title="삭제"
+                                                >
+                                                    <Trash2 className="h-4 w-4" />
+                                                </button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
         </div>
     );
 }

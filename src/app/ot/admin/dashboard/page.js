@@ -5,9 +5,9 @@ import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
 import StudentTable from '@/components/ot/StudentTable';
 import StudentForm from '@/components/ot/StudentForm';
-import Filters from '@/components/ot/Filters';
+import SearchFilter from '@/components/ot/SearchFilter';
 import ExportButton from '@/components/ot/ExportButton';
-import { LogOut, Plus, UserPlus } from 'lucide-react';
+import { LogOut, UserPlus } from 'lucide-react';
 
 export default function AdminDashboard() {
     const [department, setDepartment] = useState(null);
@@ -19,6 +19,7 @@ export default function AdminDashboard() {
         feeStatus: 'ALL',
         otAttendance: 'ALL',
         afterPartyAttendance: 'ALL',
+        search: ''
     });
     const router = useRouter();
 
@@ -68,13 +69,16 @@ export default function AdminDashboard() {
                 query = query.eq('after_party_attendance', filters.afterPartyAttendance);
             }
 
+            if (filters.search) {
+                query = query.or(`name.ilike.%${filters.search}%,student_id.ilike.%${filters.search}%`);
+            }
+
             const { data, error } = await query;
 
             if (error) throw error;
             setStudents(data || []);
         } catch (error) {
             console.error('Error fetching students:', error);
-            alert('학생 목록을 불러오는데 실패했습니다.');
         } finally {
             setLoading(false);
         }
@@ -112,21 +116,24 @@ export default function AdminDashboard() {
     };
 
     return (
-        <div className="min-h-screen bg-gray-50">
-            <nav className="bg-white shadow">
+        <div className="min-h-screen bg-gray-50 font-sans">
+            <nav className="bg-white/80 backdrop-blur-md border-b border-gray-100 sticky top-0 z-50">
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                     <div className="flex justify-between h-16">
-                        <div className="flex items-center">
-                            <h1 className="text-xl font-bold text-indigo-600">
+                        <div className="flex items-center gap-3">
+                            <span className="flex items-center justify-center w-8 h-8 rounded-lg bg-indigo-100 text-indigo-600 font-bold text-lg">
+                                {department === 'CS' ? 'C' : 'A'}
+                            </span>
+                            <h1 className="text-xl font-bold text-gray-900 tracking-tight">
                                 {department === 'CS' ? '컴퓨터공학과' : '인공지능공학과'} OT 관리
                             </h1>
                         </div>
                         <div className="flex items-center">
                             <button
                                 onClick={handleLogout}
-                                className="ml-4 px-4 py-2 border border-transparent text-sm font-medium rounded-md text-gray-700 bg-gray-100 hover:bg-gray-200 focus:outline-none"
+                                className="ml-4 px-4 py-2 border border-transparent text-sm font-medium rounded-xl text-gray-500 hover:text-gray-700 hover:bg-gray-100 focus:outline-none transition-colors flex items-center gap-2"
                             >
-                                <LogOut className="h-4 w-4 inline mr-2" />
+                                <LogOut className="h-4 w-4" />
                                 로그아웃
                             </button>
                         </div>
@@ -134,15 +141,23 @@ export default function AdminDashboard() {
                 </div>
             </nav>
 
-            <main className="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
-                <div className="px-4 py-6 sm:px-0">
-                    <div className="flex flex-col sm:flex-row justify-between items-center mb-6 gap-4">
-                        <Filters filters={filters} setFilters={setFilters} />
+            <main className="max-w-7xl mx-auto py-8 sm:px-6 lg:px-8">
+                <div className="px-4 sm:px-0 space-y-6">
+
+                    <SearchFilter filters={filters} setFilters={setFilters} />
+
+                    <div className="flex justify-between items-center">
+                        <div className="flex items-center gap-2">
+                            <h2 className="text-lg font-semibold text-gray-900">학생 명단</h2>
+                            <span className="px-2.5 py-0.5 rounded-full bg-gray-100 text-gray-600 text-xs font-medium">
+                                {students.length}명
+                            </span>
+                        </div>
                         <div className="flex gap-2">
                             <ExportButton students={students} department={department} />
                             <button
                                 onClick={handleAdd}
-                                className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none"
+                                className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-xl shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none transition-all hover:scale-105 active:scale-95"
                             >
                                 <UserPlus className="h-4 w-4 mr-2" />
                                 학생 추가
@@ -150,15 +165,13 @@ export default function AdminDashboard() {
                         </div>
                     </div>
 
-                    <div className="bg-white shadow overflow-hidden sm:rounded-md">
-                        <StudentTable
-                            students={students}
-                            loading={loading}
-                            onEdit={handleEdit}
-                            onDelete={handleDelete}
-                            onRefresh={fetchStudents}
-                        />
-                    </div>
+                    <StudentTable
+                        students={students}
+                        loading={loading}
+                        onEdit={handleEdit}
+                        onDelete={handleDelete}
+                        onRefresh={fetchStudents}
+                    />
                 </div>
             </main>
 
