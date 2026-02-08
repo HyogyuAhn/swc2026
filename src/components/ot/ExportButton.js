@@ -1,8 +1,9 @@
 import { Download } from 'lucide-react';
 import { useState } from 'react';
+import ExportModal from './ExportModal';
 
 export default function ExportButton({ students, department }) {
-    const [isOpen, setIsOpen] = useState(false);
+    const [isModalOpen, setIsModalOpen] = useState(false);
 
     const getFormattedData = () => {
         return students.map(s => ({
@@ -39,7 +40,7 @@ export default function ExportButton({ students, department }) {
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);
-        setIsOpen(false);
+        setIsModalOpen(false);
     };
 
     const exportToXLSX = async () => {
@@ -56,7 +57,7 @@ export default function ExportButton({ students, department }) {
             const dataBlob = new Blob([excelBuffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;charset=UTF-8' });
 
             saveAs(dataBlob, `students_${department}_${new Date().toISOString().slice(0, 10)}.xlsx`);
-            setIsOpen(false);
+            setIsModalOpen(false);
         } catch (error) {
             console.error('Export error:', error);
             alert('XLSX 내보내기를 위해 필요한 라이브러리가 설치되지 않았습니다. npm install xlsx file-saver 명령어를 실행해주세요.');
@@ -67,37 +68,21 @@ export default function ExportButton({ students, department }) {
     };
 
     return (
-        <div className="relative inline-block text-left">
-            <div>
-                <button
-                    onClick={() => setIsOpen(!isOpen)}
-                    className="inline-flex items-center px-4 py-2 border border-gray-200 shadow-sm text-sm font-medium rounded-xl text-gray-700 bg-white hover:bg-gray-50 focus:outline-none transition-colors"
-                >
-                    <Download className="h-4 w-4 mr-2" />
-                    내보내기
-                </button>
-            </div>
+        <>
+            <button
+                onClick={() => setIsModalOpen(true)}
+                className="inline-flex items-center px-4 py-2 border border-gray-200 shadow-sm text-sm font-medium rounded-xl text-gray-700 bg-white hover:bg-gray-50 focus:outline-none transition-all hover:scale-105 active:scale-95"
+            >
+                <Download className="h-4 w-4 mr-2" />
+                내보내기
+            </button>
 
-            {isOpen && (
-                <div className="origin-top-right absolute right-0 mt-2 w-32 rounded-xl shadow-lg bg-white ring-1 ring-black ring-opacity-5 z-10 transition-all">
-                    <div className="py-1" role="menu" aria-orientation="vertical" aria-labelledby="options-menu">
-                        <button
-                            onClick={exportToCSV}
-                            className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
-                            role="menuitem"
-                        >
-                            CSV로 내보내기
-                        </button>
-                        <button
-                            onClick={exportToXLSX}
-                            className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
-                            role="menuitem"
-                        >
-                            XLSX로 내보내기
-                        </button>
-                    </div>
-                </div>
-            )}
-        </div>
+            <ExportModal
+                isOpen={isModalOpen}
+                onClose={() => setIsModalOpen(false)}
+                onExportCSV={exportToCSV}
+                onExportXLSX={exportToXLSX}
+            />
+        </>
     );
 }

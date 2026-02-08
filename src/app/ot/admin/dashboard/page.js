@@ -54,7 +54,7 @@ export default function AdminDashboard() {
                 .from('students')
                 .select('*')
                 .eq('department', department)
-                .order('created_at', { ascending: false });
+                .order('name', { ascending: true });
 
             if (filters.feeStatus !== 'ALL') {
                 if (filters.feeStatus === 'PAID') query = query.eq('fee_status', 'PAID');
