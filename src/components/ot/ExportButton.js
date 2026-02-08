@@ -10,6 +10,7 @@ export default function ExportButton({ students, department }) {
             let deptName = s.department;
             if (s.department === 'CS') deptName = '컴퓨터공학과';
             else if (s.department === 'AI') deptName = '인공지능공학과';
+            else if (s.department === 'DT') deptName = '디자인테크놀로지학과';
 
             const row = {
                 '이름': s.name,
@@ -57,7 +58,7 @@ export default function ExportButton({ students, department }) {
             includeCreatedAt: filters.includeCreatedAt
         });
 
-        const deptName = department === 'CS' ? '컴퓨터공학과' : '인공지능공학과';
+        const deptName = department === 'CS' ? '컴퓨터공학과' : department === 'DT' ? '디자인테크놀로지학과' : '인공지능공학과';
         const date = new Date();
         const yymmdd = date.toLocaleDateString('ko-KR', { year: '2-digit', month: '2-digit', day: '2-digit' }).replace(/\./g, '').replace(/\s/g, '');
         const fileName = `[${deptName}-${yymmdd}]_OT_명단`;

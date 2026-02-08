@@ -9,6 +9,8 @@ export async function POST(request) {
         const CS_PW = process.env.SWC_CS_PW;
         const AI_ID = process.env.SWC_AI_ID;
         const AI_PW = process.env.SWC_AI_PW;
+        const DT_ID = process.env.SWC_DT_ID;
+        const DT_PW = process.env.SWC_DT_PW;
 
         let department = null;
 
@@ -16,6 +18,8 @@ export async function POST(request) {
             department = 'CS';
         } else if (id === AI_ID && password === AI_PW) {
             department = 'AI';
+        } else if (id === DT_ID && password === DT_PW) {
+            department = 'DT';
         }
 
         if (department) {

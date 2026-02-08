@@ -122,10 +122,10 @@ export default function AdminDashboard() {
                     <div className="flex justify-between items-center h-16 w-full">
                         <div className="flex items-center gap-3">
                             <span className="flex items-center justify-center px-3 h-8 rounded-lg bg-indigo-50 text-indigo-600 font-bold text-sm font-outfit tracking-wide">
-                                {department === 'CS' ? 'CS' : 'AI'}
+                                {department}
                             </span>
                             <h1 className="text-lg font-bold text-gray-900 tracking-tight">
-                                {department === 'CS' ? '컴퓨터공학과' : '인공지능공학과'} OT 관리
+                                {department === 'CS' ? '컴퓨터공학과' : department === 'DT' ? '디자인테크놀로지학과' : '인공지능공학과'} OT 관리
                             </h1>
                         </div>
                         <div className="flex items-center ml-auto">
