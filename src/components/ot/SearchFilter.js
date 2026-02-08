@@ -66,7 +66,7 @@ export default function SearchFilter({ filters, setFilters, onSearch }) {
                         type="text"
                         value={filters.search || ''}
                         onChange={(e) => handleChange('search', e.target.value)}
-                        placeholder="이름 또는 학번 검색"
+                        placeholder="이름 검색"
                         className="block w-full sm:w-64 pl-10 pr-3 py-2.5 text-sm border border-gray-200 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 rounded-xl bg-white shadow-sm hover:bg-gray-50 transition-colors text-gray-700 placeholder-gray-400"
                     />
                 </div>

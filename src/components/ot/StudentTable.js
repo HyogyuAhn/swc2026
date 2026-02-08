@@ -87,8 +87,8 @@ export default function StudentTable({ students, loading, onEdit, onDelete, onRe
                                         </td>
                                         <td className="px-6 py-4 whitespace-nowrap">
                                             <span className={`px-3 py-1 inline-flex text-xs leading-5 font-semibold rounded-full items-center gap-1.5 ${student.fee_status === 'PAID'
-                                                    ? 'bg-green-100 text-green-800 border border-green-200'
-                                                    : 'bg-red-100 text-red-800 border border-red-200'
+                                                ? 'bg-green-100 text-green-800 border border-green-200'
+                                                : 'bg-red-100 text-red-800 border border-red-200'
                                                 }`}>
                                                 <span className={`w-1.5 h-1.5 rounded-full ${student.fee_status === 'PAID' ? 'bg-green-500' : 'bg-red-500'
                                                     }`}></span>
@@ -103,7 +103,6 @@ export default function StudentTable({ students, loading, onEdit, onDelete, onRe
                                         <td className="px-6 py-4 whitespace-nowrap">
                                             <div className="flex flex-col">
                                                 <div className="text-sm font-bold text-gray-900">{student.name}</div>
-                                                <div className="text-xs text-gray-500 font-mono mt-0.5">{student.student_id || '-'}</div>
                                             </div>
                                         </td>
                                         <td className="px-6 py-4 whitespace-nowrap">

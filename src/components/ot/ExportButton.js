@@ -8,7 +8,7 @@ export default function ExportButton({ students, department }) {
     const getFormattedData = () => {
         return students.map(s => ({
             '이름': s.name,
-            '학번': s.student_id,
+
             '전화번호': s.phone,
             '이메일': s.email,
             '학과': s.department,
