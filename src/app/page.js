@@ -21,7 +21,7 @@ export default function Home() {
                         <h1>2026 인하대학교<br />소프트웨어융합대학<br />새내기 새로배움터</h1>
                         <p>여러분들의 대학 생활을 응원합니다!</p>
                         <div className="cta-wrapper">
-                            <Link href="/#prepare" className="cta-button">준비중</Link>
+                            <Link href="/vote" className="cta-button">투표</Link>
                         </div>
                     </div>
                 </section>
@@ -45,7 +45,8 @@ export default function Home() {
 
             <footer>
                 <div className="container">
-                    <p>주최  |  인하대학교 제3대 소프트웨어융합대학 학생회  /  주관  |  인하대학교 소프트웨어융합대학 새터준비위원회</p>
+                    <p>주최  |  인하대학교 제3대 소프트웨어융합대학 학생회</p>
+                    <p>주관  |  인하대학교 소프트웨어융합대학 새터준비위원회</p>
                     <p>문의: inha.swc@gmail.com</p>
                 </div>
             </footer>
