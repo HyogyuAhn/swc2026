@@ -107,15 +107,16 @@ nav a:hover {
 }
 
 .hero-main-image {
-    width: min(640px, 86vw);
+    width: min(600px, 84vw);
     height: auto;
-    margin-bottom: 0.75rem;
+    margin-bottom: 0;
 }
 
 .hero p {
     font-size: clamp(1.1rem, 2vw, 1.5rem);
     color: #555;
-    margin-bottom: 1.75rem;
+    margin-top: -4.25rem;
+    margin-bottom: 1.25rem;
     max-width: 600px;
     margin-left: auto;
     margin-right: auto;
@@ -232,12 +233,13 @@ footer p {
     }
 
     .hero-main-image {
-        width: min(420px, 92vw);
-        margin-bottom: 0.75rem;
+        width: min(400px, 90vw);
+        margin-bottom: 0;
     }
 
     .hero p {
-        margin-bottom: 1.25rem;
+        margin-top: -2rem;
+        margin-bottom: 1rem;
     }
 
     nav ul {
