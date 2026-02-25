@@ -1,11 +1,12 @@
 import Link from 'next/link';
+import Image from 'next/image';
 
 export default function Home() {
     return (
         <>
             <header>
                 <nav>
-                    <div class="logo">
+                    <div className="logo">
                         <span>소프트웨어융합대학 2026 새내기 새로배움터</span>
                     </div>
                     <ul>
@@ -18,7 +19,22 @@ export default function Home() {
             <main>
                 <section className="hero">
                     <div className="hero-content">
-                        <h1>2026 인하대학교<br />소프트웨어융합대학<br />새내기 새로배움터</h1>
+                        <Image
+                            src="/images/logo.png"
+                            alt="소프트웨어융합대학"
+                            width={520}
+                            height={253}
+                            className="hero-logo-image"
+                            priority
+                        />
+                        <Image
+                            src="/images/hero.png"
+                            alt="2026 새내기 새로배움터"
+                            width={760}
+                            height={753}
+                            className="hero-main-image"
+                            priority
+                        />
                         <p>여러분들의 대학 생활을 응원합니다!</p>
                         <div className="cta-wrapper">
                             <Link href="/vote" className="cta-button">투표</Link>

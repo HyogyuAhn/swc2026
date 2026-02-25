@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { createClient } from '@supabase/supabase-js';
 import { LogOut, User, Clock, CheckCircle, BarChart2, AlertCircle, X, Pin } from 'lucide-react';
+import Image from 'next/image';
 
 const supabase = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -222,8 +223,15 @@ export default function VotePage() {
         return (
             <div className="min-h-screen flex flex-col items-center justify-center p-6 bg-gradient-to-br from-blue-50 to-white">
                 <div className="max-w-md w-full bg-white p-8 rounded-2xl shadow-xl border border-blue-50">
-                    <div className="text-center mb-8">
-                        <h1 className="text-3xl font-extrabold text-blue-900 mb-2">소프트웨어융합대학 투표시스템</h1>
+                    <div className="text-center mb-8 flex flex-col items-center">
+                        <Image
+                            src="/images/logo.png"
+                            alt="소프트웨어융합대학"
+                            width={420}
+                            height={204}
+                            className="w-full max-w-[360px] h-auto mb-2"
+                            priority
+                        />
                         <p className="text-gray-500">2026 새내기배움터</p>
                     </div>
                     <form onSubmit={handleLogin} className="space-y-4">
