@@ -65,9 +65,9 @@ export default function Home() {
                 const start = top - viewport * 0.2;
                 const end = top + rect.height - viewport * 0.9;
                 const raw = clamp((scrollY - start) / Math.max(1, end - start), 0, 1);
-                const progress = raw * (cardFrames.length - 1);
+                const progress = Math.round(raw * (cardFrames.length - 1) * 1000) / 1000;
 
-                setStoryProgress(prev => (Math.abs(prev - progress) > 0.001 ? progress : prev));
+                setStoryProgress(prev => (Math.abs(prev - progress) > 0.004 ? progress : prev));
             }
         };
 
@@ -128,56 +128,48 @@ export default function Home() {
                     id="story"
                     ref={storySectionRef}
                     className="story-scroll"
-                    style={{ height: `${cardFrames.length * 85}vh` }}
+                    aria-label="카드뉴스 소개"
+                    style={{ height: `${cardFrames.length * 82}svh` }}
                 >
                     <div className="story-sticky">
-                        <div className="story-copy">
-                            <p className="story-eyebrow">CARD NEWS</p>
-                            <h2 className="story-title">스크롤로 넘기는 새터 스토리</h2>
-                            <p className="story-desc">
-                                내리면 다음 이미지가 오른쪽에서 들어오고,
-                                올리면 같은 방식으로 역재생됩니다.
-                            </p>
-                            <p className="story-counter">
+                        <div className="story-stage-wrap">
+                            <div className="story-stage" aria-live="polite">
+                                {cardFrames.map((src, index) => {
+                                    const delta = index - storyProgress;
+                                    const translateX = clamp(delta * 100, -108, 108);
+                                    const scale = clamp(1 - Math.abs(delta) * 0.08, 0.88, 1);
+                                    const opacity = clamp(1 - Math.abs(delta) * 0.6, 0, 1);
+
+                                    return (
+                                        <div
+                                            key={src}
+                                            className="story-card"
+                                            style={{
+                                                transform: `translate3d(${translateX}%, 0, 0) scale(${scale})`,
+                                                opacity,
+                                                zIndex: Math.round(100 - Math.abs(delta) * 10),
+                                            }}
+                                        >
+                                            <Image
+                                                src={src}
+                                                alt={`새내기 새로배움터 카드뉴스 ${String(index + 1).padStart(3, '0')}`}
+                                                fill
+                                                sizes="(max-width: 768px) 90vw, 620px"
+                                            />
+                                        </div>
+                                    );
+                                })}
+                            </div>
+                            <p className="story-counter-badge">
                                 {Math.round(storyProgress) + 1} / {cardFrames.length}
                             </p>
-                        </div>
-
-                        <div className="story-stage" aria-live="polite">
-                            {cardFrames.map((src, index) => {
-                                const delta = index - storyProgress;
-                                const translateX = clamp(delta * 115, -120, 120);
-                                const rotate = clamp(delta * -6, -10, 10);
-                                const scale = clamp(1 - Math.abs(delta) * 0.12, 0.78, 1);
-                                const opacity = clamp(1 - Math.abs(delta) * 0.55, 0, 1);
-
-                                return (
-                                    <div
-                                        key={src}
-                                        className="story-card"
-                                        style={{
-                                            transform: `translateX(${translateX}%) rotate(${rotate}deg) scale(${scale})`,
-                                            opacity,
-                                            zIndex: Math.round(100 - Math.abs(delta) * 10),
-                                        }}
-                                    >
-                                        <Image
-                                            src={src}
-                                            alt={`새내기배움터 카드뉴스 ${String(index + 1).padStart(3, '0')}`}
-                                            fill
-                                            sizes="(max-width: 768px) 88vw, 560px"
-                                        />
-                                    </div>
-                                );
-                            })}
                         </div>
                     </div>
                 </section>
 
                 <section id="schedule" ref={timelineSectionRef} className="roadmap-section">
                     <div className="container roadmap-container">
-                        <h2 className="roadmap-title">DAY 1 · DAY 2 일정 로드맵</h2>
-                        <p className="roadmap-subtitle">스크롤을 내리면 진행선이 활성화되고, 해당 시간표가 강조됩니다.</p>
+                        <h2 className="roadmap-title">DAY 1 · DAY 2 일정 시간표</h2>
 
                         <div className="roadmap-track">
                             <div className="roadmap-line" />
@@ -215,22 +207,28 @@ export default function Home() {
                         <p className="apply-desc">신입생/재학생 구글폼에서 신청을 진행해주세요.</p>
                         <p className="apply-refund">환불은 27일까지 가능합니다.</p>
                         <div className="apply-actions">
-                            <a
-                                className="apply-button freshman"
-                                href="https://docs.google.com/forms/d/e/1FAIpQLSeyMwPyRMwN-MPGRe01Lg0dXiHiPJdHMGQvMD-UZcDtb3DWrg/viewform"
-                                target="_blank"
-                                rel="noopener noreferrer"
-                            >
-                                신입생 신청
-                            </a>
-                            <a
-                                className="apply-button enrolled"
-                                href="https://docs.google.com/forms/d/e/1FAIpQLScGahYbJMHS_ao-Qc7dFVnRqr15b2XNuKz3Lj6CGYRq-Dhh_g/viewform"
-                                target="_blank"
-                                rel="noopener noreferrer"
-                            >
-                                재학생 신청
-                            </a>
+                            <div className="apply-option">
+                                <p className="apply-price">60,000원</p>
+                                <a
+                                    className="apply-button freshman"
+                                    href="https://docs.google.com/forms/d/e/1FAIpQLSeyMwPyRMwN-MPGRe01Lg0dXiHiPJdHMGQvMD-UZcDtb3DWrg/viewform"
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                >
+                                    신입생 신청
+                                </a>
+                            </div>
+                            <div className="apply-option">
+                                <p className="apply-price">50,000원</p>
+                                <a
+                                    className="apply-button enrolled"
+                                    href="https://docs.google.com/forms/d/e/1FAIpQLScGahYbJMHS_ao-Qc7dFVnRqr15b2XNuKz3Lj6CGYRq-Dhh_g/viewform"
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                >
+                                    재학생 신청
+                                </a>
+                            </div>
                         </div>
                     </div>
                 </section>
@@ -238,7 +236,6 @@ export default function Home() {
 
             <footer className="site-footer">
                 <div className="container footer-container">
-                    <h2 className="footer-title">소프트웨어융합대학 새내기 새로배움터 2026</h2>
                     <div className="footer-grid">
                         <article className="footer-item">
                             <p className="footer-label">주최</p>

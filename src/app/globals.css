@@ -160,7 +160,7 @@ nav a:hover {
 }
 
 .roadmap-title {
-    margin: 0;
+    margin: 0 0 2rem;
     font-size: clamp(2rem, 3.8vw, 2.9rem);
     color: #0f3c73;
     letter-spacing: -0.03em;
@@ -174,16 +174,20 @@ nav a:hover {
 }
 
 .roadmap-track {
+    --track-left-padding: 2.8rem;
+    --line-left: 1rem;
+    --line-width: 3px;
+    --node-size: 11px;
     position: relative;
-    padding-left: 2.8rem;
+    padding-left: var(--track-left-padding);
 }
 
 .roadmap-line,
 .roadmap-line-progress {
     position: absolute;
-    left: 1rem;
+    left: var(--line-left);
     top: 0;
-    width: 3px;
+    width: var(--line-width);
     height: 100%;
     border-radius: 999px;
 }
@@ -206,13 +210,11 @@ nav a:hover {
 .roadmap-item {
     position: relative;
     opacity: 0.38;
-    transform: translateX(10px);
-    transition: opacity 0.25s ease, transform 0.25s ease;
+    transition: opacity 0.25s ease;
 }
 
 .roadmap-item.is-active {
     opacity: 1;
-    transform: translateX(0);
 }
 
 .roadmap-day {
@@ -226,10 +228,12 @@ nav a:hover {
 
 .roadmap-node {
     position: absolute;
-    left: -2.05rem;
+    left: calc(
+        var(--line-left) + (var(--line-width) / 2) - (var(--node-size) / 2) - var(--track-left-padding)
+    );
     top: 1.05rem;
-    width: 11px;
-    height: 11px;
+    width: var(--node-size);
+    height: var(--node-size);
     border-radius: 50%;
     border: 2px solid #7eaee5;
     background: #fff;
@@ -255,7 +259,12 @@ nav a:hover {
     border: 1px solid #dde8f8;
     border-radius: 16px;
     padding: 0.95rem 1.1rem 1rem;
-    transition: border-color 0.25s ease, box-shadow 0.25s ease, background-color 0.25s ease;
+    transform: translateX(10px);
+    transition: transform 0.25s ease, border-color 0.25s ease, box-shadow 0.25s ease, background-color 0.25s ease;
+}
+
+.roadmap-item.is-active .roadmap-card {
+    transform: translateX(0);
 }
 
 .roadmap-item.is-current .roadmap-card {
@@ -294,53 +303,26 @@ nav a:hover {
 .story-sticky {
     position: sticky;
     top: 72px;
-    min-height: calc(100vh - 72px);
-    display: grid;
-    grid-template-columns: minmax(250px, 410px) minmax(0, 1fr);
+    min-height: calc(100svh - 72px);
+    display: flex;
+    justify-content: center;
     align-items: center;
-    gap: 2.4rem;
-    padding: 2.2rem max(1rem, 4vw);
+    padding: 2rem 1rem 3.4rem;
 }
 
-.story-copy {
-    max-width: 410px;
-}
-
-.story-eyebrow {
-    margin: 0 0 0.55rem;
-    font-size: 0.8rem;
-    font-weight: 800;
-    letter-spacing: 0.18em;
-    color: #2a78d4;
-}
-
-.story-title {
-    margin: 0;
-    font-size: clamp(2rem, 3.2vw, 2.6rem);
-    line-height: 1.15;
-    letter-spacing: -0.03em;
-    color: #0f3c73;
-    text-align: left;
-}
-
-.story-desc {
-    margin: 1rem 0 1.15rem;
-    color: #4e5f79;
-    font-size: 1.02rem;
-    line-height: 1.55;
-}
-
-.story-counter {
-    margin: 0;
-    font-weight: 800;
-    color: #135aa8;
+.story-stage-wrap {
+    width: min(640px, 92vw);
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 0.7rem;
 }
 
 .story-stage {
     position: relative;
-    width: min(560px, 58vw);
+    width: 100%;
     aspect-ratio: 1 / 1;
-    margin: 0 auto;
+    margin: 0;
 }
 
 .story-card {
@@ -349,14 +331,28 @@ nav a:hover {
     border-radius: 24px;
     overflow: hidden;
     border: 1px solid #dce8f9;
-    box-shadow: 0 20px 46px rgba(0, 38, 79, 0.2);
+    box-shadow: 0 12px 32px rgba(0, 38, 79, 0.17);
+    transform: translate3d(0, 0, 0);
+    backface-visibility: hidden;
     will-change: transform, opacity;
-    transition: transform 0.11s linear, opacity 0.11s linear;
+    transition: none;
     background: #ffffff;
 }
 
 .story-card img {
     object-fit: cover;
+}
+
+.story-counter-badge {
+    margin: 0;
+    padding: 0.38rem 0.72rem;
+    border-radius: 999px;
+    font-size: 0.82rem;
+    font-weight: 800;
+    line-height: 1;
+    color: #0f4f95;
+    background: rgba(255, 255, 255, 0.92);
+    border: 1px solid #d0e1f7;
 }
 
 .apply-section {
@@ -403,16 +399,37 @@ nav a:hover {
 .apply-actions {
     display: flex;
     justify-content: center;
-    align-items: center;
+    align-items: stretch;
     gap: 0.9rem;
     flex-wrap: wrap;
+}
+
+.apply-option {
+    width: min(280px, 100%);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.48rem;
+}
+
+.apply-price {
+    margin: 0;
+    padding: 0.34rem 0.74rem;
+    border-radius: 999px;
+    background: #e9f2ff;
+    border: 1px solid #c8dcf7;
+    color: #165190;
+    font-size: 0.9rem;
+    font-weight: 800;
+    line-height: 1;
 }
 
 .apply-button {
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    min-width: 220px;
+    width: 100%;
+    min-width: 0;
     padding: 1rem 2.8rem;
     border-radius: 999px;
     text-decoration: none;
@@ -558,16 +575,13 @@ nav a:hover {
     }
 
     .roadmap-track {
-        padding-left: 2.25rem;
+        --track-left-padding: 2.25rem;
+        --line-left: 0.72rem;
     }
 
     .roadmap-line,
     .roadmap-line-progress {
-        left: 0.72rem;
-    }
-
-    .roadmap-node {
-        left: -1.62rem;
+        left: var(--line-left);
     }
 
     .roadmap-item.is-day-start .roadmap-node {
@@ -577,28 +591,17 @@ nav a:hover {
     .story-sticky {
         top: var(--mobile-header-height);
         min-height: calc(100svh - var(--mobile-header-height));
-        display: block;
-        padding: 1.5rem 1rem 1.2rem;
+        padding: 1.2rem 0.8rem 2.1rem;
     }
 
-    .story-copy {
-        max-width: none;
-        text-align: center;
+    .story-stage-wrap {
+        width: min(440px, 92vw);
+        gap: 0.55rem;
     }
 
-    .story-title {
-        text-align: center;
-        font-size: clamp(1.8rem, 8vw, 2.2rem);
-    }
-
-    .story-desc {
-        margin: 0.75rem auto 0.9rem;
-        max-width: 520px;
-    }
-
-    .story-stage {
-        width: min(420px, 86vw);
-        margin-top: 1.2rem;
+    .story-counter-badge {
+        font-size: 0.78rem;
+        padding: 0.34rem 0.62rem;
     }
 
     .apply-section {
@@ -622,9 +625,12 @@ nav a:hover {
         gap: 0.7rem;
     }
 
-    .apply-button {
+    .apply-option {
         width: min(360px, 100%);
-        min-width: 0;
+    }
+
+    .apply-button {
+        width: 100%;
     }
 
     .site-footer {
