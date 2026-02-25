@@ -216,33 +216,33 @@ export default function VotePage() {
 
     if (!isLoggedIn) {
         return (
-            <div className="min-h-screen flex flex-col items-center justify-center p-4 sm:p-6 bg-gradient-to-br from-blue-50 to-white">
-                <div className="max-w-md w-full bg-white p-6 sm:p-8 rounded-2xl shadow-xl border border-blue-50">
-                    <div className="text-center mb-6 flex flex-col items-center">
+            <div className="min-h-screen flex flex-col items-center justify-center p-3 sm:p-4 bg-gradient-to-br from-blue-50 to-white">
+                <div className="max-w-md w-full bg-white p-5 sm:p-6 rounded-2xl shadow-xl border border-blue-50">
+                    <div className="text-center mb-4 flex flex-col items-center">
                         <Image
                             src="/images/logo.png"
                             alt="소프트웨어융합대학"
                             width={1064}
                             height={294}
-                            className="w-full max-w-[340px] h-auto mb-2"
+                            className="w-full max-w-[320px] h-auto mb-1"
                             priority
                         />
                         <p className="text-gray-500">2026 새내기배움터</p>
                     </div>
-                    <form onSubmit={handleLogin} className="space-y-4">
+                    <form onSubmit={handleLogin} className="space-y-3">
                         <div>
-                            <label className="block text-sm font-bold text-gray-700 mb-2">학번 입력</label>
+                            <label className="block text-sm font-bold text-gray-700 mb-1.5">학번 입력</label>
                             <input
                                 type="text"
                                 value={studentId}
                                 onChange={e => setStudentId(e.target.value)}
-                                className="w-full p-4 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition outline-none text-lg"
+                                className="w-full p-3.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition outline-none text-lg"
                                 placeholder="학번 8자리를 입력하세요"
                             />
                         </div>
                         <button
                             type="submit"
-                            className="w-full py-4 bg-blue-600 text-white rounded-xl font-bold text-lg hover:bg-blue-700 hover:shadow-lg hover:-translate-y-0.5 transition-all"
+                            className="w-full py-3.5 bg-blue-600 text-white rounded-xl font-bold text-lg hover:bg-blue-700 hover:shadow-lg hover:-translate-y-0.5 transition-all"
                         >
                             입장
                         </button>
