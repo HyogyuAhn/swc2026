@@ -11,6 +11,10 @@
     --section-bg: #f9fafb;
 }
 
+html {
+    scroll-behavior: smooth;
+}
+
 body {
     margin: 0;
     padding: 0;
@@ -140,65 +144,353 @@ nav a:hover {
     box-shadow: 0 8px 25px rgba(0, 92, 170, 0.3);
 }
 
-section {
-    padding: 5rem 2rem;
-}
-
-.info-section {
-    background-color: var(--section-bg);
-}
-
 .container {
     max-width: 1200px;
     margin: 0 auto;
 }
 
-h2 {
-    font-size: 2.5rem;
-    margin-bottom: 2rem;
-    text-align: center;
-    color: var(--primary-color);
+.roadmap-section {
+    background: linear-gradient(180deg, #f7fbff 0%, #ffffff 100%);
+    padding: 6rem 1.5rem 5rem;
+    border-top: 1px solid #e5eefb;
 }
 
-.grid {
+.roadmap-container {
+    max-width: 980px;
+}
+
+.roadmap-title {
+    margin: 0;
+    font-size: clamp(2rem, 3.8vw, 2.9rem);
+    color: #0f3c73;
+    letter-spacing: -0.03em;
+    text-align: left;
+}
+
+.roadmap-subtitle {
+    margin: 0.9rem 0 2.4rem;
+    color: #4e5f79;
+    font-size: clamp(1rem, 1.5vw, 1.2rem);
+}
+
+.roadmap-track {
+    position: relative;
+    padding-left: 2.8rem;
+}
+
+.roadmap-line,
+.roadmap-line-progress {
+    position: absolute;
+    left: 1rem;
+    top: 0;
+    width: 3px;
+    height: 100%;
+    border-radius: 999px;
+}
+
+.roadmap-line {
+    background: #d2e4fb;
+}
+
+.roadmap-line-progress {
+    background: linear-gradient(180deg, #005caa 0%, #43a6ff 100%);
+    transform-origin: top;
+}
+
+.roadmap-items {
+    display: flex;
+    flex-direction: column;
+    gap: 0.85rem;
+}
+
+.roadmap-item {
+    position: relative;
+    opacity: 0.38;
+    transform: translateX(10px);
+    transition: opacity 0.25s ease, transform 0.25s ease;
+}
+
+.roadmap-item.is-active {
+    opacity: 1;
+    transform: translateX(0);
+}
+
+.roadmap-day {
+    margin: 0 0 0.5rem;
+    font-size: 0.8rem;
+    font-weight: 800;
+    letter-spacing: 0.15em;
+    color: #3574c7;
+    text-transform: uppercase;
+}
+
+.roadmap-node {
+    position: absolute;
+    left: -2.05rem;
+    top: 1.05rem;
+    width: 11px;
+    height: 11px;
+    border-radius: 50%;
+    border: 2px solid #7eaee5;
+    background: #fff;
+    z-index: 2;
+    transition: transform 0.2s ease, background-color 0.2s ease, border-color 0.2s ease;
+}
+
+.roadmap-item.is-day-start .roadmap-node {
+    top: 1.9rem;
+}
+
+.roadmap-item.is-active .roadmap-node {
+    background: #005caa;
+    border-color: #005caa;
+}
+
+.roadmap-item.is-current .roadmap-node {
+    transform: scale(1.18);
+}
+
+.roadmap-card {
+    background: #f3f7fe;
+    border: 1px solid #dde8f8;
+    border-radius: 16px;
+    padding: 0.95rem 1.1rem 1rem;
+    transition: border-color 0.25s ease, box-shadow 0.25s ease, background-color 0.25s ease;
+}
+
+.roadmap-item.is-current .roadmap-card {
+    background: #ffffff;
+    border-color: #a8c8f2;
+    box-shadow: 0 10px 24px rgba(35, 102, 184, 0.14);
+}
+
+.roadmap-time {
+    margin: 0 0 0.2rem;
+    font-weight: 800;
+    color: #1d4f8f;
+    font-size: 0.95rem;
+}
+
+.roadmap-text {
+    margin: 0;
+    font-weight: 500;
+    color: #5d6f88;
+    line-height: 1.45;
+    transition: color 0.2s ease, font-weight 0.2s ease;
+}
+
+.roadmap-item.is-active .roadmap-text {
+    color: #21314b;
+    font-weight: 700;
+}
+
+.story-scroll {
+    position: relative;
+    background: linear-gradient(180deg, #ffffff 0%, #f3f8ff 100%);
+    border-top: 1px solid #e5eefb;
+    border-bottom: 1px solid #e5eefb;
+}
+
+.story-sticky {
+    position: sticky;
+    top: 72px;
+    min-height: calc(100vh - 72px);
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-    gap: 2rem;
+    grid-template-columns: minmax(250px, 410px) minmax(0, 1fr);
+    align-items: center;
+    gap: 2.4rem;
+    padding: 2.2rem max(1rem, 4vw);
 }
 
-.card {
-    background: white;
-    padding: 2rem;
-    border-radius: 15px;
-    box-shadow: 0 5px 20px rgba(0, 0, 0, 0.05);
-    transition: transform 0.3s;
+.story-copy {
+    max-width: 410px;
 }
 
-.card:hover {
-    transform: translateY(-5px);
+.story-eyebrow {
+    margin: 0 0 0.55rem;
+    font-size: 0.8rem;
+    font-weight: 800;
+    letter-spacing: 0.18em;
+    color: #2a78d4;
 }
 
-.card h2 {
-    margin-bottom: 1rem;
-    font-size: 1.8rem;
-    color: #222;
+.story-title {
+    margin: 0;
+    font-size: clamp(2rem, 3.2vw, 2.6rem);
+    line-height: 1.15;
+    letter-spacing: -0.03em;
+    color: #0f3c73;
+    text-align: left;
 }
 
-.card p {
-    color: #222;
-    font-size: 1rem;
+.story-desc {
+    margin: 1rem 0 1.15rem;
+    color: #4e5f79;
+    font-size: 1.02rem;
+    line-height: 1.55;
+}
+
+.story-counter {
+    margin: 0;
+    font-weight: 800;
+    color: #135aa8;
+}
+
+.story-stage {
+    position: relative;
+    width: min(560px, 58vw);
+    aspect-ratio: 1 / 1;
+    margin: 0 auto;
+}
+
+.story-card {
+    position: absolute;
+    inset: 0;
+    border-radius: 24px;
+    overflow: hidden;
+    border: 1px solid #dce8f9;
+    box-shadow: 0 20px 46px rgba(0, 38, 79, 0.2);
+    will-change: transform, opacity;
+    transition: transform 0.11s linear, opacity 0.11s linear;
+    background: #ffffff;
+}
+
+.story-card img {
+    object-fit: cover;
+}
+
+.apply-section {
+    background: linear-gradient(180deg, #f8fbff 0%, #ffffff 100%);
+    border-top: 1px solid #e5eefb;
+    padding: 5.5rem 1.5rem 6rem;
+}
+
+.apply-container {
+    max-width: 760px;
     text-align: center;
 }
 
-footer {
-    background-color: #1a1a1a;
-    color: white;
-    padding: 4rem 2rem;
-    text-align: center;
+.apply-eyebrow {
+    margin: 0 0 0.45rem;
+    color: #2a78d4;
+    font-size: 0.8rem;
+    font-weight: 800;
+    letter-spacing: 0.18em;
 }
 
-footer p {
-    opacity: 0.7;
+.apply-title {
+    margin: 0;
+    font-size: clamp(2rem, 3.1vw, 2.7rem);
+    line-height: 1.15;
+    letter-spacing: -0.03em;
+    color: #0f3c73;
+}
+
+.apply-desc {
+    margin: 0.9rem auto 1.7rem;
+    max-width: 620px;
+    color: #4e5f79;
+    font-size: 1.04rem;
+}
+
+.apply-refund {
+    margin: -0.8rem 0 1.35rem;
+    color: #1f4f87;
+    font-weight: 700;
+    font-size: 0.97rem;
+}
+
+.apply-actions {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 0.9rem;
+    flex-wrap: wrap;
+}
+
+.apply-button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 220px;
+    padding: 1rem 2.8rem;
+    border-radius: 999px;
+    text-decoration: none;
+    color: #ffffff;
+    font-weight: 700;
+    font-size: 1.08rem;
+    background: linear-gradient(120deg, #005caa 0%, #3a89df 100%);
+    box-shadow: 0 12px 26px rgba(0, 78, 156, 0.23);
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.apply-button:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 16px 32px rgba(0, 78, 156, 0.28);
+}
+
+.apply-button.freshman {
+    background: linear-gradient(120deg, #005caa 0%, #3a89df 100%);
+}
+
+.apply-button.enrolled {
+    background: linear-gradient(120deg, #2473be 0%, #56a2ee 100%);
+}
+
+.site-footer {
+    background: #0f2d52;
+    color: #e8f1fb;
+    padding: 4rem 1.5rem;
+    border-top: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.footer-container {
+    max-width: 1000px;
+}
+
+.footer-title {
+    margin: 0 0 1.5rem;
+    font-size: clamp(1.25rem, 2.2vw, 1.65rem);
+    font-weight: 800;
+    letter-spacing: -0.01em;
+}
+
+.footer-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 0.9rem;
+}
+
+.footer-item {
+    margin: 0;
+    border: 1px solid rgba(255, 255, 255, 0.14);
+    background: rgba(255, 255, 255, 0.04);
+    border-radius: 14px;
+    padding: 1rem 1.1rem;
+}
+
+.footer-label {
+    margin: 0 0 0.3rem;
+    color: #8ebaf1;
+    font-size: 0.82rem;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+}
+
+.footer-value {
+    margin: 0;
+    color: #f2f7ff;
+    line-height: 1.45;
+    font-size: 0.95rem;
+}
+
+.footer-link {
+    text-decoration: none;
+    display: inline-block;
+}
+
+.footer-link:hover {
+    text-decoration: underline;
 }
 
 @keyframes fadeInUp {
@@ -214,6 +506,17 @@ footer p {
 }
 
 @media (max-width: 768px) {
+    :root {
+        --mobile-header-height: 62px;
+    }
+
+    #hero,
+    #schedule,
+    #story,
+    #apply {
+        scroll-margin-top: var(--mobile-header-height);
+    }
+
     nav {
         padding: 0.875rem 1rem;
     }
@@ -228,8 +531,10 @@ footer p {
     }
 
     .hero {
-        min-height: auto;
-        padding: 4.75rem 1rem 1.5rem;
+        min-height: calc(100svh - var(--mobile-header-height));
+        box-sizing: border-box;
+        justify-content: center;
+        padding: calc(var(--mobile-header-height) + 1.1rem) 1rem 2rem;
     }
 
     .hero-main-image {
@@ -240,6 +545,104 @@ footer p {
     .hero p {
         margin-top: 0.35rem;
         margin-bottom: 0.9rem;
+    }
+
+    .roadmap-section {
+        min-height: calc(100svh - var(--mobile-header-height));
+        box-sizing: border-box;
+        padding: calc(var(--mobile-header-height) + 0.8rem) 1rem 3.2rem;
+    }
+
+    .roadmap-subtitle {
+        margin-bottom: 1.8rem;
+    }
+
+    .roadmap-track {
+        padding-left: 2.25rem;
+    }
+
+    .roadmap-line,
+    .roadmap-line-progress {
+        left: 0.72rem;
+    }
+
+    .roadmap-node {
+        left: -1.62rem;
+    }
+
+    .roadmap-item.is-day-start .roadmap-node {
+        top: 1.85rem;
+    }
+
+    .story-sticky {
+        top: var(--mobile-header-height);
+        min-height: calc(100svh - var(--mobile-header-height));
+        display: block;
+        padding: 1.5rem 1rem 1.2rem;
+    }
+
+    .story-copy {
+        max-width: none;
+        text-align: center;
+    }
+
+    .story-title {
+        text-align: center;
+        font-size: clamp(1.8rem, 8vw, 2.2rem);
+    }
+
+    .story-desc {
+        margin: 0.75rem auto 0.9rem;
+        max-width: 520px;
+    }
+
+    .story-stage {
+        width: min(420px, 86vw);
+        margin-top: 1.2rem;
+    }
+
+    .apply-section {
+        min-height: calc(100svh - var(--mobile-header-height));
+        box-sizing: border-box;
+        display: flex;
+        align-items: center;
+        padding: calc(var(--mobile-header-height) + 0.8rem) 1rem 2.2rem;
+    }
+
+    .apply-desc {
+        margin-bottom: 1.3rem;
+    }
+
+    .apply-refund {
+        margin: -0.7rem 0 1.1rem;
+    }
+
+    .apply-actions {
+        width: 100%;
+        gap: 0.7rem;
+    }
+
+    .apply-button {
+        width: min(360px, 100%);
+        min-width: 0;
+    }
+
+    .site-footer {
+        padding: 3.2rem 1rem;
+    }
+
+    .footer-title {
+        margin-bottom: 1.15rem;
+        font-size: 1.2rem;
+    }
+
+    .footer-grid {
+        grid-template-columns: 1fr;
+        gap: 0.7rem;
+    }
+
+    .footer-item {
+        padding: 0.9rem 0.95rem;
     }
 
     nav ul {
