@@ -20,14 +20,6 @@ export default function Home() {
                 <section className="hero">
                     <div className="hero-content">
                         <Image
-                            src="/images/logo.png"
-                            alt="소프트웨어융합대학"
-                            width={520}
-                            height={253}
-                            className="hero-logo-image"
-                            priority
-                        />
-                        <Image
                             src="/images/hero.png"
                             alt="2026 새내기 새로배움터"
                             width={760}

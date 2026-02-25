@@ -106,12 +106,6 @@ nav a:hover {
     animation: fadeInUp 1s ease-out;
 }
 
-.hero-logo-image {
-    width: min(420px, 82vw);
-    height: auto;
-    margin-bottom: 0.5rem;
-}
-
 .hero-main-image {
     width: min(680px, 90vw);
     height: auto;
@@ -235,10 +229,6 @@ footer p {
     .hero {
         min-height: 100svh;
         padding: 6.25rem 1rem 3rem;
-    }
-
-    .hero-logo-image {
-        width: min(320px, 84vw);
     }
 
     .hero-main-image {
