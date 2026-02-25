@@ -119,7 +119,7 @@ export default function Home() {
                         />
                         <p>여러분들의 대학 생활을 응원합니다!</p>
                         <div className="cta-wrapper">
-                            <Link href="/vote" className="cta-button">투표</Link>
+                            <Link href="/vote" className="cta-button">뭘까요</Link>
                         </div>
                     </div>
                 </section>
@@ -129,7 +129,7 @@ export default function Home() {
                     ref={storySectionRef}
                     className="story-scroll"
                     aria-label="카드뉴스 소개"
-                    style={{ height: `${cardFrames.length * 82}svh` }}
+                    style={{ height: `${cardFrames.length * 80}svh` }}
                 >
                     <div className="story-sticky">
                         <div className="story-stage-wrap">
@@ -160,9 +160,6 @@ export default function Home() {
                                     );
                                 })}
                             </div>
-                            <p className="story-counter-badge">
-                                {Math.round(storyProgress) + 1} / {cardFrames.length}
-                            </p>
                         </div>
                     </div>
                 </section>
