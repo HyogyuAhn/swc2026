@@ -1,7 +1,20 @@
 import { Filter, Search } from 'lucide-react';
+import type { Dispatch, SetStateAction } from 'react';
 
-export default function SearchFilter({ filters, setFilters, onSearch }) {
-    const handleChange = (name, value) => {
+type SearchFilters = {
+    verificationStatus: string;
+    otAttendance: string;
+    afterPartyAttendance: string;
+    search: string;
+};
+
+type SearchFilterProps = {
+    filters: SearchFilters;
+    setFilters: Dispatch<SetStateAction<SearchFilters>>;
+};
+
+export default function SearchFilter({ filters, setFilters }: SearchFilterProps) {
+    const handleChange = (name: keyof SearchFilters, value: string) => {
         setFilters(prev => ({ ...prev, [name]: value }));
     };
 
