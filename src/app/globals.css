@@ -50,6 +50,7 @@ nav {
     max-width: 1200px;
     margin: 0 auto;
     height: var(--header-height);
+    position: relative;
     box-sizing: border-box;
     padding: 0 2rem;
     display: flex;
@@ -73,12 +74,48 @@ nav {
     word-break: keep-all;
 }
 
-nav ul {
+.nav-links {
     display: flex;
     gap: 2rem;
     margin: 0;
     padding: 0;
     list-style: none;
+}
+
+.menu-toggle {
+    display: none;
+    width: 40px;
+    height: 40px;
+    border: 1px solid #d6e4f6;
+    border-radius: 10px;
+    background: #ffffff;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+    gap: 4px;
+    padding: 0;
+    cursor: pointer;
+}
+
+.menu-toggle span {
+    display: block;
+    width: 18px;
+    height: 2px;
+    border-radius: 999px;
+    background: #1a3f6f;
+    transition: transform 0.2s ease, opacity 0.2s ease;
+}
+
+.menu-toggle.is-open span:nth-child(1) {
+    transform: translateY(6px) rotate(45deg);
+}
+
+.menu-toggle.is-open span:nth-child(2) {
+    opacity: 0;
+}
+
+.menu-toggle.is-open span:nth-child(3) {
+    transform: translateY(-6px) rotate(-45deg);
 }
 
 nav a {
@@ -319,12 +356,12 @@ nav a:hover {
     background: linear-gradient(180deg, #ffffff 0%, #f3f8ff 100%);
     border-top: 1px solid #e5eefb;
     border-bottom: 1px solid #e5eefb;
-    overflow: hidden;
 }
 
 .story-sticky {
     position: sticky;
     top: var(--header-height);
+    height: calc(100svh - var(--header-height));
     min-height: calc(100svh - var(--header-height));
     display: flex;
     justify-content: center;
@@ -345,6 +382,8 @@ nav a:hover {
     width: 100%;
     aspect-ratio: 1 / 1;
     margin: 0;
+    overflow: hidden;
+    border-radius: 24px;
 }
 
 .story-card {
@@ -539,40 +578,66 @@ nav a:hover {
 
 @media (max-width: 768px) {
     :root {
-        --header-height: 94px;
+        --header-height: 64px;
     }
 
     nav {
         height: var(--header-height);
-        padding: 0.45rem 1rem 0.5rem;
-        flex-direction: column;
-        align-items: flex-start;
-        justify-content: space-between;
+        padding: 0 1rem;
+        align-items: center;
     }
 
     .logo {
-        width: 100%;
-        max-width: none;
+        max-width: calc(100% - 52px);
     }
 
     .logo span {
-        display: block;
-        width: 100%;
         font-size: 0.86rem;
-        line-height: 1.25;
+        line-height: 1.2;
         white-space: nowrap;
         overflow: hidden;
         text-overflow: ellipsis;
     }
 
-    nav ul {
-        width: 100%;
-        justify-content: flex-end;
-        gap: 1.2rem;
+    .menu-toggle {
+        display: inline-flex;
+    }
+
+    .nav-links {
+        position: absolute;
+        top: calc(var(--header-height) - 2px);
+        left: 1rem;
+        right: 1rem;
+        display: none;
+        flex-direction: column;
+        gap: 0.25rem;
+        padding: 0.55rem;
+        border-radius: 14px;
+        border: 1px solid #dce8f8;
+        background: rgba(255, 255, 255, 0.98);
+        box-shadow: 0 10px 26px rgba(0, 28, 67, 0.12);
+        z-index: 110;
+    }
+
+    .nav-links.is-open {
+        display: flex;
+    }
+
+    .nav-links a {
+        display: block;
+        text-align: right;
+        padding: 0.55rem 0.7rem;
+        border-radius: 10px;
+        font-weight: 600;
     }
 
     nav a {
-        font-size: 0.98rem;
+        font-size: 0.95rem;
+    }
+
+    .nav-links a:hover {
+        color: #0f4f95;
+        background: #f1f7ff;
     }
 
     .hero {
@@ -612,6 +677,7 @@ nav a:hover {
 
     .story-sticky {
         top: var(--header-height);
+        height: calc(100svh - var(--header-height));
         min-height: calc(100svh - var(--header-height));
         padding: 0.8rem 0.8rem;
     }

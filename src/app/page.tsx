@@ -38,6 +38,7 @@ export default function Home() {
     const [timelineProgress, setTimelineProgress] = useState(0);
     const [activeTimelineIndex, setActiveTimelineIndex] = useState(0);
     const [storyProgress, setStoryProgress] = useState(0);
+    const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
     useEffect(() => {
         let rafId = 0;
@@ -97,11 +98,23 @@ export default function Home() {
                     <div className="logo">
                         <span>소프트웨어융합대학 2026 새내기 새로배움터</span>
                     </div>
-                    <ul>
-                        <li><Link href="#hero">메인</Link></li>
-                        <li><Link href="#story">소개</Link></li>
-                        <li><Link href="#schedule">일정</Link></li>
-                        <li><Link href="#apply">신청</Link></li>
+                    <button
+                        type="button"
+                        className={`menu-toggle${isMobileMenuOpen ? ' is-open' : ''}`}
+                        aria-label={isMobileMenuOpen ? '메뉴 닫기' : '메뉴 열기'}
+                        aria-controls="main-navigation"
+                        aria-expanded={isMobileMenuOpen}
+                        onClick={() => setIsMobileMenuOpen(prev => !prev)}
+                    >
+                        <span />
+                        <span />
+                        <span />
+                    </button>
+                    <ul id="main-navigation" className={`nav-links${isMobileMenuOpen ? ' is-open' : ''}`}>
+                        <li><Link href="#hero" onClick={() => setIsMobileMenuOpen(false)}>메인</Link></li>
+                        <li><Link href="#story" onClick={() => setIsMobileMenuOpen(false)}>소개</Link></li>
+                        <li><Link href="#schedule" onClick={() => setIsMobileMenuOpen(false)}>일정</Link></li>
+                        <li><Link href="#apply" onClick={() => setIsMobileMenuOpen(false)}>신청</Link></li>
                     </ul>
                 </nav>
             </header>
