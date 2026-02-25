@@ -1,8 +1,13 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 
-export async function POST(request) {
+type LoginBody = {
+    id?: string;
+    pw?: string;
+};
+
+export async function POST(request: NextRequest) {
     try {
-        const body = await request.json();
+        const body = (await request.json()) as LoginBody;
         const { id, pw } = body;
 
         const adminId = process.env.VOTE_ADMIN_ID;

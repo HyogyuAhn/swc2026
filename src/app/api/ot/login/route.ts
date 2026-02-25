@@ -1,9 +1,16 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 
-export async function POST(request) {
+type Department = 'CS' | 'AI' | 'DT';
+
+type LoginBody = {
+    id?: string;
+    password?: string;
+};
+
+export async function POST(request: NextRequest) {
     try {
-        const { id, password } = await request.json();
+        const { id, password } = (await request.json()) as LoginBody;
 
         const CS_ID = process.env.SWC_CS_ID;
         const CS_PW = process.env.SWC_CS_PW;
@@ -12,7 +19,7 @@ export async function POST(request) {
         const DT_ID = process.env.SWC_DT_ID;
         const DT_PW = process.env.SWC_DT_PW;
 
-        let department = null;
+        let department: Department | null = null;
 
         if (id === CS_ID && password === CS_PW) {
             department = 'CS';

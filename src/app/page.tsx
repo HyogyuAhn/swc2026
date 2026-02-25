@@ -22,8 +22,8 @@ export default function Home() {
                         <Image
                             src="/images/hero.png"
                             alt="2026 새내기 새로배움터"
-                            width={760}
-                            height={753}
+                            width={871}
+                            height={579}
                             className="hero-main-image"
                             priority
                         />
