@@ -1,27 +1,22 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { createClient } from '@supabase/supabase-js';
+import { useState, useEffect, type FormEvent } from 'react';
 import { LogOut, User, Clock, CheckCircle, BarChart2, AlertCircle, X, Pin } from 'lucide-react';
 import Image from 'next/image';
-
-const supabase = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
-);
+import { supabase } from '@/lib/supabase';
 
 export default function VotePage() {
     const [studentId, setStudentId] = useState('');
     const [isLoggedIn, setIsLoggedIn] = useState(false);
 
-    const [votes, setVotes] = useState([]);
-    const [filteredVotes, setFilteredVotes] = useState([]);
-    const [userVotes, setUserVotes] = useState(new Set());
-    const [voteCounts, setVoteCounts] = useState({});
+    const [votes, setVotes] = useState<any[]>([]);
+    const [filteredVotes, setFilteredVotes] = useState<any[]>([]);
+    const [userVotes, setUserVotes] = useState<Set<string>>(new Set());
+    const [voteCounts, setVoteCounts] = useState<Record<string, any>>({});
     const [totalStudents, setTotalStudents] = useState(0);
 
     const [filter, setFilter] = useState('ALL');
-    const [selectedOption, setSelectedOption] = useState(null);
+    const [selectedOption, setSelectedOption] = useState<string | null>(null);
     const [loading, setLoading] = useState(true);
     const [currentTime, setCurrentTime] = useState(new Date());
 
@@ -71,13 +66,13 @@ export default function VotePage() {
                 return priority[statusA] - priority[statusB];
             }
 
-            return new Date(b.created_at) - new Date(a.created_at);
+            return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
         });
 
         setFilteredVotes(result);
     }, [votes, filter, currentTime]);
 
-    const fetchVotesData = async (currentId) => {
+    const fetchVotesData = async (currentId?: string | null) => {
         const { data: votesData } = await supabase
             .from('votes')
             .select('*, vote_options(*)')
@@ -137,7 +132,7 @@ export default function VotePage() {
         setLoading(false);
     };
 
-    const handleLogin = async (e) => {
+    const handleLogin = async (e: FormEvent<HTMLFormElement>) => {
         e.preventDefault();
         if (!studentId.trim()) return;
 
@@ -166,10 +161,10 @@ export default function VotePage() {
         localStorage.removeItem('swc_vote_student_id');
         setStudentId('');
         setIsLoggedIn(false);
-        setUserVotes(new Set());
+        setUserVotes(new Set<string>());
     };
 
-    const getVoteStatus = (vote) => {
+    const getVoteStatus = (vote: any): 'UPCOMING' | 'ACTIVE' | 'ENDED' => {
         const now = new Date();
         const start = new Date(vote.start_at);
         const end = new Date(vote.end_at);
@@ -179,8 +174,8 @@ export default function VotePage() {
         return 'ENDED';
     };
 
-    const getRemainingTime = (endDate) => {
-        const total = Date.parse(endDate) - Date.parse(new Date());
+    const getRemainingTime = (endDate: string | Date) => {
+        const total = new Date(endDate).getTime() - Date.now();
         if (total <= 0) return null;
         const seconds = Math.floor((total / 1000) % 60);
         const minutes = Math.floor((total / 1000 / 60) % 60);
@@ -191,7 +186,7 @@ export default function VotePage() {
         return `${hours}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')} 남음`;
     };
 
-    const handleVote = async (voteId) => {
+    const handleVote = async (voteId: string) => {
         if (!selectedOption) {
             alert('투표 항목을 선택해주세요.');
             return;

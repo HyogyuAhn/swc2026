@@ -9,13 +9,20 @@ import SearchFilter from '@/components/ot/SearchFilter';
 import ExportButton from '@/components/ot/ExportButton';
 import { LogOut, UserPlus } from 'lucide-react';
 
+type AdminFilters = {
+    verificationStatus: string;
+    otAttendance: string;
+    afterPartyAttendance: string;
+    search: string;
+};
+
 export default function AdminDashboard() {
-    const [department, setDepartment] = useState(null);
-    const [students, setStudents] = useState([]);
+    const [department, setDepartment] = useState<string | null>(null);
+    const [students, setStudents] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
     const [isModalOpen, setIsModalOpen] = useState(false);
-    const [editingStudent, setEditingStudent] = useState(null);
-    const [filters, setFilters] = useState({
+    const [editingStudent, setEditingStudent] = useState<any>(null);
+    const [filters, setFilters] = useState<AdminFilters>({
         verificationStatus: 'ALL',
         otAttendance: 'ALL',
         afterPartyAttendance: 'ALL',
@@ -89,7 +96,7 @@ export default function AdminDashboard() {
         router.push('/ot/admin');
     };
 
-    const handleDelete = async (id) => {
+    const handleDelete = async (id: string) => {
         if (!confirm('정말 이 학생 정보를 삭제하시겠습니까?')) return;
 
         const { error } = await supabase.from('ot_students').delete().eq('id', id);
@@ -100,7 +107,7 @@ export default function AdminDashboard() {
         }
     };
 
-    const handleEdit = (student) => {
+    const handleEdit = (student: any) => {
         setEditingStudent(student);
         setIsModalOpen(true);
     };

@@ -1,13 +1,8 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { createClient } from '@supabase/supabase-js';
+import { useState, useEffect, type FormEvent } from 'react';
 import { LogOut, Plus, Trash2, StopCircle, CheckCircle, Clock, LayoutDashboard, Settings, List, X, Edit3, Eye, EyeOff, BarChart2, Users, AlertCircle } from 'lucide-react';
-
-const supabase = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
-);
+import { supabase } from '@/lib/supabase';
 
 const TimeSelector = ({ prefix, formData, setFormData, disabled }) => {
     const handleChange = (field, value) => {
@@ -40,26 +35,26 @@ export default function AdminPage() {
 
     const [view, setView] = useState('DASHBOARD');
     const [dashboardFilter, setDashboardFilter] = useState('ALL');
-    const [votes, setVotes] = useState([]);
-    const [selectedVote, setSelectedVote] = useState(null);
-    const [voteRecords, setVoteRecords] = useState([]);
+    const [votes, setVotes] = useState<any[]>([]);
+    const [selectedVote, setSelectedVote] = useState<any>(null);
+    const [voteRecords, setVoteRecords] = useState<any[]>([]);
     const [showDetailsModal, setShowDetailsModal] = useState(false);
-    const [detailsVote, setDetailsVote] = useState(null);
+    const [detailsVote, setDetailsVote] = useState<any>(null);
 
-    const [students, setStudents] = useState([]);
+    const [students, setStudents] = useState<any[]>([]);
     const [studentIdInput, setStudentIdInput] = useState('');
     const [studentSearch, setStudentSearch] = useState('');
-    const [selectedStudent, setSelectedStudent] = useState(null);
-    const [studentHistory, setStudentHistory] = useState([]);
+    const [selectedStudent, setSelectedStudent] = useState<any>(null);
+    const [studentHistory, setStudentHistory] = useState<any[]>([]);
     const [showStudentModal, setShowStudentModal] = useState(false);
 
     const [counts, setCounts] = useState({ upcoming: 0, active: 0, ended: 0 });
     const [currentTime, setCurrentTime] = useState(new Date());
 
-    const [voteStats, setVoteStats] = useState({});
+    const [voteStats, setVoteStats] = useState<Record<string, any>>({});
 
     const [showDeleteModal, setShowDeleteModal] = useState(false);
-    const [deleteTarget, setDeleteTarget] = useState(null);
+    const [deleteTarget, setDeleteTarget] = useState<any>(null);
 
     useEffect(() => {
         if (showDetailsModal || showStudentModal || showDeleteModal || view === 'CREATE' || view === 'EDIT') {
@@ -130,7 +125,7 @@ export default function AdminPage() {
         }
     }, [votes, currentTime]);
 
-    const handleLogin = async (e) => {
+    const handleLogin = async (e: FormEvent<HTMLFormElement>) => {
         e.preventDefault();
         const res = await fetch('/api/auth/login', {
             method: 'POST',
@@ -192,7 +187,7 @@ export default function AdminPage() {
         }
     };
 
-    const fetchVoteDetails = async (vote) => {
+    const fetchVoteDetails = async (vote: any) => {
         setDetailsVote(vote);
         setForceVoteData({ targetVoteId: vote.id, targetStudentId: '', targetOptionId: '' })
         const { data } = await supabase
@@ -227,7 +222,7 @@ export default function AdminPage() {
         fetchVotes();
     };
 
-    const getStatus = (vote) => {
+    const getStatus = (vote: any): 'UPCOMING' | 'ACTIVE' | 'ENDED' => {
         const now = new Date();
         const start = new Date(vote.start_at);
         const end = new Date(vote.end_at);
@@ -247,7 +242,7 @@ export default function AdminPage() {
         if (error) console.error(error);
     };
 
-    const handleAddStudent = async (e) => {
+    const handleAddStudent = async (e?: FormEvent<HTMLFormElement>) => {
         e?.preventDefault();
         if (!/^\d{8}$/.test(studentIdInput)) {
             alert('학번은 8자리 숫자여야 합니다.');
@@ -267,7 +262,7 @@ export default function AdminPage() {
         }
     };
 
-    const handleToggleSuspend = async (student) => {
+    const handleToggleSuspend = async (student: any) => {
         const confirmMsg = student.is_suspended
             ? `${student.student_id} 학번의 정지를 해제하시겠습니까?`
             : `${student.student_id} 학번을 정지시키겠습니까?\n정지 시 해당 사용자는 로그아웃 처리됩니다.`;
@@ -283,12 +278,12 @@ export default function AdminPage() {
         else fetchStudents();
     };
 
-    const handleDeleteStudent = (student) => {
+    const handleDeleteStudent = (student: any) => {
         setDeleteTarget({ type: 'STUDENT', data: student });
         setShowDeleteModal(true);
     };
 
-    const executeDeleteStudent = async (mode) => {
+    const executeDeleteStudent = async (mode: 'ID_ONLY' | 'ALL') => {
         const studentId = deleteTarget.data.student_id;
 
         if (mode === 'ALL') {
@@ -306,7 +301,7 @@ export default function AdminPage() {
         }
     };
 
-    const handleResetStudentVotes = async (student) => {
+    const handleResetStudentVotes = async (student: any) => {
         if (!confirm(`${student.student_id} 의 모든 투표 기록을 초기화하시겠습니까?\n이 작업은 되돌릴 수 없습니다.`)) return;
 
         const { error } = await supabase.from('vote_records').delete().eq('student_id', student.student_id);
@@ -317,7 +312,7 @@ export default function AdminPage() {
         }
     };
 
-    const handleDeleteRecord = async (recordId, refreshCallback) => {
+    const handleDeleteRecord = async (recordId: string, refreshCallback?: (() => void) | null) => {
         if (!confirm('정말 이 투표 기록을 삭제하시겠습니까?')) return;
 
         const { error } = await supabase.from('vote_records').delete().eq('id', recordId);
@@ -364,7 +359,7 @@ export default function AdminPage() {
         }
     };
 
-    const handleStudentDetails = async (student) => {
+    const handleStudentDetails = async (student: any) => {
         setSelectedStudent(student);
         setForceVoteData({ targetStudentId: student.student_id, targetVoteId: '', targetOptionId: '' });
         const { data } = await supabase
@@ -377,8 +372,8 @@ export default function AdminPage() {
         setShowStudentModal(true);
     };
 
-    const getRemainingTime = (endDate) => {
-        const total = Date.parse(endDate) - Date.parse(new Date());
+    const getRemainingTime = (endDate: string | Date) => {
+        const total = new Date(endDate).getTime() - Date.now();
         if (total <= 0) return null;
         const seconds = Math.floor((total / 1000) % 60);
         const minutes = Math.floor((total / 1000 / 60) % 60);
@@ -389,7 +384,7 @@ export default function AdminPage() {
         return `${hours}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')} 남음`;
     };
 
-    const parseDateToForm = (isoStr) => {
+    const parseDateToForm = (isoStr: string) => {
         const d = new Date(isoStr);
         let h = d.getHours();
         const ampm = h >= 12 ? 'PM' : 'AM';
@@ -423,12 +418,11 @@ export default function AdminPage() {
         setView('CREATE');
     };
 
-    const startEdit = (vote) => {
+    const startEdit = (vote: any) => {
         const start = parseDateToForm(vote.start_at);
         const end = parseDateToForm(vote.end_at);
 
         setFormData({
-            id: vote.id,
             title: vote.title,
             startDate: start.date, startAmPm: start.ampm, startHour: start.hour, startMinute: start.minute, startSecond: start.second,
             endDate: end.date, endAmPm: end.ampm, endHour: end.hour, endMinute: end.minute, endSecond: end.second,
@@ -447,7 +441,7 @@ export default function AdminPage() {
         setView('EDIT');
     };
 
-    const convertToISO = (date, ampm, hour, minute, second) => {
+    const convertToISO = (date: string, ampm: string, hour: string, minute: string, second: string) => {
         let h = parseInt(hour);
         if (ampm === 'PM' && h !== 12) h += 12;
         if (ampm === 'AM' && h === 12) h = 0;
@@ -475,7 +469,6 @@ export default function AdminPage() {
             title: formData.title,
             start_at: startAt,
             end_at: endAt,
-            end_at: endAt,
             show_live_results: formData.showLiveResults,
             live_result_type: formData.liveResultType,
             live_result_show_total: formData.liveResultShowTotal,
@@ -484,12 +477,9 @@ export default function AdminPage() {
             final_result_type: formData.finalResultType,
             final_result_show_total: formData.finalResultShowTotal,
             final_result_show_turnout: formData.finalResultShowTurnout,
-            show_after_end: formData.showAfterEnd
+            show_after_end: formData.showAfterEnd,
+            ...(formData.showAfterEnd ? {} : { is_pinned: false })
         };
-
-        if (!formData.showAfterEnd) {
-            votePayload.is_pinned = false;
-        }
 
         if (view === 'EDIT' && isRestricted) {
             const { error } = await supabase
@@ -560,13 +550,13 @@ export default function AdminPage() {
         setView('DASHBOARD');
     };
 
-    const handleEarlyEnd = async (vote) => {
+    const handleEarlyEnd = async (vote: any) => {
         if (!confirm('정말 조기 종료하시겠습니까?')) return;
         await supabase.from('votes').update({ end_at: new Date().toISOString() }).eq('id', vote.id);
         fetchVotes();
     };
 
-    const removeOption = (index) => {
+    const removeOption = (index: number) => {
         if (formData.options.length <= 1) return;
         setFormData({
             ...formData,

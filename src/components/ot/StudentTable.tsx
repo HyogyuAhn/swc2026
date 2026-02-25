@@ -4,7 +4,7 @@ import { useState } from 'react';
 import VerificationModal from '@/components/ot/VerificationModal';
 
 export default function StudentTable({ students, loading, onEdit, onDelete, onRefresh }) {
-    const [verifyingStudent, setVerifyingStudent] = useState(null);
+    const [verifyingStudent, setVerifyingStudent] = useState<any>(null);
 
     const handleVerify = async (id, verifierName) => {
         if (!verifierName.trim()) {
