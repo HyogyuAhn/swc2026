@@ -272,10 +272,14 @@ export default function VotePage() {
                     </div>
                 </header>
 
-                <div className="relative z-10 flex flex-1 items-center justify-center px-2 py-0 sm:px-4">
+                <div className="relative z-10 flex flex-1 items-center justify-center px-3 py-2 sm:px-4 sm:py-3">
                     <form
                         onSubmit={handleLogin}
-                        className="relative h-[calc(100svh-68px)] max-h-[980px] aspect-[1129/1738]"
+                        className="relative"
+                        style={{
+                            width: 'min(95vw, 700px, calc((100svh - 92px) * 0.6496))',
+                            transform: 'translateY(2.2svh)',
+                        }}
                     >
                         <div className="relative w-full aspect-[1129/1738]">
                             <Image
@@ -303,7 +307,7 @@ export default function VotePage() {
                                 />
                             </div>
 
-                            <div className="absolute left-[55.8%] top-[49.4%] w-[30.2%] -translate-x-1/2 -translate-y-1/2">
+                            <div className="absolute left-[54.6%] top-[49.4%] w-[30.2%] -translate-x-1/2 -translate-y-1/2">
                                 <button
                                     type="submit"
                                     aria-label="참여하기"
