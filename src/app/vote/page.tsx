@@ -1,7 +1,8 @@
 'use client';
 
 import { useState, useEffect, useRef, type FormEvent } from 'react';
-import { LogOut, User, Clock, CheckCircle, BarChart2, X, Pin } from 'lucide-react';
+import Link from 'next/link';
+import { LogOut, User, Clock, CheckCircle, BarChart2, X, Pin, ChevronLeft } from 'lucide-react';
 import Image from 'next/image';
 import { supabase } from '@/lib/supabase';
 
@@ -253,25 +254,35 @@ export default function VotePage() {
 
     if (!isLoggedIn) {
         return (
-            <div className="relative min-h-screen overflow-hidden bg-gradient-to-b from-[#f3f7ff] via-[#edf4ff] to-[#e4eeff]">
+            <div className="relative flex h-[100svh] flex-col overflow-hidden bg-gradient-to-b from-[#f3f7ff] via-[#edf4ff] to-[#e4eeff]">
                 <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_20%_16%,rgba(72,141,255,0.2),transparent_44%),radial-gradient(circle_at_82%_84%,rgba(125,169,255,0.15),transparent_46%)]" />
 
-                <header className="relative z-20 border-b border-[#d8e3f7] bg-white/85 backdrop-blur">
-                    <div className="mx-auto flex h-14 max-w-4xl items-center justify-center px-4">
-                        <p className="text-sm font-semibold tracking-tight text-[#20467f] sm:text-base">
+                <header className="relative z-20 shrink-0 border-b border-[#d8e3f7] bg-white/85 backdrop-blur">
+                    <div className="relative mx-auto flex h-14 max-w-4xl items-center justify-end px-4">
+                        <p className="pointer-events-none absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 text-center text-sm font-semibold tracking-tight text-[#20467f] sm:text-base">
                             소프트웨어융합대학 2026 새내기 새로배움터 투표
                         </p>
+                        <Link
+                            href="/"
+                            className="inline-flex items-center gap-1 rounded-full border border-[#c9d8f5] bg-white px-3 py-1 text-xs font-semibold text-[#20467f] shadow-sm transition hover:bg-[#f5f9ff] sm:text-sm"
+                        >
+                            <ChevronLeft size={16} />
+                            뒤로가기
+                        </Link>
                     </div>
                 </header>
 
-                <div className="relative z-10 flex min-h-[calc(100svh-56px)] items-center justify-center px-4 py-6 sm:py-10">
-                    <form onSubmit={handleLogin} className="relative w-[min(94vw,560px)]">
-                        <div className="relative w-full aspect-[1206/2622]">
+                <div className="relative z-10 flex flex-1 items-center justify-center px-4 py-3">
+                    <form
+                        onSubmit={handleLogin}
+                        className="relative h-[calc(100svh-100px)] max-h-[920px] aspect-[1206/2622]"
+                    >
+                        <div className="relative h-full w-full">
                             <Image
                                 src="/images/vote_login.png"
                                 alt="투표 시스템 로그인"
                                 fill
-                                sizes="(max-width: 768px) 94vw, 560px"
+                                sizes="(max-width: 768px) 88vw, 423px"
                                 className="select-none object-contain"
                                 priority
                             />
@@ -292,7 +303,7 @@ export default function VotePage() {
                                 />
                             </div>
 
-                            <div className="absolute left-[59.5%] top-[66.8%] w-[30.5%] -translate-x-1/2 -translate-y-1/2">
+                            <div className="absolute left-[55.8%] top-[67.8%] w-[30.5%] -translate-x-1/2 -translate-y-1/2">
                                 <button
                                     type="submit"
                                     aria-label="참여하기"
@@ -320,7 +331,7 @@ export default function VotePage() {
                 {toast && (
                     <div
                         role="alert"
-                        className={`fixed left-1/2 top-4 z-50 w-[calc(100%-2rem)] max-w-sm -translate-x-1/2 rounded-xl border px-4 py-3 text-sm font-semibold shadow-xl sm:left-auto sm:right-6 sm:top-auto sm:bottom-6 sm:w-auto sm:translate-x-0 ${toast.kind === 'error'
+                        className={`fixed left-1/2 top-4 z-50 w-[calc(100%-2rem)] max-w-sm -translate-x-1/2 rounded-xl border px-4 py-3 text-sm font-semibold leading-relaxed shadow-xl sm:left-auto sm:right-6 sm:top-auto sm:bottom-6 sm:w-auto sm:min-w-[360px] sm:max-w-[460px] sm:translate-x-0 sm:rounded-2xl sm:px-5 sm:py-4 sm:text-base ${toast.kind === 'error'
                             ? 'border-red-200 bg-white text-red-600'
                             : 'border-blue-200 bg-white text-blue-700'}`}
                     >
@@ -338,6 +349,13 @@ export default function VotePage() {
                 <div className="max-w-4xl mx-auto px-6 py-4 flex justify-between items-center">
                     <h1 className="font-bold text-xl text-blue-900">소프트웨어융합대학 투표</h1>
                     <div className="flex items-center gap-4">
+                        <Link
+                            href="/"
+                            className="inline-flex items-center gap-1 rounded-full border border-blue-100 bg-blue-50 px-3 py-1.5 text-xs font-semibold text-blue-800 transition hover:bg-blue-100 sm:text-sm"
+                        >
+                            <ChevronLeft size={16} />
+                            뒤로가기
+                        </Link>
                         <div className="flex items-center gap-2 text-gray-600 bg-gray-100 px-3 py-1.5 rounded-full text-sm">
                             <User size={16} />
                             <span className="font-medium">{studentId}</span>
