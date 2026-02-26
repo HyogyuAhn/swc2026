@@ -11,7 +11,7 @@ type ToastState = {
     kind: 'error' | 'info';
 } | null;
 
-const LOGIN_CARD_ASPECT_RATIO = 1129 / 1738;
+const LOGIN_CARD_ASPECT_RATIO = 1;
 
 export default function VotePage() {
     const [studentId, setStudentId] = useState('');
@@ -259,7 +259,7 @@ export default function VotePage() {
             <div className="relative flex h-[100svh] flex-col overflow-hidden bg-gradient-to-b from-[#f3f7ff] via-[#edf4ff] to-[#e4eeff]">
                 <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_20%_16%,rgba(72,141,255,0.2),transparent_44%),radial-gradient(circle_at_82%_84%,rgba(125,169,255,0.15),transparent_46%)]" />
 
-                <header className="relative z-20 shrink-0 border-b border-[#d8e3f7] bg-white/85 backdrop-blur">
+                <header className="relative z-20 shrink-0 border-b border-[#d8e3f7] bg-white/85 backdrop-blur !relative !top-auto !w-auto">
                     <div className="flex h-14 w-full items-center justify-between px-4 sm:px-8">
                         <p className="max-w-[68%] truncate text-sm font-semibold tracking-tight text-[#20467f] sm:max-w-none sm:text-base">
                             소프트웨어융합대학 2026 새내기 새로배움터 투표
@@ -279,20 +279,21 @@ export default function VotePage() {
                         onSubmit={handleLogin}
                         className="w-full"
                         style={{
-                            width: `min(97vw, 920px, calc((100dvh - 56px - 0.75rem) * ${LOGIN_CARD_ASPECT_RATIO}))`,
+                            width: `min(97vw, 900px, calc((100dvh - 56px - 0.75rem) * ${LOGIN_CARD_ASPECT_RATIO}))`,
                         }}
                     >
-                        <div className="relative w-full aspect-[1129/1738]">
+                        <div className="relative w-full aspect-square">
                             <Image
                                 src="/images/vote_login.png"
                                 alt="투표 시스템 로그인"
                                 fill
-                                sizes="(max-width: 768px) 96vw, 920px"
-                                className="select-none object-cover object-bottom"
+                                sizes="(max-width: 768px) 96vw, 900px"
+                                style={{ objectPosition: '50% 53%' }}
+                                className="select-none object-cover"
                                 priority
                             />
 
-                            <div className="absolute left-1/2 top-[38.6%] h-[6.5%] w-[66.6%] -translate-x-1/2 -translate-y-1/2">
+                            <div className="absolute left-1/2 top-[60.5%] h-[10%] w-[66.6%] -translate-x-1/2 -translate-y-1/2">
                                 <label htmlFor="student-id-input" className="sr-only">학번 입력</label>
                                 <input
                                     id="student-id-input"
@@ -308,7 +309,7 @@ export default function VotePage() {
                                 />
                             </div>
 
-                            <div className="absolute left-1/2 top-[49.4%] w-[30.2%] -translate-x-1/2 -translate-y-1/2">
+                            <div className="absolute left-1/2 top-[77%] w-[30.2%] -translate-x-1/2 -translate-y-1/2">
                                 <button
                                     type="submit"
                                     aria-label="참여하기"
@@ -336,7 +337,7 @@ export default function VotePage() {
                 {toast && (
                     <div
                         role="alert"
-                        className={`fixed left-1/2 top-4 z-50 w-[calc(100%-2rem)] max-w-sm -translate-x-1/2 rounded-xl border px-4 py-3 text-sm font-semibold leading-relaxed shadow-xl sm:left-auto sm:right-6 sm:top-auto sm:bottom-6 sm:w-auto sm:min-w-[360px] sm:max-w-[460px] sm:translate-x-0 sm:rounded-2xl sm:px-5 sm:py-4 sm:text-base ${toast.kind === 'error'
+                        className={`fixed left-1/2 top-[calc(env(safe-area-inset-top)+4.25rem)] z-50 w-[calc(100%-2rem)] max-w-sm -translate-x-1/2 rounded-xl border px-4 py-3 text-sm font-semibold leading-relaxed shadow-xl sm:left-auto sm:right-6 sm:top-auto sm:bottom-6 sm:w-auto sm:min-w-[360px] sm:max-w-[460px] sm:translate-x-0 sm:rounded-2xl sm:px-5 sm:py-4 sm:text-base ${toast.kind === 'error'
                             ? 'border-red-200 bg-white text-red-600'
                             : 'border-blue-200 bg-white text-blue-700'}`}
                     >
@@ -350,7 +351,7 @@ export default function VotePage() {
     return (
         <div className="min-h-screen bg-gray-50">
             {/* Header */}
-            <header className="bg-white border-b sticky top-0 z-10 shadow-sm">
+            <header className="bg-white border-b sticky top-0 z-10 shadow-sm !sticky !top-0 !w-auto">
                 <div className="max-w-4xl mx-auto px-6 py-4 flex justify-between items-center">
                     <h1 className="font-bold text-xl text-blue-900">소프트웨어융합대학 투표</h1>
                     <div className="flex items-center gap-4">
