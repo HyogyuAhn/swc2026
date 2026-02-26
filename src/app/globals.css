@@ -452,13 +452,6 @@ nav a:hover {
     font-size: 0.97rem;
 }
 
-.apply-closed-notice {
-    margin: -0.55rem 0 1.15rem;
-    color: #b42318;
-    font-size: 0.96rem;
-    font-weight: 800;
-}
-
 .apply-actions {
     display: flex;
     justify-content: center;

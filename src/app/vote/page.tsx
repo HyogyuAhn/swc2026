@@ -38,7 +38,7 @@ export default function VotePage() {
         toastTimerRef.current = setTimeout(() => {
             setToast(null);
             toastTimerRef.current = null;
-        }, 2500);
+        }, 5000);
     };
 
     useEffect(() => {
@@ -253,62 +253,74 @@ export default function VotePage() {
 
     if (!isLoggedIn) {
         return (
-            <div className="relative min-h-screen overflow-hidden bg-gradient-to-b from-[#0d1222] to-[#05070f] px-4 py-8 flex items-center justify-center">
-                <form onSubmit={handleLogin} className="relative w-full max-w-[390px]">
-                    <div className="relative w-full aspect-[1206/2622]">
-                        <Image
-                            src="/images/vote_login.png"
-                            alt="투표 시스템 로그인"
-                            fill
-                            sizes="(max-width: 640px) 90vw, 390px"
-                            className="select-none object-contain"
-                            priority
-                        />
+            <div className="relative min-h-screen overflow-hidden bg-gradient-to-b from-[#f3f7ff] via-[#edf4ff] to-[#e4eeff]">
+                <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_20%_16%,rgba(72,141,255,0.2),transparent_44%),radial-gradient(circle_at_82%_84%,rgba(125,169,255,0.15),transparent_46%)]" />
 
-                        <div className="absolute left-1/2 top-[58.7%] w-[66%] -translate-x-1/2">
-                            <label htmlFor="student-id-input" className="sr-only">학번 입력</label>
-                            <input
-                                id="student-id-input"
-                                type="text"
-                                inputMode="numeric"
-                                autoComplete="off"
-                                pattern="[0-9]*"
-                                maxLength={8}
-                                value={studentId}
-                                onChange={e => setStudentId(e.target.value.replace(/\D/g, '').slice(0, 8))}
-                                className="w-full bg-transparent px-3 py-2 text-center text-xl font-semibold tracking-[0.2em] text-[#111827] outline-none placeholder:text-[#8b8b8b]"
-                                placeholder="학번 8자리"
-                            />
-                        </div>
-
-                        <div className="absolute left-1/2 top-[74%] w-[50%] -translate-x-1/2">
-                            <button
-                                type="submit"
-                                aria-label="참여하기"
-                                className="block w-full active:translate-y-px transition-transform"
-                                onPointerDown={() => setIsLoginButtonPressed(true)}
-                                onPointerUp={() => setIsLoginButtonPressed(false)}
-                                onPointerLeave={() => setIsLoginButtonPressed(false)}
-                                onPointerCancel={() => setIsLoginButtonPressed(false)}
-                                onBlur={() => setIsLoginButtonPressed(false)}
-                            >
-                                <Image
-                                    src={isLoginButtonPressed ? '/images/vote_login_btn_push.png' : '/images/vote_login_btn_base.png'}
-                                    alt="참여하기"
-                                    width={364}
-                                    height={126}
-                                    className="w-full h-auto"
-                                    priority
-                                />
-                            </button>
-                        </div>
+                <header className="relative z-20 border-b border-[#d8e3f7] bg-white/85 backdrop-blur">
+                    <div className="mx-auto flex h-14 max-w-4xl items-center justify-center px-4">
+                        <p className="text-sm font-semibold tracking-tight text-[#20467f] sm:text-base">
+                            소프트웨어융합대학 2026 새내기 새로배움터 투표
+                        </p>
                     </div>
-                </form>
+                </header>
+
+                <div className="relative z-10 flex min-h-[calc(100svh-56px)] items-center justify-center px-4 py-6 sm:py-10">
+                    <form onSubmit={handleLogin} className="relative w-[min(94vw,560px)]">
+                        <div className="relative w-full aspect-[1206/2622]">
+                            <Image
+                                src="/images/vote_login.png"
+                                alt="투표 시스템 로그인"
+                                fill
+                                sizes="(max-width: 768px) 94vw, 560px"
+                                className="select-none object-contain"
+                                priority
+                            />
+
+                            <div className="absolute left-1/2 top-[56.5%] h-[4.8%] w-[66%] -translate-x-1/2 -translate-y-1/2">
+                                <label htmlFor="student-id-input" className="sr-only">학번 입력</label>
+                                <input
+                                    id="student-id-input"
+                                    type="text"
+                                    inputMode="numeric"
+                                    autoComplete="off"
+                                    pattern="[0-9]*"
+                                    maxLength={8}
+                                    value={studentId}
+                                    onChange={e => setStudentId(e.target.value.replace(/\D/g, '').slice(0, 8))}
+                                    className="h-full w-full bg-transparent px-[7%] text-center text-[clamp(17px,2.1vw,30px)] font-semibold tracking-[0.2em] text-[#1f2430] outline-none placeholder:text-[#9ca3af]"
+                                    placeholder="학번 8자리"
+                                />
+                            </div>
+
+                            <div className="absolute left-[59.5%] top-[66.8%] w-[30.5%] -translate-x-1/2 -translate-y-1/2">
+                                <button
+                                    type="submit"
+                                    aria-label="참여하기"
+                                    className="block w-full active:translate-y-px transition-transform"
+                                    onPointerDown={() => setIsLoginButtonPressed(true)}
+                                    onPointerUp={() => setIsLoginButtonPressed(false)}
+                                    onPointerLeave={() => setIsLoginButtonPressed(false)}
+                                    onPointerCancel={() => setIsLoginButtonPressed(false)}
+                                    onBlur={() => setIsLoginButtonPressed(false)}
+                                >
+                                    <Image
+                                        src={isLoginButtonPressed ? '/images/vote_login_btn_push.png' : '/images/vote_login_btn_base.png'}
+                                        alt="참여하기"
+                                        width={364}
+                                        height={126}
+                                        className="h-auto w-full"
+                                        priority
+                                    />
+                                </button>
+                            </div>
+                        </div>
+                    </form>
+                </div>
 
                 {toast && (
                     <div
                         role="alert"
-                        className={`fixed left-1/2 top-4 z-50 w-[calc(100%-2rem)] max-w-sm -translate-x-1/2 rounded-xl border px-4 py-3 text-sm font-semibold shadow-xl sm:left-auto sm:right-5 sm:top-auto sm:bottom-5 sm:w-auto sm:translate-x-0 ${toast.kind === 'error'
+                        className={`fixed left-1/2 top-4 z-50 w-[calc(100%-2rem)] max-w-sm -translate-x-1/2 rounded-xl border px-4 py-3 text-sm font-semibold shadow-xl sm:left-auto sm:right-6 sm:top-auto sm:bottom-6 sm:w-auto sm:translate-x-0 ${toast.kind === 'error'
                             ? 'border-red-200 bg-white text-red-600'
                             : 'border-blue-200 bg-white text-blue-700'}`}
                     >

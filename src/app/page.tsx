@@ -217,11 +217,10 @@ export default function Home() {
                         <h2 className="apply-title">신청폼 접수</h2>
                         <p className="apply-desc">
                             {isApplicationClosed
-                                ? '2026 새내기 새로배움터 신청이 마감되었습니다.'
+                                ? '2026 새내기 새로배움터 신청이 마감되었습니다. 관심 가져주셔서 감사합니다.'
                                 : '신입생/재학생 구글폼에서 신청을 진행해주세요.'}
                         </p>
-                        <p className="apply-refund">환불은 27일까지 가능합니다.</p>
-                        {isApplicationClosed && <p className="apply-closed-notice">신청이 마감되었습니다.</p>}
+                        {!isApplicationClosed && <p className="apply-refund">환불은 27일까지 가능합니다.</p>}
                         <div className="apply-actions">
                             <div className="apply-option">
                                 <p className="apply-price">60,000원</p>
