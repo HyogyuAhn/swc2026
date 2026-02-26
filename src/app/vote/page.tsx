@@ -279,7 +279,7 @@ export default function VotePage() {
                         onSubmit={handleLogin}
                         className="w-full"
                         style={{
-                            width: `min(97vw, 900px, calc((100dvh - 56px - 0.75rem) * ${LOGIN_CARD_ASPECT_RATIO}))`,
+                            width: `min(92vw, 760px, calc((100dvh - 56px - 1.5rem) * ${LOGIN_CARD_ASPECT_RATIO}))`,
                         }}
                     >
                         <div className="relative w-full aspect-square">
@@ -287,7 +287,7 @@ export default function VotePage() {
                                 src="/images/vote_login.png"
                                 alt="투표 시스템 로그인"
                                 fill
-                                sizes="(max-width: 768px) 96vw, 900px"
+                                sizes="(max-width: 768px) 92vw, 760px"
                                 style={{ objectPosition: '50% 53%' }}
                                 className="select-none object-cover"
                                 priority
