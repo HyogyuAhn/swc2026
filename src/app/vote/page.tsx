@@ -272,13 +272,12 @@ export default function VotePage() {
                     </div>
                 </header>
 
-                <div className="relative z-10 flex flex-1 items-center justify-center px-3 pt-8 pb-2 sm:px-4 sm:pt-9 sm:pb-3">
+                <div className="relative z-10 grid flex-1 place-items-center px-3 py-1 sm:px-4 sm:py-1">
                     <form
                         onSubmit={handleLogin}
                         className="relative"
                         style={{
-                            width: 'min(96vw, 740px, calc((100svh - 64px) * 0.6496))',
-                            transform: 'translateY(clamp(10px, 1.8svh, 24px))',
+                            width: 'min(97vw, 820px, calc((100svh - 60px) * 0.6496))',
                         }}
                     >
                         <div className="relative w-full aspect-[1129/1738]">
@@ -286,7 +285,7 @@ export default function VotePage() {
                                 src="/images/vote_login.png"
                                 alt="투표 시스템 로그인"
                                 fill
-                                sizes="(max-width: 768px) 92vw, 640px"
+                                sizes="(max-width: 768px) 92vw, 820px"
                                 className="select-none object-cover object-bottom"
                                 priority
                             />
@@ -307,7 +306,7 @@ export default function VotePage() {
                                 />
                             </div>
 
-                            <div className="absolute left-[53.3%] top-[49.4%] w-[30.2%] -translate-x-1/2 -translate-y-1/2">
+                            <div className="absolute left-1/2 top-[49.4%] w-[30.2%] -translate-x-1/2 -translate-y-1/2">
                                 <button
                                     type="submit"
                                     aria-label="참여하기"
@@ -353,13 +352,6 @@ export default function VotePage() {
                 <div className="max-w-4xl mx-auto px-6 py-4 flex justify-between items-center">
                     <h1 className="font-bold text-xl text-blue-900">소프트웨어융합대학 투표</h1>
                     <div className="flex items-center gap-4">
-                        <Link
-                            href="/"
-                            className="inline-flex items-center gap-1 rounded-full border border-blue-100 bg-blue-50 px-3 py-1.5 text-xs font-semibold text-blue-800 transition hover:bg-blue-100 sm:text-sm"
-                        >
-                            <ChevronLeft size={16} />
-                            뒤로가기
-                        </Link>
                         <div className="flex items-center gap-2 text-gray-600 bg-gray-100 px-3 py-1.5 rounded-full text-sm">
                             <User size={16} />
                             <span className="font-medium">{studentId}</span>
