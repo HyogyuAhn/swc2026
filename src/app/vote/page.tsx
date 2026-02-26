@@ -272,13 +272,12 @@ export default function VotePage() {
                     </div>
                 </header>
 
-                <div className="relative z-10 grid flex-1 place-items-center px-3 py-1 sm:px-4 sm:py-1">
+                <div className="relative z-10 flex-1">
                     <form
                         onSubmit={handleLogin}
-                        className="relative"
+                        className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2"
                         style={{
-                            width: 'min(97vw, 820px, calc((100svh - 60px) * 0.6496))',
-                            transform: 'translateY(clamp(22px, 3svh, 44px))',
+                            width: 'min(97vw, 820px, calc((100svh - 88px) * 0.6496))',
                         }}
                     >
                         <div className="relative w-full aspect-[1129/1738]">
