@@ -1,9 +1,14 @@
 'use client';
 
-import { useState, useEffect, type FormEvent } from 'react';
-import { LogOut, User, Clock, CheckCircle, BarChart2, AlertCircle, X, Pin } from 'lucide-react';
+import { useState, useEffect, useRef, type FormEvent } from 'react';
+import { LogOut, User, Clock, CheckCircle, BarChart2, X, Pin } from 'lucide-react';
 import Image from 'next/image';
 import { supabase } from '@/lib/supabase';
+
+type ToastState = {
+    message: string;
+    kind: 'error' | 'info';
+} | null;
 
 export default function VotePage() {
     const [studentId, setStudentId] = useState('');
@@ -19,6 +24,22 @@ export default function VotePage() {
     const [selectedOption, setSelectedOption] = useState<string | null>(null);
     const [loading, setLoading] = useState(true);
     const [currentTime, setCurrentTime] = useState(new Date());
+    const [toast, setToast] = useState<ToastState>(null);
+    const [isLoginButtonPressed, setIsLoginButtonPressed] = useState(false);
+    const toastTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+    const showToast = (message: string, kind: 'error' | 'info' = 'error') => {
+        setToast({ message, kind });
+
+        if (toastTimerRef.current) {
+            clearTimeout(toastTimerRef.current);
+        }
+
+        toastTimerRef.current = setTimeout(() => {
+            setToast(null);
+            toastTimerRef.current = null;
+        }, 2500);
+    };
 
     useEffect(() => {
         const storedId = localStorage.getItem('swc_vote_student_id');
@@ -40,6 +61,11 @@ export default function VotePage() {
         return () => {
             clearInterval(timer);
             clearInterval(poller);
+
+            if (toastTimerRef.current) {
+                clearTimeout(toastTimerRef.current);
+                toastTimerRef.current = null;
+            }
         };
     }, []);
 
@@ -108,13 +134,13 @@ export default function VotePage() {
                 .maybeSingle();
 
             if (!studentData) {
-                alert('등록되지 않은 학번입니다.\n자동으로 로그아웃됩니다.');
+                showToast('등록되지 않은 학번입니다. 자동 로그아웃됩니다.');
                 handleLogout();
                 return;
             }
 
             if (studentData.is_suspended) {
-                alert('정지되어있는 학번입니다.\n새터준비위원회에게 문의해주세요.');
+                showToast('정지된 학번입니다. 새터준비위원회에게 문의해주세요.');
                 handleLogout();
                 return;
             }
@@ -134,27 +160,38 @@ export default function VotePage() {
 
     const handleLogin = async (e: FormEvent<HTMLFormElement>) => {
         e.preventDefault();
-        if (!studentId.trim()) return;
+        const sanitizedStudentId = studentId.replace(/\D/g, '').slice(0, 8);
+        setStudentId(sanitizedStudentId);
+
+        if (!sanitizedStudentId) {
+            showToast('학번을 입력해주세요.');
+            return;
+        }
 
         const { data: student, error } = await supabase
             .from('students')
             .select('is_suspended')
-            .eq('student_id', studentId)
+            .eq('student_id', sanitizedStudentId)
             .maybeSingle();
 
+        if (error) {
+            showToast('로그인 확인 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요.');
+            return;
+        }
+
         if (!student) {
-            alert('등록되지 않은 학번입니다.\n새터준비위원회에게 문의해주세요.');
+            showToast('등록되지 않은 학번입니다. 새터준비위원회에게 문의해주세요.');
             return;
         }
 
         if (student.is_suspended) {
-            alert('정지되어있는 학번입니다.\n새터준비위원회에게 문의해주세요.');
+            showToast('정지된 학번입니다. 새터준비위원회에게 문의해주세요.');
             return;
         }
 
-        localStorage.setItem('swc_vote_student_id', studentId);
+        localStorage.setItem('swc_vote_student_id', sanitizedStudentId);
         setIsLoggedIn(true);
-        fetchVotesData(studentId);
+        fetchVotesData(sanitizedStudentId);
     };
 
     const handleLogout = () => {
@@ -216,38 +253,68 @@ export default function VotePage() {
 
     if (!isLoggedIn) {
         return (
-            <div className="min-h-screen flex flex-col items-center justify-center p-3 sm:p-4 bg-gradient-to-br from-blue-50 to-white">
-                <div className="max-w-md w-full bg-white p-5 sm:p-6 rounded-2xl shadow-xl border border-blue-50">
-                    <div className="text-center mb-4 flex flex-col items-center">
+            <div className="relative min-h-screen overflow-hidden bg-gradient-to-b from-[#0d1222] to-[#05070f] px-4 py-8 flex items-center justify-center">
+                <form onSubmit={handleLogin} className="relative w-full max-w-[390px]">
+                    <div className="relative w-full aspect-[1206/2622]">
                         <Image
-                            src="/images/logo.png"
-                            alt="소프트웨어융합대학"
-                            width={1064}
-                            height={294}
-                            className="w-full max-w-[320px] h-auto mb-1"
+                            src="/images/vote_login.png"
+                            alt="투표 시스템 로그인"
+                            fill
+                            sizes="(max-width: 640px) 90vw, 390px"
+                            className="select-none object-contain"
                             priority
                         />
-                        <p className="text-gray-500">2026 새내기배움터</p>
-                    </div>
-                    <form onSubmit={handleLogin} className="space-y-3">
-                        <div>
-                            <label className="block text-sm font-bold text-gray-700 mb-1.5">학번 입력</label>
+
+                        <div className="absolute left-1/2 top-[58.7%] w-[66%] -translate-x-1/2">
+                            <label htmlFor="student-id-input" className="sr-only">학번 입력</label>
                             <input
+                                id="student-id-input"
                                 type="text"
+                                inputMode="numeric"
+                                autoComplete="off"
+                                pattern="[0-9]*"
+                                maxLength={8}
                                 value={studentId}
-                                onChange={e => setStudentId(e.target.value)}
-                                className="w-full p-3.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition outline-none text-lg"
-                                placeholder="학번 8자리를 입력하세요"
+                                onChange={e => setStudentId(e.target.value.replace(/\D/g, '').slice(0, 8))}
+                                className="w-full bg-transparent px-3 py-2 text-center text-xl font-semibold tracking-[0.2em] text-[#111827] outline-none placeholder:text-[#8b8b8b]"
+                                placeholder="학번 8자리"
                             />
                         </div>
-                        <button
-                            type="submit"
-                            className="w-full py-3.5 bg-blue-600 text-white rounded-xl font-bold text-lg hover:bg-blue-700 hover:shadow-lg hover:-translate-y-0.5 transition-all"
-                        >
-                            입장
-                        </button>
-                    </form>
-                </div>
+
+                        <div className="absolute left-1/2 top-[74%] w-[50%] -translate-x-1/2">
+                            <button
+                                type="submit"
+                                aria-label="참여하기"
+                                className="block w-full active:translate-y-px transition-transform"
+                                onPointerDown={() => setIsLoginButtonPressed(true)}
+                                onPointerUp={() => setIsLoginButtonPressed(false)}
+                                onPointerLeave={() => setIsLoginButtonPressed(false)}
+                                onPointerCancel={() => setIsLoginButtonPressed(false)}
+                                onBlur={() => setIsLoginButtonPressed(false)}
+                            >
+                                <Image
+                                    src={isLoginButtonPressed ? '/images/vote_login_btn_push.png' : '/images/vote_login_btn_base.png'}
+                                    alt="참여하기"
+                                    width={364}
+                                    height={126}
+                                    className="w-full h-auto"
+                                    priority
+                                />
+                            </button>
+                        </div>
+                    </div>
+                </form>
+
+                {toast && (
+                    <div
+                        role="alert"
+                        className={`fixed left-1/2 top-4 z-50 w-[calc(100%-2rem)] max-w-sm -translate-x-1/2 rounded-xl border px-4 py-3 text-sm font-semibold shadow-xl sm:left-auto sm:right-5 sm:top-auto sm:bottom-5 sm:w-auto sm:translate-x-0 ${toast.kind === 'error'
+                            ? 'border-red-200 bg-white text-red-600'
+                            : 'border-blue-200 bg-white text-blue-700'}`}
+                    >
+                        {toast.message}
+                    </div>
+                )}
             </div>
         );
     }
@@ -301,14 +368,10 @@ export default function VotePage() {
                             const isVoted = userVotes.has(vote.id);
                             const remainingTime = status === 'ACTIVE' ? getRemainingTime(vote.end_at) : null;
 
-                            const showResults = (status === 'ACTIVE' && vote.show_live_results) ||
-                                (status === 'ENDED' && vote.show_final_results) ||
-                                isVoted;
                             const visibleResults = (status === 'ACTIVE' && vote.show_live_results) ||
                                 (status === 'ENDED' && vote.show_final_results);
 
                             const isLive = status === 'ACTIVE';
-                            const isEnded = status === 'ENDED';
 
                             const totalConfig = isLive ? (vote.live_result_show_total ?? true) : (vote.final_result_show_total ?? true);
                             const turnoutConfig = isLive ? (vote.live_result_show_turnout ?? true) : (vote.final_result_show_turnout ?? true);

@@ -452,6 +452,13 @@ nav a:hover {
     font-size: 0.97rem;
 }
 
+.apply-closed-notice {
+    margin: -0.55rem 0 1.15rem;
+    color: #b42318;
+    font-size: 0.96rem;
+    font-weight: 800;
+}
+
 .apply-actions {
     display: flex;
     justify-content: center;
@@ -508,6 +515,19 @@ nav a:hover {
 
 .apply-button.enrolled {
     background: linear-gradient(120deg, #2473be 0%, #56a2ee 100%);
+}
+
+.apply-button.is-closed {
+    color: #5d6f88;
+    background: #dbe4f2;
+    box-shadow: none;
+    cursor: not-allowed;
+    pointer-events: none;
+}
+
+.apply-button.is-closed:hover {
+    transform: none;
+    box-shadow: none;
 }
 
 .site-footer {

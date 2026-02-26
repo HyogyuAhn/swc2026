@@ -28,6 +28,7 @@ const scheduleItems: ScheduleItem[] = [
 ];
 
 const cardFrames = Array.from({ length: 7 }, (_, i) => `/images/${String(i + 1).padStart(3, '0')}.png`);
+const isApplicationClosed = true;
 
 const clamp = (value: number, min: number, max: number) => Math.min(max, Math.max(min, value));
 
@@ -132,7 +133,7 @@ export default function Home() {
                         />
                         <p>여러분들의 대학 생활을 응원합니다!</p>
                         <div className="cta-wrapper">
-                            <Link href="/vote" className="cta-button">뭘까요</Link>
+                            <Link href="/vote" className="cta-button">투표 참여하기</Link>
                         </div>
                     </div>
                 </section>
@@ -214,30 +215,47 @@ export default function Home() {
                     <div className="container apply-container">
                         <p className="apply-eyebrow">APPLICATION</p>
                         <h2 className="apply-title">신청폼 접수</h2>
-                        <p className="apply-desc">신입생/재학생 구글폼에서 신청을 진행해주세요.</p>
+                        <p className="apply-desc">
+                            {isApplicationClosed
+                                ? '2026 새내기 새로배움터 신청이 마감되었습니다.'
+                                : '신입생/재학생 구글폼에서 신청을 진행해주세요.'}
+                        </p>
                         <p className="apply-refund">환불은 27일까지 가능합니다.</p>
+                        {isApplicationClosed && <p className="apply-closed-notice">신청이 마감되었습니다.</p>}
                         <div className="apply-actions">
                             <div className="apply-option">
                                 <p className="apply-price">60,000원</p>
-                                <a
-                                    className="apply-button freshman"
-                                    href="https://docs.google.com/forms/d/e/1FAIpQLSeyMwPyRMwN-MPGRe01Lg0dXiHiPJdHMGQvMD-UZcDtb3DWrg/viewform"
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                >
-                                    신입생 신청
-                                </a>
+                                {isApplicationClosed ? (
+                                    <button className="apply-button is-closed freshman" type="button" disabled>
+                                        신청 마감
+                                    </button>
+                                ) : (
+                                    <a
+                                        className="apply-button freshman"
+                                        href="https://docs.google.com/forms/d/e/1FAIpQLSeyMwPyRMwN-MPGRe01Lg0dXiHiPJdHMGQvMD-UZcDtb3DWrg/viewform"
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                    >
+                                        신입생 신청
+                                    </a>
+                                )}
                             </div>
                             <div className="apply-option">
                                 <p className="apply-price">50,000원</p>
-                                <a
-                                    className="apply-button enrolled"
-                                    href="https://docs.google.com/forms/d/e/1FAIpQLScGahYbJMHS_ao-Qc7dFVnRqr15b2XNuKz3Lj6CGYRq-Dhh_g/viewform"
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                >
-                                    재학생 신청
-                                </a>
+                                {isApplicationClosed ? (
+                                    <button className="apply-button is-closed enrolled" type="button" disabled>
+                                        신청 마감
+                                    </button>
+                                ) : (
+                                    <a
+                                        className="apply-button enrolled"
+                                        href="https://docs.google.com/forms/d/e/1FAIpQLScGahYbJMHS_ao-Qc7dFVnRqr15b2XNuKz3Lj6CGYRq-Dhh_g/viewform"
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                    >
+                                        재학생 신청
+                                    </a>
+                                )}
                             </div>
                         </div>
                     </div>
