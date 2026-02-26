@@ -258,7 +258,7 @@ export default function VotePage() {
                 <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_20%_16%,rgba(72,141,255,0.2),transparent_44%),radial-gradient(circle_at_82%_84%,rgba(125,169,255,0.15),transparent_46%)]" />
 
                 <header className="relative z-20 shrink-0 border-b border-[#d8e3f7] bg-white/85 backdrop-blur">
-                    <div className="mx-auto flex h-14 w-full max-w-6xl items-center justify-between px-3 sm:px-5">
+                    <div className="flex h-14 w-full items-center justify-between px-4 sm:px-8">
                         <p className="max-w-[68%] truncate text-sm font-semibold tracking-tight text-[#20467f] sm:max-w-none sm:text-base">
                             소프트웨어융합대학 2026 새내기 새로배움터 투표
                         </p>
@@ -272,14 +272,10 @@ export default function VotePage() {
                     </div>
                 </header>
 
-                <div className="relative z-10 flex flex-1 items-center justify-center px-4 py-3">
+                <div className="relative z-10 flex flex-1 items-center justify-center px-2 py-0 sm:px-4">
                     <form
                         onSubmit={handleLogin}
-                        className="relative"
-                        style={{
-                            width: 'min(92vw, calc((100svh - 108px) * 0.6496))',
-                            maxWidth: '640px',
-                        }}
+                        className="relative h-[calc(100svh-68px)] max-h-[980px] aspect-[1129/1738]"
                     >
                         <div className="relative w-full aspect-[1129/1738]">
                             <Image
@@ -307,7 +303,7 @@ export default function VotePage() {
                                 />
                             </div>
 
-                            <div className="absolute left-[55.8%] top-[54.6%] w-[30.2%] -translate-x-1/2 -translate-y-1/2">
+                            <div className="absolute left-[55.8%] top-[49.4%] w-[30.2%] -translate-x-1/2 -translate-y-1/2">
                                 <button
                                     type="submit"
                                     aria-label="참여하기"
