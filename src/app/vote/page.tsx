@@ -11,6 +11,8 @@ type ToastState = {
     kind: 'error' | 'info';
 } | null;
 
+const LOGIN_CARD_ASPECT_RATIO = 1129 / 1738;
+
 export default function VotePage() {
     const [studentId, setStudentId] = useState('');
     const [isLoggedIn, setIsLoggedIn] = useState(false);
@@ -272,12 +274,12 @@ export default function VotePage() {
                     </div>
                 </header>
 
-                <div className="relative z-10 flex-1">
+                <div className="relative z-10 flex min-h-0 flex-1 items-center justify-center px-3 py-3 sm:px-4 sm:py-4">
                     <form
                         onSubmit={handleLogin}
-                        className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2"
+                        className="w-full"
                         style={{
-                            width: 'min(97vw, 820px, calc((100svh - 88px) * 0.6496))',
+                            width: `min(97vw, 920px, calc((100dvh - 56px - 0.75rem) * ${LOGIN_CARD_ASPECT_RATIO}))`,
                         }}
                     >
                         <div className="relative w-full aspect-[1129/1738]">
@@ -285,7 +287,7 @@ export default function VotePage() {
                                 src="/images/vote_login.png"
                                 alt="투표 시스템 로그인"
                                 fill
-                                sizes="(max-width: 768px) 92vw, 820px"
+                                sizes="(max-width: 768px) 96vw, 920px"
                                 className="select-none object-cover object-bottom"
                                 priority
                             />
