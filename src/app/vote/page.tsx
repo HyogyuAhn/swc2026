@@ -278,6 +278,7 @@ export default function VotePage() {
                         className="relative"
                         style={{
                             width: 'min(97vw, 820px, calc((100svh - 60px) * 0.6496))',
+                            transform: 'translateY(clamp(22px, 3svh, 44px))',
                         }}
                     >
                         <div className="relative w-full aspect-[1129/1738]">
