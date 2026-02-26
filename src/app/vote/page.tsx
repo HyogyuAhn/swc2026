@@ -258,8 +258,8 @@ export default function VotePage() {
                 <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_20%_16%,rgba(72,141,255,0.2),transparent_44%),radial-gradient(circle_at_82%_84%,rgba(125,169,255,0.15),transparent_46%)]" />
 
                 <header className="relative z-20 shrink-0 border-b border-[#d8e3f7] bg-white/85 backdrop-blur">
-                    <div className="relative mx-auto flex h-14 max-w-4xl items-center justify-end px-4">
-                        <p className="pointer-events-none absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 text-center text-sm font-semibold tracking-tight text-[#20467f] sm:text-base">
+                    <div className="mx-auto flex h-14 w-full max-w-6xl items-center justify-between px-3 sm:px-5">
+                        <p className="max-w-[68%] truncate text-sm font-semibold tracking-tight text-[#20467f] sm:max-w-none sm:text-base">
                             소프트웨어융합대학 2026 새내기 새로배움터 투표
                         </p>
                         <Link
@@ -275,19 +275,23 @@ export default function VotePage() {
                 <div className="relative z-10 flex flex-1 items-center justify-center px-4 py-3">
                     <form
                         onSubmit={handleLogin}
-                        className="relative h-[calc(100svh-100px)] max-h-[920px] aspect-[1206/2622]"
+                        className="relative"
+                        style={{
+                            width: 'min(92vw, calc((100svh - 108px) * 0.6496))',
+                            maxWidth: '640px',
+                        }}
                     >
-                        <div className="relative h-full w-full">
+                        <div className="relative w-full aspect-[1129/1738]">
                             <Image
                                 src="/images/vote_login.png"
                                 alt="투표 시스템 로그인"
                                 fill
-                                sizes="(max-width: 768px) 88vw, 423px"
-                                className="select-none object-contain"
+                                sizes="(max-width: 768px) 92vw, 640px"
+                                className="select-none object-cover object-bottom"
                                 priority
                             />
 
-                            <div className="absolute left-1/2 top-[56.5%] h-[4.8%] w-[66%] -translate-x-1/2 -translate-y-1/2">
+                            <div className="absolute left-1/2 top-[38.6%] h-[6.5%] w-[66.6%] -translate-x-1/2 -translate-y-1/2">
                                 <label htmlFor="student-id-input" className="sr-only">학번 입력</label>
                                 <input
                                     id="student-id-input"
@@ -298,12 +302,12 @@ export default function VotePage() {
                                     maxLength={8}
                                     value={studentId}
                                     onChange={e => setStudentId(e.target.value.replace(/\D/g, '').slice(0, 8))}
-                                    className="h-full w-full bg-transparent px-[7%] text-center text-[clamp(17px,2.1vw,30px)] font-semibold tracking-[0.2em] text-[#1f2430] outline-none placeholder:text-[#9ca3af]"
+                                    className="h-full w-full bg-transparent px-[7%] text-center text-[clamp(16px,2vw,30px)] font-semibold tracking-[0.2em] text-[#1f2430] outline-none placeholder:text-[#9ca3af]"
                                     placeholder="학번 8자리"
                                 />
                             </div>
 
-                            <div className="absolute left-[55.8%] top-[67.8%] w-[30.5%] -translate-x-1/2 -translate-y-1/2">
+                            <div className="absolute left-[55.8%] top-[54.6%] w-[30.2%] -translate-x-1/2 -translate-y-1/2">
                                 <button
                                     type="submit"
                                     aria-label="참여하기"
