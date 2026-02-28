@@ -4,7 +4,7 @@ import VisibilitySettingCard from './VisibilitySettingCard';
 import FormToggleSetting from './FormToggleSetting';
 
 type VoteEditorSectionProps = {
-    view: string;
+    view: 'DASHBOARD' | 'STUDENTS' | 'DRAW' | 'CREATE' | 'EDIT';
     selectedVote: any;
     getStatus: (vote: any) => 'UPCOMING' | 'ACTIVE' | 'ENDED';
     fetchVoteDetails: (vote: any) => void;
@@ -13,7 +13,7 @@ type VoteEditorSectionProps = {
     removeOption: (index: number) => void;
     handleDelete: () => void;
     handleSave: () => void;
-    setView: (view: string) => void;
+    setView: (view: 'DASHBOARD' | 'STUDENTS' | 'DRAW' | 'CREATE' | 'EDIT') => void;
 };
 
 export default function VoteEditorSection({
