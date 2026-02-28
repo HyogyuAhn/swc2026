@@ -135,7 +135,7 @@ export default function DrawMachineStage({
         const visibleCount = Math.min(revealedDigitCount, winnerDisplayNumberPadded.length);
         const hiddenCount = Math.max(winnerDisplayNumberPadded.length - visibleCount, 0);
         const revealed = winnerDisplayNumberPadded.slice(0, visibleCount);
-        const hidden = '•'.repeat(hiddenCount);
+        const hidden = '-'.repeat(hiddenCount);
 
         return `${revealed}${hidden}`;
     }, [currentEvent, phase, revealedDigitCount, winnerDisplayNumber, winnerDisplayNumberPadded]);

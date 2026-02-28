@@ -129,8 +129,32 @@ export default function useDrawLiveSound({ phase, eventId }: UseDrawLiveSoundPar
             }
         }
 
+        if (engineRef.current.context.state !== 'running') {
+            return null;
+        }
+
         return engineRef.current;
     }, []);
+
+    const primeAudioEngine = useCallback(async () => {
+        const engine = await ensureEngine();
+        if (!engine) {
+            return;
+        }
+
+        const now = engine.context.currentTime + 0.001;
+        const osc = engine.context.createOscillator();
+        const gain = engine.context.createGain();
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(220, now);
+        gain.gain.setValueAtTime(0.0001, now);
+        gain.gain.exponentialRampToValueAtTime(0.0002, now + 0.02);
+        gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.05);
+        osc.connect(gain);
+        gain.connect(engine.masterGain);
+        osc.start(now);
+        osc.stop(now + 0.055);
+    }, [ensureEngine]);
 
     const trackOscillator = useCallback((
         engine: AudioEngine,
@@ -350,57 +374,60 @@ export default function useDrawLiveSound({ phase, eventId }: UseDrawLiveSoundPar
             release: 0.3
         });
 
-        // [3.9 - 6.7] Extraction peak
-        trackOscillator(engine, engine.musicBus, 'sawtooth', 210, mixingEnd, 2.8, {
-            freqEnd: 1640,
-            peakGain: 0.18,
-            attack: 0.03,
-            release: 0.16,
-            qFilter: { type: 'highpass', freq: 170, q: 0.7 }
+        // [3.9 - 6.7] Extraction peak (high-pitch beeps removed, smoother premium whoosh)
+        trackOscillator(engine, engine.musicBus, 'triangle', 132, mixingEnd, 2.8, {
+            freqEnd: 520,
+            peakGain: 0.13,
+            attack: 0.05,
+            release: 0.22,
+            qFilter: { type: 'bandpass', freq: 680, q: 0.6 }
         });
         trackNoise(engine, engine.musicBus, mixingEnd + 0.02, 2.6, {
             filterType: 'bandpass',
-            freq: 860,
-            freqSweepTo: 3200,
-            q: 0.8,
-            peakGain: 0.11,
-            attack: 0.06,
-            release: 0.1
+            freq: 380,
+            freqSweepTo: 1220,
+            q: 0.7,
+            peakGain: 0.09,
+            attack: 0.08,
+            release: 0.16
         });
         scheduleImpact(engine, mixingEnd + 1.54, 1.08, 1.0); // clonk
-        trackNoise(engine, engine.sfxBus, mixingEnd + 1.6, 0.58, {
+        trackNoise(engine, engine.sfxBus, mixingEnd + 1.58, 0.72, {
             filterType: 'bandpass',
-            freq: 420,
-            freqSweepTo: 2200,
-            q: 0.9,
-            peakGain: 0.2,
+            freq: 260,
+            freqSweepTo: 980,
+            q: 0.62,
+            peakGain: 0.24,
+            attack: 0.03,
+            release: 0.38,
+            playbackRate: 1.04
+        }); // main whoosh through tube
+        trackNoise(engine, engine.sfxBus, mixingEnd + 1.62, 0.56, {
+            filterType: 'bandpass',
+            freq: 820,
+            freqSweepTo: 460,
+            q: 0.5,
+            peakGain: 0.08,
             attack: 0.02,
-            release: 0.32,
-            playbackRate: 1.24
-        }); // whoosh through tube
+            release: 0.3,
+            playbackRate: 0.84
+        }); // air tail
 
         // [6.7 - 8.6] Click + paper + dramatic silence
-        trackNoise(engine, engine.sfxBus, extractionEnd, 0.055, {
-            filterType: 'highpass',
-            freq: 2400,
-            q: 1.1,
-            peakGain: 0.24,
-            attack: 0.002,
-            release: 0.02
-        }); // plastic click
+        scheduleImpact(engine, extractionEnd, 0.92, 0.5); // low plastic lock click
         trackNoise(engine, engine.sfxBus, extractionEnd + 0.08, 0.44, {
             filterType: 'bandpass',
-            freq: 1600,
-            freqSweepTo: 780,
-            q: 0.65,
-            peakGain: 0.22,
+            freq: 720,
+            freqSweepTo: 360,
+            q: 0.72,
+            peakGain: 0.18,
             attack: 0.02,
             release: 0.28,
             playbackRate: 0.88
         }); // paper tear/unfold
-        trackOscillator(engine, engine.musicBus, 'sine', 420, extractionEnd + 0.14, 0.9, {
-            freqEnd: 300,
-            peakGain: 0.024,
+        trackOscillator(engine, engine.musicBus, 'sine', 190, extractionEnd + 0.14, 0.9, {
+            freqEnd: 138,
+            peakGain: 0.018,
             attack: 0.18,
             release: 0.5
         }); // faint eerie tail
@@ -410,20 +437,17 @@ export default function useDrawLiveSound({ phase, eventId }: UseDrawLiveSoundPar
         scheduleImpact(engine, silenceEnd + 1.0, 1.09, 1.2);
         scheduleImpact(engine, silenceEnd + 2.0, 1.21, 1.3);
 
-        let snareAt = silenceEnd + 2.0;
-        let interval = 0.24;
-        while (snareAt < numbersEnd) {
-            trackNoise(engine, engine.sfxBus, snareAt, 0.055, {
-                filterType: 'highpass',
-                freq: 2600,
-                q: 0.8,
-                peakGain: 0.17,
-                attack: 0.004,
-                release: 0.03
-            });
-            snareAt += interval;
-            interval = Math.max(0.055, interval * 0.9);
-        }
+        // Removed "tick-tick" roll before reveal; replaced with a low tension swell.
+        trackNoise(engine, engine.musicBus, silenceEnd + 2.0, numbersEnd - (silenceEnd + 2.0), {
+            filterType: 'bandpass',
+            freq: 180,
+            freqSweepTo: 520,
+            q: 0.52,
+            peakGain: 0.06,
+            attack: 0.06,
+            release: 0.22,
+            playbackRate: 0.72
+        });
 
         // [12.6 - 15.0] Grand finale
         const fanfareStart = numbersEnd;
@@ -447,12 +471,12 @@ export default function useDrawLiveSound({ phase, eventId }: UseDrawLiveSoundPar
 
         for (let t = fanfareStart + 0.12; t < finaleEnd - 0.2; t += 0.2) {
             trackNoise(engine, engine.sfxBus, t, 0.07, {
-                filterType: 'highpass',
-                freq: 1800 + Math.random() * 1200,
+                filterType: 'bandpass',
+                freq: 560 + Math.random() * 420,
                 q: 0.7,
-                peakGain: 0.14,
-                attack: 0.003,
-                release: 0.04
+                peakGain: 0.11,
+                attack: 0.006,
+                release: 0.06
             }); // confetti pops
         }
 
@@ -469,12 +493,12 @@ export default function useDrawLiveSound({ phase, eventId }: UseDrawLiveSoundPar
         });
         for (let t = fanfareStart + 0.2; t < finaleEnd - 0.1; t += 0.18) {
             trackNoise(engine, engine.sfxBus, t, 0.09, {
-                filterType: 'highpass',
-                freq: 1400,
-                q: 0.65,
-                peakGain: 0.08,
-                attack: 0.004,
-                release: 0.05
+                filterType: 'bandpass',
+                freq: 640,
+                q: 0.6,
+                peakGain: 0.065,
+                attack: 0.008,
+                release: 0.07
             }); // applause claps
         }
 
@@ -494,9 +518,17 @@ export default function useDrawLiveSound({ phase, eventId }: UseDrawLiveSoundPar
             } catch {
                 // ignore
             }
+            if (!next) {
+                stopCurrentTrack();
+            }
             return next;
         });
-    }, []);
+
+        // Safari autoplay policy: unlock audio engine directly from this click gesture.
+        if (!soundEnabled) {
+            void primeAudioEngine();
+        }
+    }, [primeAudioEngine, soundEnabled, stopCurrentTrack]);
 
     useEffect(() => {
         try {
@@ -514,24 +546,35 @@ export default function useDrawLiveSound({ phase, eventId }: UseDrawLiveSoundPar
         }
 
         const unlock = () => {
-            void ensureEngine();
+            void (async () => {
+                const engine = await ensureEngine();
+                if (!engine) {
+                    return;
+                }
+
+                if (eventId && phase !== 'idle' && playingEventIdRef.current !== eventId) {
+                    void playPromptTimelineTrack(eventId);
+                }
+            })();
         };
 
         window.addEventListener('pointerdown', unlock);
+        window.addEventListener('touchstart', unlock);
         window.addEventListener('keydown', unlock);
 
         return () => {
             window.removeEventListener('pointerdown', unlock);
+            window.removeEventListener('touchstart', unlock);
             window.removeEventListener('keydown', unlock);
         };
-    }, [ensureEngine, soundEnabled, stopCurrentTrack]);
+    }, [ensureEngine, eventId, phase, playPromptTimelineTrack, soundEnabled, stopCurrentTrack]);
 
     useEffect(() => {
         if (!soundEnabled || !eventId) {
             return;
         }
 
-        if (phase !== 'announce') {
+        if (phase === 'idle') {
             return;
         }
 
