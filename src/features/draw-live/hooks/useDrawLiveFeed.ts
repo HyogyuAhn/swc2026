@@ -39,13 +39,15 @@ const toRecentWinner = (row: any): DrawRecentWinner | null => {
 
 export default function useDrawLiveFeed() {
     const [loading, setLoading] = useState(true);
-    const [settings, setSettings] = useState<DrawLiveSettings>({ live_page_enabled: true });
+    const [settings, setSettings] = useState<DrawLiveSettings>({
+        live_page_enabled: true,
+        show_recent_winners: true
+    });
     const [recentWinners, setRecentWinners] = useState<DrawRecentWinner[]>([]);
     const [queue, setQueue] = useState<DrawLiveEventRecord[]>([]);
     const [currentEvent, setCurrentEvent] = useState<DrawLiveEventRecord | null>(null);
     const [preStartItemName, setPreStartItemName] = useState<string | null>(null);
     const [phase, setPhase] = useState<DrawAnimationPhase>('idle');
-    const [connectionStatus, setConnectionStatus] = useState('CONNECTING');
 
     const timersRef = useRef<ReturnType<typeof setTimeout>[]>([]);
     const preStartTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -89,7 +91,10 @@ export default function useDrawLiveFeed() {
 
         const settingsResult = await fetchDrawSettings();
         if (!settingsResult.error) {
-            setSettings({ live_page_enabled: settingsResult.data?.live_page_enabled ?? true });
+            setSettings({
+                live_page_enabled: settingsResult.data?.live_page_enabled ?? true,
+                show_recent_winners: settingsResult.data?.show_recent_winners ?? true
+            });
         }
 
         await loadRecentWinners();
@@ -114,7 +119,9 @@ export default function useDrawLiveFeed() {
                     setQueue(prev => [...prev, event]);
                 }
 
-                loadRecentWinners();
+                if (settings.show_recent_winners) {
+                    loadRecentWinners();
+                }
             })
             .on('postgres_changes', {
                 event: '*',
@@ -123,12 +130,13 @@ export default function useDrawLiveFeed() {
             }, payload => {
                 const next = payload.new as any;
                 if (next && typeof next.live_page_enabled === 'boolean') {
-                    setSettings({ live_page_enabled: next.live_page_enabled });
+                    setSettings({
+                        live_page_enabled: next.live_page_enabled,
+                        show_recent_winners: typeof next.show_recent_winners === 'boolean' ? next.show_recent_winners : true
+                    });
                 }
             })
-            .subscribe(status => {
-                setConnectionStatus(status);
-            });
+            .subscribe();
 
         const controlChannel = supabase
             .channel(DRAW_LIVE_CONTROL_CHANNEL)
@@ -152,7 +160,7 @@ export default function useDrawLiveFeed() {
             supabase.removeChannel(dbChannel);
             supabase.removeChannel(controlChannel);
         };
-    }, [activatePreStart, clearPreStartTimer, clearTimers, loadRecentWinners, settings.live_page_enabled]);
+    }, [activatePreStart, clearPreStartTimer, clearTimers, loadRecentWinners, settings.live_page_enabled, settings.show_recent_winners]);
 
     useEffect(() => {
         if (!settings.live_page_enabled) {
@@ -201,7 +209,6 @@ export default function useDrawLiveFeed() {
         preStartItemName,
         phase,
         isAnimating,
-        latestWinner,
-        connectionStatus
+        latestWinner
     };
 }

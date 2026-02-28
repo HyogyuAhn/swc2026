@@ -10,7 +10,7 @@ type DrawManagementSectionProps = {
     loading: boolean;
     submitting: boolean;
     drawInProgressItemId: string | null;
-    settings: { live_page_enabled: boolean };
+    settings: { live_page_enabled: boolean; show_recent_winners: boolean };
     items: DrawItemWithComputed[];
     activeStudentIds: string[];
     newItemName: string;
@@ -29,6 +29,7 @@ type DrawManagementSectionProps = {
     setNewItemPublic: (checked: boolean) => void;
     handleCreateItem: () => Promise<boolean>;
     toggleDrawLiveEnabled: () => void;
+    toggleRecentWinnersEnabled: () => void;
     setModeForItem: (itemId: string, mode: 'RANDOM' | 'MANUAL') => void;
     setManualStudentForItem: (itemId: string, studentId: string) => void;
     setForceStudentForItem: (itemId: string, studentId: string) => void;
@@ -100,6 +101,7 @@ export default function DrawManagementSection({
     setNewItemPublic,
     handleCreateItem,
     toggleDrawLiveEnabled,
+    toggleRecentWinnersEnabled,
     setModeForItem,
     setManualStudentForItem,
     setForceStudentForItem,
@@ -145,7 +147,9 @@ export default function DrawManagementSection({
             <div className="grid gap-4">
                 <DrawSettingsPanel
                     livePageEnabled={settings.live_page_enabled}
-                    onToggle={toggleDrawLiveEnabled}
+                    showRecentWinners={settings.show_recent_winners}
+                    onToggleLivePage={toggleDrawLiveEnabled}
+                    onToggleRecentWinners={toggleRecentWinnersEnabled}
                 />
             </div>
 

@@ -37,6 +37,7 @@ export type DrawLiveEvent = {
 export type DrawSettings = {
     singleton?: boolean;
     live_page_enabled: boolean;
+    show_recent_winners: boolean;
     updated_at?: string;
 };
 

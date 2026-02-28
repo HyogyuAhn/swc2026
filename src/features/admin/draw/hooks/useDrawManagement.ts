@@ -43,7 +43,10 @@ export default function useDrawManagement(showToast: ShowToast, enabled = true) 
     const [loading, setLoading] = useState(true);
     const [submitting, setSubmitting] = useState(false);
 
-    const [settings, setSettings] = useState<DrawSettings>({ live_page_enabled: true });
+    const [settings, setSettings] = useState<DrawSettings>({
+        live_page_enabled: true,
+        show_recent_winners: true
+    });
     const [items, setItems] = useState<DrawItemWithComputed[]>([]);
     const [studentPool, setStudentPool] = useState<StudentPoolRecord[]>([]);
 
@@ -77,7 +80,10 @@ export default function useDrawManagement(showToast: ShowToast, enabled = true) 
         if (settingsResult.error) {
             showToast(`추첨 설정 조회 실패: ${settingsResult.error.message}`);
         } else {
-            setSettings({ live_page_enabled: settingsResult.data?.live_page_enabled ?? true });
+            setSettings({
+                live_page_enabled: settingsResult.data?.live_page_enabled ?? true,
+                show_recent_winners: settingsResult.data?.show_recent_winners ?? true
+            });
         }
 
         if (itemsResult.error) {
@@ -854,6 +860,30 @@ export default function useDrawManagement(showToast: ShowToast, enabled = true) 
         showToast(nextEnabled ? '라이브 페이지가 활성화되었습니다.' : '라이브 페이지가 비활성화되었습니다.', 'success');
     }, [refresh, settings.live_page_enabled, showToast]);
 
+    const toggleRecentWinnersEnabled = useCallback(async () => {
+        const nextEnabled = !settings.show_recent_winners;
+
+        const result = await upsertDrawSettings({ show_recent_winners: nextEnabled });
+        if (result.error) {
+            const lowerMessage = (result.error.message || '').toLowerCase();
+            if (lowerMessage.includes('row-level security policy')) {
+                showToast('최근 당첨 결과 설정 변경 권한이 없습니다. draw_settings UPDATE 정책을 확인해주세요.');
+                return;
+            }
+
+            if (lowerMessage.includes('show_recent_winners') && lowerMessage.includes('column')) {
+                showToast('draw_settings.show_recent_winners 컬럼이 없습니다. SQL 마이그레이션을 먼저 적용해주세요.');
+                return;
+            }
+
+            showToast(`최근 당첨 결과 설정 변경 실패: ${result.error.message}`);
+            return;
+        }
+
+        await refresh();
+        showToast(nextEnabled ? '최근 당첨 결과를 공개합니다.' : '최근 당첨 결과를 비공개합니다.', 'success');
+    }, [refresh, settings.show_recent_winners, showToast]);
+
     const toggleItemPublic = useCallback(async (item: DrawItemWithComputed) => {
         const result = await updateDrawItem(item.id, { is_public: !item.is_public });
 
@@ -913,6 +943,7 @@ export default function useDrawManagement(showToast: ShowToast, enabled = true) 
         changeEditWinnerStudent,
         handleUpdateWinner,
         toggleDrawLiveEnabled,
+        toggleRecentWinnersEnabled,
         toggleItemPublic,
         toggleItemAllowDuplicate,
         confirmPendingAction,

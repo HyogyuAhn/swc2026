@@ -268,6 +268,7 @@ export default function AdminPageClient() {
                         setNewItemPublic={drawManagement.setNewItemPublic}
                         handleCreateItem={drawManagement.handleCreateItem}
                         toggleDrawLiveEnabled={drawManagement.toggleDrawLiveEnabled}
+                        toggleRecentWinnersEnabled={drawManagement.toggleRecentWinnersEnabled}
                         setModeForItem={drawManagement.setModeForItem}
                         setManualStudentForItem={drawManagement.setManualStudentForItem}
                         setForceStudentForItem={drawManagement.setForceStudentForItem}

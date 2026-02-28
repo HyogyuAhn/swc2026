@@ -43,11 +43,11 @@ export async function fetchDrawSettings() {
         .maybeSingle();
 }
 
-export async function upsertDrawSettings(nextSettings: DrawSettings) {
+export async function upsertDrawSettings(nextSettings: Partial<Pick<DrawSettings, 'live_page_enabled' | 'show_recent_winners'>>) {
     return supabase
         .from('draw_settings')
         .update({
-            live_page_enabled: nextSettings.live_page_enabled,
+            ...nextSettings,
             updated_at: new Date().toISOString()
         })
         .eq('singleton', true);

@@ -23,4 +23,5 @@ export type DrawAnimationPhase = 'idle' | 'announce' | 'mixing' | 'ball' | 'pape
 
 export type DrawLiveSettings = {
     live_page_enabled: boolean;
+    show_recent_winners: boolean;
 };

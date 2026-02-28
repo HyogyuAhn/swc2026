@@ -4,7 +4,6 @@ type DrawMachineStageProps = {
     phase: DrawAnimationPhase;
     currentEvent: DrawLiveEventRecord | null;
     preStartItemName: string | null;
-    connectionStatus: string;
 };
 
 const statusTextByPhase: Record<DrawAnimationPhase, string> = {
@@ -16,7 +15,7 @@ const statusTextByPhase: Record<DrawAnimationPhase, string> = {
     reveal: '당첨자 공개'
 };
 
-export default function DrawMachineStage({ phase, currentEvent, preStartItemName, connectionStatus }: DrawMachineStageProps) {
+export default function DrawMachineStage({ phase, currentEvent, preStartItemName }: DrawMachineStageProps) {
     const isSpinning = phase === 'mixing' || phase === 'ball';
     const isPaperVisible = phase === 'paper' || phase === 'reveal';
     const currentItemName = currentEvent?.draw_item_name || preStartItemName;
@@ -31,9 +30,6 @@ export default function DrawMachineStage({ phase, currentEvent, preStartItemName
                     <h2 className="text-2xl font-bold text-blue-900">실시간 추첨</h2>
                     <p className="text-sm text-gray-500">{statusText}</p>
                 </div>
-                <span className="rounded-full bg-gray-100 px-3 py-1 text-xs font-bold text-gray-600">
-                    Realtime: {connectionStatus}
-                </span>
             </div>
 
             <div className="mb-4 rounded-xl border border-blue-100 bg-blue-50 p-4 text-center">
