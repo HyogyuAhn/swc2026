@@ -20,7 +20,7 @@ const createDefaultFormData = () => ({
     finalResultShowTurnout: true,
     showAfterEnd: true,
     showBeforeStartOptions: true,
-    allowVoteChangeWhileActive: false
+    allowVoteChangeWhileActive: true
 });
 
 const createFormDataForCreate = () => ({
@@ -38,7 +38,7 @@ const createFormDataForCreate = () => ({
     finalResultShowTurnout: true,
     showAfterEnd: true,
     showBeforeStartOptions: true,
-    allowVoteChangeWhileActive: false
+    allowVoteChangeWhileActive: true
 });
 
 type UseVoteEditorFormParams = {
@@ -91,7 +91,7 @@ export default function useVoteEditorForm({
             finalResultShowTurnout: vote.final_result_show_turnout ?? true,
             showAfterEnd: vote.show_after_end ?? true,
             showBeforeStartOptions: vote.show_before_start_options ?? true,
-            allowVoteChangeWhileActive: vote.allow_vote_change_while_active ?? false
+            allowVoteChangeWhileActive: vote.allow_vote_change_while_active ?? true
         });
 
         setSelectedVote(vote);
@@ -121,6 +121,14 @@ export default function useVoteEditorForm({
 
         const status = view === 'EDIT' && selectedVote ? getStatus(selectedVote) : 'NEW';
         const isRestricted = status === 'ACTIVE' || status === 'ENDED';
+        const canEditShowBeforeStartOptions = view === 'CREATE' || status === 'UPCOMING';
+        const canEditAllowVoteChangeWhileActive = view === 'CREATE' || status === 'UPCOMING' || status === 'ACTIVE';
+        const effectiveShowBeforeStartOptions = canEditShowBeforeStartOptions
+            ? formData.showBeforeStartOptions
+            : (selectedVote?.show_before_start_options ?? true);
+        const effectiveAllowVoteChangeWhileActive = canEditAllowVoteChangeWhileActive
+            ? formData.allowVoteChangeWhileActive
+            : (selectedVote?.allow_vote_change_while_active ?? true);
         const sanitizedOptions = formData.options
             .map(option => option.trim())
             .filter(option => option !== '');
@@ -143,8 +151,8 @@ export default function useVoteEditorForm({
             final_result_show_total: formData.finalResultShowTotal,
             final_result_show_turnout: formData.finalResultShowTurnout,
             show_after_end: formData.showAfterEnd,
-            show_before_start_options: formData.showBeforeStartOptions,
-            allow_vote_change_while_active: formData.allowVoteChangeWhileActive,
+            show_before_start_options: effectiveShowBeforeStartOptions,
+            allow_vote_change_while_active: effectiveAllowVoteChangeWhileActive,
             ...(formData.showAfterEnd ? {} : { is_pinned: false })
         };
 
@@ -161,8 +169,8 @@ export default function useVoteEditorForm({
                     final_result_show_total: formData.finalResultShowTotal,
                     final_result_show_turnout: formData.finalResultShowTurnout,
                     show_after_end: formData.showAfterEnd,
-                    show_before_start_options: formData.showBeforeStartOptions,
-                    allow_vote_change_while_active: formData.allowVoteChangeWhileActive,
+                    show_before_start_options: effectiveShowBeforeStartOptions,
+                    allow_vote_change_while_active: effectiveAllowVoteChangeWhileActive,
                     ...(formData.showAfterEnd ? {} : { is_pinned: false })
                 })
                 .eq('id', selectedVote.id);

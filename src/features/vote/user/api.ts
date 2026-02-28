@@ -56,7 +56,8 @@ export async function upsertVoteRecord({
             .insert({
                 vote_id: voteId,
                 student_id: studentId,
-                option_id: optionId
+                option_id: optionId,
+                is_valid: true
             });
 
         return {
@@ -96,7 +97,8 @@ export async function upsertVoteRecord({
         .insert({
             vote_id: voteId,
             student_id: studentId,
-            option_id: optionId
+            option_id: optionId,
+            is_valid: true
         });
 
     return {

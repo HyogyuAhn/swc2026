@@ -19,6 +19,11 @@ export default function VoteCardHeader({
     remainingTime
 }: VoteCardHeaderProps) {
     const characterConfig = STATUS_CHARACTER_CONFIG[status];
+    const characterVisualClass = status === 'ACTIVE'
+        ? 'scale-[1.24] -translate-y-[2px] sm:scale-[1.28]'
+        : status === 'UPCOMING'
+            ? 'scale-[1.36] -translate-y-[1px] sm:scale-[1.42]'
+            : 'scale-[1.42] -translate-y-[8px] sm:scale-[1.5] sm:-translate-y-[10px]';
 
     const statusBadgeClass = status === 'ACTIVE'
         ? 'bg-green-100 text-green-700'
@@ -58,10 +63,29 @@ export default function VoteCardHeader({
         </div>
     );
 
+    const character = (
+        <div
+            className={`relative overflow-hidden ${
+                status === 'ACTIVE'
+                    ? 'h-[92px] w-[124px] sm:h-[126px] sm:w-[176px]'
+                    : 'h-[92px] w-[124px] sm:h-[124px] sm:w-[168px]'
+            }`}
+        >
+            <Image
+                src={characterConfig.src}
+                alt={characterConfig.alt}
+                fill
+                sizes={status === 'ACTIVE' ? '(max-width: 640px) 124px, 176px' : '(max-width: 640px) 124px, 168px'}
+                className={`object-contain select-none ${characterVisualClass}`}
+                style={{ objectPosition: characterConfig.objectPosition }}
+            />
+        </div>
+    );
+
     return (
-        <div className="p-6 border-b border-gray-100">
+        <div className="p-5 sm:p-6 border-b border-gray-100">
             {status === 'ACTIVE' ? (
-                <div className="grid grid-cols-[minmax(0,1fr)_auto] items-start gap-3 sm:grid-cols-[minmax(0,1fr)_minmax(108px,148px)_auto] sm:gap-4">
+                <div className="grid grid-cols-[minmax(0,1fr)_124px_auto] items-start gap-2 sm:grid-cols-[minmax(0,1fr)_176px_auto] sm:gap-4">
                     <div className="min-w-0">
                         {badges}
                         <h2 className="text-2xl font-bold text-gray-900 leading-tight">{vote.title}</h2>
@@ -76,17 +100,8 @@ export default function VoteCardHeader({
                         </div>
                     )}
 
-                    <div className="col-span-2 flex justify-center sm:col-span-1 sm:col-start-2 sm:row-start-1 sm:self-start">
-                        <div className="relative h-[72px] w-[104px] sm:h-[88px] sm:w-[128px]">
-                            <Image
-                                src={characterConfig.src}
-                                alt={characterConfig.alt}
-                                fill
-                                sizes="(max-width: 640px) 104px, 128px"
-                                className="object-contain select-none"
-                                style={{ objectPosition: characterConfig.objectPosition }}
-                            />
-                        </div>
+                    <div className="col-start-2 row-start-1 flex justify-center self-start">
+                        {character}
                     </div>
                 </div>
             ) : (
@@ -97,16 +112,7 @@ export default function VoteCardHeader({
                     </div>
 
                     <div className="justify-self-end self-start">
-                        <div className="relative h-[72px] w-[104px] sm:h-[88px] sm:w-[128px]">
-                            <Image
-                                src={characterConfig.src}
-                                alt={characterConfig.alt}
-                                fill
-                                sizes="(max-width: 640px) 104px, 128px"
-                                className="object-contain select-none"
-                                style={{ objectPosition: characterConfig.objectPosition }}
-                            />
-                        </div>
+                        {character}
                     </div>
                 </div>
             )}

@@ -149,7 +149,7 @@ export default function useVotePageController() {
 
         const fallbackSync = setInterval(() => {
             scheduleVotesRefresh(0);
-        }, 60000);
+        }, 5000);
 
         const channel = supabase
             .channel('vote-page-live')
@@ -225,13 +225,14 @@ export default function useVotePageController() {
         const voteId = vote.id;
         const selectedOption = selectedOptions[voteId];
         const canChangeVoteWhileActive = getVoteStatus(vote) === 'ACTIVE' && (vote.allow_vote_change_while_active ?? false);
+        const alreadyVoted = userVotes.has(voteId);
 
         if (!selectedOption) {
             alert('투표 항목을 선택해주세요.');
             return;
         }
 
-        if (userVotes.has(voteId) && !canChangeVoteWhileActive) {
+        if (alreadyVoted && !canChangeVoteWhileActive) {
             alert('이미 참여한 투표입니다.');
             return;
         }
@@ -240,7 +241,7 @@ export default function useVotePageController() {
             voteId,
             studentId,
             optionId: selectedOption,
-            allowUpdate: userVotes.has(voteId) && canChangeVoteWhileActive
+            allowUpdate: alreadyVoted && canChangeVoteWhileActive
         });
 
         if (mode === 'fetch_error') {
@@ -253,9 +254,16 @@ export default function useVotePageController() {
             return;
         }
 
-        alert(userVotes.has(voteId) && canChangeVoteWhileActive ? '투표가 수정되었습니다!' : '투표완료!');
-        fetchVotesData(studentId);
-    }, [fetchVotesData, selectedOptions, studentId, userVotes]);
+        setUserVotes(prev => {
+            const next = new Set(prev);
+            next.add(voteId);
+            return next;
+        });
+
+        alert(alreadyVoted && canChangeVoteWhileActive ? '투표가 수정되었습니다!' : '투표완료!');
+        await fetchVotesData(studentId || localStorage.getItem('swc_vote_student_id'));
+        scheduleVotesRefresh(0);
+    }, [fetchVotesData, scheduleVotesRefresh, selectedOptions, studentId, userVotes]);
 
     return {
         studentId,

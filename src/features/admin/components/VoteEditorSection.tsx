@@ -34,6 +34,8 @@ export default function VoteEditorSection({
 
     const status = view === 'EDIT' ? getStatus(selectedVote) : null;
     const isStatusRestricted = view === 'EDIT' && (status === 'ACTIVE' || status === 'ENDED');
+    const canEditShowBeforeStartOptions = view === 'CREATE' || status === 'UPCOMING';
+    const canEditAllowVoteChangeWhileActive = view === 'CREATE' || status === 'UPCOMING' || status === 'ACTIVE';
 
     return (
         <div className="p-10 max-w-3xl mx-auto">
@@ -215,22 +217,30 @@ export default function VoteEditorSection({
                         />
 
                         <FormToggleSetting
-                            checked={formData.allowVoteChangeWhileActive}
-                            title="진행 중 투표 항목 수정 허용"
-                            description="체크 시 참여자가 진행 중인 투표에서 기존 선택을 다른 항목으로 수정할 수 있습니다."
-                            onChange={checked => setFormData({ ...formData, allowVoteChangeWhileActive: checked })}
-                        />
-
-                        <FormToggleSetting
                             checked={formData.showBeforeStartOptions}
                             title="투표 시작전 항목 공개"
                             description={
                                 <span className="flex items-center gap-1 mt-0.5">
                                     {formData.showBeforeStartOptions ? <Eye size={12} /> : <EyeOff size={12} />}
                                     체크 해제 시 시작 전에는 항목 미리보기가 숨겨집니다.
+                                    {!canEditShowBeforeStartOptions && ' (시작 전 상태에서만 변경 가능)'}
                                 </span>
                             }
                             onChange={checked => setFormData({ ...formData, showBeforeStartOptions: checked })}
+                            disabled={!canEditShowBeforeStartOptions}
+                        />
+
+                        <FormToggleSetting
+                            checked={formData.allowVoteChangeWhileActive}
+                            title="진행 중 투표 항목 수정 허용"
+                            description={
+                                <>
+                                    체크 시 참여자가 진행 중인 투표에서 기존 선택을 다른 항목으로 수정할 수 있습니다.
+                                    {!canEditAllowVoteChangeWhileActive && ' (시작 전/진행 중 상태에서만 변경 가능)'}
+                                </>
+                            }
+                            onChange={checked => setFormData({ ...formData, allowVoteChangeWhileActive: checked })}
+                            disabled={!canEditAllowVoteChangeWhileActive}
                         />
 
                         <FormToggleSetting
