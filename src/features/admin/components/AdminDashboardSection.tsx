@@ -28,7 +28,7 @@ export default function AdminDashboardSection({
     handleEarlyEnd
 }: AdminDashboardSectionProps) {
     return (
-        <div className="p-10 max-w-5xl mx-auto">
+        <div className="mx-auto max-w-5xl px-10 pb-10 pt-4">
             <div className="flex justify-between items-center mb-8">
                 <h2 className="text-3xl font-bold text-gray-800">대시보드</h2>
                 <div className="flex items-center gap-3 bg-white p-3 rounded-xl border shadow-sm">

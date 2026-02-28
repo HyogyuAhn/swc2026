@@ -26,7 +26,7 @@ export default function AdminStudentsSection({
     handleDeleteStudent
 }: AdminStudentsSectionProps) {
     return (
-        <div className="p-10 max-w-5xl mx-auto">
+        <div className="mx-auto max-w-5xl px-10 pb-10 pt-4">
             <div className="flex justify-between items-center mb-8">
                 <h2 className="text-3xl font-bold text-gray-800">학번 관리</h2>
             </div>

@@ -1,7 +1,6 @@
 'use client';
 
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { LogOut } from 'lucide-react';
 import { ToastState } from '@/features/vote/common/types';
 import ToastBanner from '@/features/vote/common/ToastBanner';
 import AdminLoginScreen from '@/features/admin/components/AdminLoginScreen';
@@ -191,16 +190,6 @@ export default function AdminPageClient() {
             />
 
             <div className="flex-1 h-full overflow-y-auto relative bg-gray-50">
-                <div className="sticky top-0 z-30 flex justify-end p-4 sm:p-6 pointer-events-none">
-                    <button
-                        onClick={handleLogout}
-                        className="pointer-events-auto inline-flex items-center gap-2 rounded-xl border border-red-200 bg-white px-4 py-2 text-sm font-semibold text-red-600 shadow-sm transition hover:bg-red-50"
-                    >
-                        <LogOut size={16} />
-                        로그아웃
-                    </button>
-                </div>
-
                 {view === 'DASHBOARD' && (
                     <AdminDashboardSection
                         votes={votes}

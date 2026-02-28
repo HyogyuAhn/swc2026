@@ -775,12 +775,12 @@ export default function useDrawManagement(showToast: ShowToast, enabled = true) 
 
         if (!name) {
             showToast('당첨 항목 이름을 입력해주세요.');
-            return;
+            return false;
         }
 
         if (!Number.isFinite(quota) || quota < 1) {
             showToast('당첨 개수는 1 이상이어야 합니다.');
-            return;
+            return false;
         }
 
         const nextSortOrder = items.length === 0
@@ -797,7 +797,7 @@ export default function useDrawManagement(showToast: ShowToast, enabled = true) 
 
         if (result.error) {
             showToast(`추첨 항목 생성 실패: ${result.error.message}`);
-            return;
+            return false;
         }
 
         setNewItemName('');
@@ -807,6 +807,7 @@ export default function useDrawManagement(showToast: ShowToast, enabled = true) 
 
         showToast('추첨 항목이 생성되었습니다.', 'success');
         await refresh();
+        return true;
     }, [items, newItemAllowDuplicate, newItemName, newItemPublic, newItemQuota, refresh, showToast]);
 
     const setModeForItem = useCallback((itemId: string, mode: DrawMode) => {
@@ -840,13 +841,18 @@ export default function useDrawManagement(showToast: ShowToast, enabled = true) 
 
         const result = await upsertDrawSettings({ live_page_enabled: nextEnabled });
         if (result.error) {
+            if ((result.error.message || '').toLowerCase().includes('row-level security policy')) {
+                showToast('라이브 설정 변경 권한이 없습니다. draw_settings UPDATE 정책을 확인해주세요.');
+                return;
+            }
+
             showToast(`라이브 설정 변경 실패: ${result.error.message}`);
             return;
         }
 
-        setSettings({ live_page_enabled: nextEnabled });
+        await refresh();
         showToast(nextEnabled ? '라이브 페이지가 활성화되었습니다.' : '라이브 페이지가 비활성화되었습니다.', 'success');
-    }, [settings.live_page_enabled, showToast]);
+    }, [refresh, settings.live_page_enabled, showToast]);
 
     const toggleItemPublic = useCallback(async (item: DrawItemWithComputed) => {
         const result = await updateDrawItem(item.id, { is_public: !item.is_public });

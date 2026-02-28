@@ -46,14 +46,11 @@ export async function fetchDrawSettings() {
 export async function upsertDrawSettings(nextSettings: DrawSettings) {
     return supabase
         .from('draw_settings')
-        .upsert(
-            {
-                singleton: true,
-                live_page_enabled: nextSettings.live_page_enabled,
-                updated_at: new Date().toISOString()
-            },
-            { onConflict: 'singleton' }
-        );
+        .update({
+            live_page_enabled: nextSettings.live_page_enabled,
+            updated_at: new Date().toISOString()
+        })
+        .eq('singleton', true);
 }
 
 export async function fetchDrawItems() {

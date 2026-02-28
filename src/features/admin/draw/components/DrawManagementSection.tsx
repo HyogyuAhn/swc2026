@@ -1,6 +1,8 @@
+import { useState } from 'react';
+import { Plus } from 'lucide-react';
 import DrawConfirmModal from '@/features/admin/draw/components/DrawConfirmModal';
 import DrawItemCard from '@/features/admin/draw/components/DrawItemCard';
-import DrawItemCreateForm from '@/features/admin/draw/components/DrawItemCreateForm';
+import DrawItemCreateModal from '@/features/admin/draw/components/DrawItemCreateModal';
 import DrawSettingsPanel from '@/features/admin/draw/components/DrawSettingsPanel';
 import { DrawItemWithComputed, DrawPendingAction } from '@/features/admin/draw/types';
 
@@ -25,7 +27,7 @@ type DrawManagementSectionProps = {
     setNewItemQuota: (value: string) => void;
     setNewItemAllowDuplicate: (checked: boolean) => void;
     setNewItemPublic: (checked: boolean) => void;
-    handleCreateItem: () => void;
+    handleCreateItem: () => Promise<boolean>;
     toggleDrawLiveEnabled: () => void;
     setModeForItem: (itemId: string, mode: 'RANDOM' | 'MANUAL') => void;
     setManualStudentForItem: (itemId: string, studentId: string) => void;
@@ -113,30 +115,37 @@ export default function DrawManagementSection({
     confirmPendingAction,
     cancelPendingAction
 }: DrawManagementSectionProps) {
+    const [showCreateModal, setShowCreateModal] = useState(false);
+
+    const handleCreateWithClose = async () => {
+        const ok = await handleCreateItem();
+        if (ok) {
+            setShowCreateModal(false);
+        }
+    };
+
     return (
-        <div className="mx-auto max-w-6xl p-10">
-            <div className="mb-8">
-                <h2 className="text-3xl font-bold text-gray-800">추첨 관리</h2>
-                <p className="mt-1 text-sm text-gray-500">활성 학번을 기준으로 항목별 추첨/강제추가/수정/삭제를 관리합니다.</p>
+        <div className="mx-auto max-w-6xl px-10 pb-10 pt-4">
+            <div className="mb-8 flex flex-wrap items-end justify-between gap-3">
+                <div>
+                    <h2 className="text-3xl font-bold text-gray-800">추첨 관리</h2>
+                    <p className="mt-1 text-sm text-gray-500">활성 학번을 기준으로 항목별 추첨/강제추가/수정/삭제를 관리합니다.</p>
+                </div>
+
+                <button
+                    type="button"
+                    onClick={() => setShowCreateModal(true)}
+                    className="inline-flex items-center gap-2 rounded-xl bg-blue-600 px-4 py-2 text-sm font-bold text-white hover:bg-blue-700"
+                >
+                    <Plus size={16} />
+                    추첨 항목 추가
+                </button>
             </div>
 
             <div className="grid gap-4">
                 <DrawSettingsPanel
                     livePageEnabled={settings.live_page_enabled}
                     onToggle={toggleDrawLiveEnabled}
-                />
-
-                <DrawItemCreateForm
-                    name={newItemName}
-                    quota={newItemQuota}
-                    allowDuplicate={newItemAllowDuplicate}
-                    isPublic={newItemPublic}
-                    onNameChange={setNewItemName}
-                    onQuotaChange={setNewItemQuota}
-                    onAllowDuplicateChange={setNewItemAllowDuplicate}
-                    onPublicChange={setNewItemPublic}
-                    onCreate={handleCreateItem}
-                    disabled={submitting}
                 />
             </div>
 
@@ -187,6 +196,21 @@ export default function DrawManagementSection({
                 onCancel={cancelPendingAction}
                 onConfirm={confirmPendingAction}
                 confirmLabel="경고 무시 후 진행"
+            />
+
+            <DrawItemCreateModal
+                isOpen={showCreateModal}
+                name={newItemName}
+                quota={newItemQuota}
+                allowDuplicate={newItemAllowDuplicate}
+                isPublic={newItemPublic}
+                disabled={submitting}
+                onClose={() => setShowCreateModal(false)}
+                onNameChange={setNewItemName}
+                onQuotaChange={setNewItemQuota}
+                onAllowDuplicateChange={setNewItemAllowDuplicate}
+                onPublicChange={setNewItemPublic}
+                onCreate={handleCreateWithClose}
             />
         </div>
     );

@@ -10,16 +10,8 @@ export default function DrawSettingsPanel({ livePageEnabled, onToggle }: DrawSet
                 <div>
                     <h3 className="text-lg font-bold text-gray-800">라이브 페이지 설정</h3>
                     <p className="mt-1 text-sm text-gray-500">
-                        OFF면 `/draw` 페이지 전체가 비활성 안내 화면으로 표시됩니다.
+                        라이브 추첨 페이지 공개 여부를 설정합니다.
                     </p>
-                    <a
-                        href="/draw"
-                        target="_blank"
-                        rel="noreferrer"
-                        className="mt-2 inline-flex text-xs font-semibold text-blue-600 hover:text-blue-700"
-                    >
-                        /draw 페이지 열기
-                    </a>
                 </div>
                 <button
                     type="button"

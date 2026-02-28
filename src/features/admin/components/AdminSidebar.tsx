@@ -79,9 +79,12 @@ export default function AdminSidebar({
                 })}
             </div>
 
-            <div className="p-4 border-t">
-                <button onClick={onLogout} className="flex items-center gap-2 text-gray-500 hover:text-red-500 text-sm font-medium">
-                    <LogOut size={16} /> Logout
+            <div className="p-4 border-t border-gray-200 bg-white">
+                <button
+                    onClick={onLogout}
+                    className="w-full inline-flex items-center justify-center gap-2 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-bold text-red-600 shadow-sm transition hover:bg-red-100"
+                >
+                    <LogOut size={16} /> 로그아웃
                 </button>
             </div>
         </div>
