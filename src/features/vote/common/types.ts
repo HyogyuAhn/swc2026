@@ -1,4 +1,4 @@
 export type ToastState = {
     message: string;
-    kind: 'error' | 'info';
+    kind: 'error' | 'info' | 'success';
 } | null;

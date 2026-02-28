@@ -37,7 +37,6 @@ export default function VoteCard({
     const showOptionsBeforeStart = vote.show_before_start_options ?? true;
     const canChangeVoteWhileActive = status === 'ACTIVE' && (vote.allow_vote_change_while_active ?? false);
     const isCooldownActive = cooldownRemainingSeconds > 0;
-    const canSubmitVote = status === 'ACTIVE' && (!isVoted || (canChangeVoteWhileActive && !isCooldownActive));
 
     const visibleResults =
         (status === 'ACTIVE' && vote.show_live_results) ||
@@ -95,7 +94,6 @@ export default function VoteCard({
                             status={status}
                             isVoted={isVoted}
                             canChangeVoteWhileActive={canChangeVoteWhileActive}
-                            canSubmitVote={canSubmitVote}
                             isCooldownActive={isCooldownActive}
                             cooldownRemainingSeconds={cooldownRemainingSeconds}
                             selectedOption={selectedOption}

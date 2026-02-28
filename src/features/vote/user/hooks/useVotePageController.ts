@@ -78,7 +78,7 @@ export default function useVotePageController() {
     const toastTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
     const refreshTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-    const showToast = useCallback((message: string, kind: 'error' | 'info' = 'error') => {
+    const showToast = useCallback((message: string, kind: 'error' | 'info' | 'success' = 'error') => {
         setToast({ message, kind });
 
         if (toastTimerRef.current) {
@@ -103,10 +103,9 @@ export default function useVotePageController() {
     const fetchVotesData = useCallback(async (currentId?: string | null) => {
         try {
             const { votesData, totalStudents: studentsCount, records } = await fetchVoteSnapshot();
+            const voteList = votesData ?? [];
 
-            if (votesData) {
-                setVotes(votesData);
-            }
+            setVotes(voteList);
 
             setTotalStudents(studentsCount);
 
@@ -137,16 +136,59 @@ export default function useVotePageController() {
                 return;
             }
 
-            setUserVotes(new Set(myVotes.map(vote => vote.vote_id)));
+            const now = new Date();
+            const voteById = new Map(voteList.map(vote => [String(vote.id), vote]));
+            const myVoteIds = new Set(myVotes.map(vote => String(vote.vote_id)));
+
+            setUserVotes(myVoteIds);
 
             const votedOptionMap: Record<string, string> = {};
             myVotes.forEach(vote => {
                 if (vote.option_id) {
-                    votedOptionMap[vote.vote_id] = vote.option_id;
+                    votedOptionMap[String(vote.vote_id)] = String(vote.option_id);
                 }
             });
 
-            setSelectedOptions(prev => ({ ...prev, ...votedOptionMap }));
+            setSelectedOptions(prev => {
+                const next = { ...prev };
+
+                Object.entries(votedOptionMap).forEach(([voteId, optionId]) => {
+                    const voteData = voteById.get(voteId);
+                    const isActiveEditableVote = Boolean(
+                        voteData &&
+                        getVoteStatus(voteData, now) === 'ACTIVE' &&
+                        (voteData.allow_vote_change_while_active ?? false)
+                    );
+                    const hasPendingLocalSelection = isActiveEditableVote &&
+                        typeof next[voteId] === 'string' &&
+                        next[voteId] !== optionId;
+
+                    if (!hasPendingLocalSelection) {
+                        next[voteId] = optionId;
+                    }
+                });
+
+                Object.keys(next).forEach(voteId => {
+                    if (myVoteIds.has(voteId)) {
+                        return;
+                    }
+
+                    const voteData = voteById.get(voteId);
+                    if (!voteData) {
+                        delete next[voteId];
+                        return;
+                    }
+
+                    const isActiveEditableVote = getVoteStatus(voteData, now) === 'ACTIVE' &&
+                        (voteData.allow_vote_change_while_active ?? false);
+
+                    if (!isActiveEditableVote) {
+                        delete next[voteId];
+                    }
+                });
+
+                return next;
+            });
         } finally {
             setLoading(false);
         }
@@ -280,15 +322,28 @@ export default function useVotePageController() {
         });
     }, [currentTime, studentId]);
 
-    const getVoteEditCooldownRemaining = useCallback((voteId: string) => {
-        const expiresAt = voteEditCooldowns[voteId];
-        if (!expiresAt) {
+    const getVoteEditCooldownRemaining = useCallback((voteId: string, targetStudentId?: string | null) => {
+        const normalizedVoteId = String(voteId);
+        const now = Date.now();
+        const inMemoryExpiresAt = voteEditCooldowns[normalizedVoteId];
+
+        let expiresAt = inMemoryExpiresAt;
+
+        if ((!expiresAt || expiresAt <= now) && typeof window !== 'undefined') {
+            const idToUse = targetStudentId || studentId || localStorage.getItem('swc_vote_student_id');
+            if (idToUse) {
+                const stored = parseCooldownMap(localStorage.getItem(getCooldownStorageKey(idToUse)), now);
+                expiresAt = stored[normalizedVoteId];
+            }
+        }
+
+        if (!expiresAt || expiresAt <= now) {
             return 0;
         }
 
-        const remainingSeconds = Math.ceil((expiresAt - Date.now()) / 1000);
+        const remainingSeconds = Math.ceil((expiresAt - now) / 1000);
         return Math.max(0, Math.min(EDIT_COOLDOWN_SECONDS, remainingSeconds));
-    }, [currentTime, voteEditCooldowns]);
+    }, [currentTime, studentId, voteEditCooldowns]);
 
     const filteredVotes = useMemo(() => {
         return getVisibleVotesByFilter(votes, filter, currentTime);
@@ -328,45 +383,53 @@ export default function useVotePageController() {
     }, [fetchVotesData, showToast, studentId]);
 
     const setSelectedOptionForVote = useCallback((voteId: string, optionId: string) => {
-        setSelectedOptions(prev => ({ ...prev, [voteId]: optionId }));
+        const normalizedVoteId = String(voteId);
+        const normalizedOptionId = String(optionId);
+        setSelectedOptions(prev => ({ ...prev, [normalizedVoteId]: normalizedOptionId }));
     }, []);
 
     const handleVote = useCallback(async (vote: any) => {
-        const voteId = vote.id;
+        const voteId = String(vote.id);
         const selectedOption = selectedOptions[voteId];
         const canChangeVoteWhileActive = getVoteStatus(vote) === 'ACTIVE' && (vote.allow_vote_change_while_active ?? false);
         const alreadyVoted = userVotes.has(voteId);
-        const cooldownRemaining = getVoteEditCooldownRemaining(voteId);
+        const idToUse = studentId || localStorage.getItem('swc_vote_student_id');
+        const cooldownRemaining = getVoteEditCooldownRemaining(voteId, idToUse);
 
         if (!selectedOption) {
-            alert('투표 항목을 선택해주세요.');
+            showToast('투표 항목을 선택해주세요.');
+            return;
+        }
+
+        if (!idToUse) {
+            showToast('학번 정보를 확인할 수 없습니다. 다시 로그인해주세요.');
             return;
         }
 
         if (alreadyVoted && !canChangeVoteWhileActive) {
-            alert('이미 참여한 투표입니다.');
+            showToast('이미 참여한 투표입니다.');
             return;
         }
 
         if (cooldownRemaining > 0) {
-            alert(`${cooldownRemaining}초 뒤에 다시 수정할 수 있습니다.`);
+            showToast(`${cooldownRemaining}초 뒤에 다시 수정할 수 있습니다.`);
             return;
         }
 
         const { error, mode } = await upsertVoteRecord({
             voteId,
-            studentId,
+            studentId: idToUse,
             optionId: selectedOption,
             allowUpdate: alreadyVoted && canChangeVoteWhileActive
         });
 
         if (mode === 'fetch_error') {
-            alert('기존 투표 확인 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요.');
+            showToast('기존 투표 확인 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요.');
             return;
         }
 
         if (error) {
-            alert(error.message.includes('unique') ? '이미 참여하셨습니다.' : '투표 실패: ' + error.message);
+            showToast(error.message.includes('unique') ? '이미 참여하셨습니다.' : `투표 실패: ${error.message}`);
             return;
         }
 
@@ -380,13 +443,13 @@ export default function useVotePageController() {
             applyVoteCooldown(voteId);
         }
 
-        alert(alreadyVoted && canChangeVoteWhileActive ? '투표가 수정되었습니다!' : '투표완료!');
-        await fetchVotesData(studentId || localStorage.getItem('swc_vote_student_id'));
+        showToast(alreadyVoted && canChangeVoteWhileActive ? '투표가 수정되었습니다.' : '투표가 완료되었습니다.', 'success');
+        await fetchVotesData(idToUse);
         scheduleVotesRefresh(0);
-    }, [applyVoteCooldown, fetchVotesData, getVoteEditCooldownRemaining, scheduleVotesRefresh, selectedOptions, studentId, userVotes]);
+    }, [applyVoteCooldown, fetchVotesData, getVoteEditCooldownRemaining, scheduleVotesRefresh, selectedOptions, showToast, studentId, userVotes]);
 
     const handleCancelVote = useCallback(async (vote: any) => {
-        const voteId = vote.id;
+        const voteId = String(vote.id);
         const idToUse = studentId || localStorage.getItem('swc_vote_student_id');
         const canChangeVoteWhileActive = getVoteStatus(vote) === 'ACTIVE' && (vote.allow_vote_change_while_active ?? false);
 
@@ -394,13 +457,9 @@ export default function useVotePageController() {
             return;
         }
 
-        if (!confirm('선택한 투표를 취소하시겠습니까?')) {
-            return;
-        }
-
         const { error } = await deleteStudentVote(voteId, idToUse);
         if (error) {
-            alert(`투표 취소 실패: ${error.message}`);
+            showToast(`투표 취소 실패: ${error.message}`);
             return;
         }
 
@@ -418,10 +477,10 @@ export default function useVotePageController() {
 
         applyVoteCooldown(voteId, idToUse);
 
-        alert('투표가 취소되었습니다. 30초 뒤에 재투표할 수 있습니다.');
+        showToast('투표가 취소되었습니다. 30초 뒤에 재투표할 수 있습니다.', 'success');
         await fetchVotesData(idToUse);
         scheduleVotesRefresh(0);
-    }, [applyVoteCooldown, fetchVotesData, scheduleVotesRefresh, studentId, userVotes]);
+    }, [applyVoteCooldown, fetchVotesData, scheduleVotesRefresh, showToast, studentId, userVotes]);
 
     return {
         studentId,

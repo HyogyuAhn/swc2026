@@ -64,14 +64,14 @@ export default function VoteDashboard({
                             <VoteCard
                                 key={vote.id}
                                 vote={vote}
-                                isVoted={userVotes.has(vote.id)}
-                                selectedOption={selectedOptions[vote.id] || ''}
+                                isVoted={userVotes.has(String(vote.id))}
+                                selectedOption={selectedOptions[String(vote.id)] || ''}
                                 voteCount={voteCounts[vote.id]}
                                 totalStudents={totalStudents}
                                 onSelectOption={setSelectedOptionForVote}
                                 onVote={handleVote}
                                 onCancelVote={handleCancelVote}
-                                cooldownRemainingSeconds={getVoteEditCooldownRemaining(vote.id)}
+                                cooldownRemainingSeconds={getVoteEditCooldownRemaining(String(vote.id))}
                                 getVoteStatus={getVoteStatus}
                                 getRemainingTime={getRemainingTime}
                             />

@@ -1,9 +1,11 @@
+import { useMemo, useState } from 'react';
+import VoteActionModal from './VoteActionModal';
+
 type VoteCardVotingSectionProps = {
     vote: any;
     status: 'UPCOMING' | 'ACTIVE' | 'ENDED';
     isVoted: boolean;
     canChangeVoteWhileActive: boolean;
-    canSubmitVote: boolean;
     isCooldownActive: boolean;
     cooldownRemainingSeconds: number;
     selectedOption: string;
@@ -17,7 +19,6 @@ export default function VoteCardVotingSection({
     status,
     isVoted,
     canChangeVoteWhileActive,
-    canSubmitVote,
     isCooldownActive,
     cooldownRemainingSeconds,
     selectedOption,
@@ -25,12 +26,37 @@ export default function VoteCardVotingSection({
     onVote,
     onCancelVote
 }: VoteCardVotingSectionProps) {
+    const [confirmAction, setConfirmAction] = useState<'modify' | 'cancel' | null>(null);
+
     if (status !== 'ACTIVE') {
         return null;
     }
 
     const isReadonlyAfterVote = isVoted && !canChangeVoteWhileActive;
     const isOptionsDisabled = isReadonlyAfterVote || isCooldownActive;
+    const selectedOptionName = useMemo(() => {
+        if (!selectedOption) {
+            return '';
+        }
+        return vote.vote_options.find(option => String(option.id) === selectedOption)?.name || '';
+    }, [selectedOption, vote.vote_options]);
+
+    const confirmDialogTitle = confirmAction === 'modify' ? '투표 항목 수정' : '투표 취소';
+    const confirmDialogMessage = confirmAction === 'modify'
+        ? `정말 수정하시겠습니까?\n선택 항목: ${selectedOptionName || '선택 안 됨'}`
+        : '정말 투표를 취소하시겠습니까?\n취소 후 30초 뒤에 재투표할 수 있습니다.';
+
+    const handleConfirmAction = () => {
+        if (confirmAction === 'modify') {
+            onVote(vote);
+        }
+
+        if (confirmAction === 'cancel') {
+            onCancelVote(vote);
+        }
+
+        setConfirmAction(null);
+    };
 
     return (
         <div className="pt-4 border-t border-gray-100">
@@ -50,7 +76,7 @@ export default function VoteCardVotingSection({
                     <label
                         key={option.id}
                         className={`flex items-center p-4 rounded-xl border transition-all group ${
-                            selectedOption === option.id
+                            selectedOption === String(option.id)
                                 ? 'border-blue-500 bg-blue-50 ring-1 ring-blue-500'
                                 : 'border-gray-200'
                         } ${
@@ -61,24 +87,24 @@ export default function VoteCardVotingSection({
                     >
                         <div
                             className={`w-5 h-5 rounded-full border-2 mr-3 flex items-center justify-center ${
-                                selectedOption === option.id
+                                selectedOption === String(option.id)
                                     ? 'border-blue-600'
                                     : isOptionsDisabled
                                         ? 'border-gray-300'
                                         : 'border-gray-300 group-hover:border-blue-400'
                             }`}
                         >
-                            {selectedOption === option.id && <div className="w-2.5 h-2.5 bg-blue-600 rounded-full" />}
+                            {selectedOption === String(option.id) && <div className="w-2.5 h-2.5 bg-blue-600 rounded-full" />}
                         </div>
                         <input
                             type="radio"
                             name={`vote-${vote.id}`}
                             className="hidden"
                             disabled={isOptionsDisabled}
-                            onChange={() => onSelectOption(vote.id, option.id)}
-                            checked={selectedOption === option.id}
+                            onChange={() => onSelectOption(String(vote.id), String(option.id))}
+                            checked={selectedOption === String(option.id)}
                         />
-                        <span className={`font-medium ${selectedOption === option.id ? 'text-blue-900' : 'text-gray-700'}`}>
+                        <span className={`font-medium ${selectedOption === String(option.id) ? 'text-blue-900' : 'text-gray-700'}`}>
                             {option.name}
                         </span>
                     </label>
@@ -102,7 +128,12 @@ export default function VoteCardVotingSection({
             {isVoted && canChangeVoteWhileActive && (
                 <div className="mt-6 grid grid-cols-2 gap-3">
                     <button
-                        onClick={() => onVote(vote)}
+                        onClick={() => {
+                            if (!selectedOption || isCooldownActive) {
+                                return;
+                            }
+                            setConfirmAction('modify');
+                        }}
                         disabled={!selectedOption || isCooldownActive}
                         className={`py-3 rounded-xl font-bold text-sm transition-all ${
                             !selectedOption || isCooldownActive
@@ -113,13 +144,24 @@ export default function VoteCardVotingSection({
                         {isCooldownActive ? `${cooldownRemainingSeconds}초 뒤 수정 가능` : '수정하기'}
                     </button>
                     <button
-                        onClick={() => onCancelVote(vote)}
+                        onClick={() => setConfirmAction('cancel')}
                         className="py-3 rounded-xl font-bold text-sm text-red-600 bg-red-50 border border-red-200 hover:bg-red-100 transition-all"
                     >
                         투표 취소
                     </button>
                 </div>
             )}
+
+            <VoteActionModal
+                isOpen={confirmAction !== null}
+                title={confirmDialogTitle}
+                message={confirmDialogMessage}
+                confirmLabel={confirmAction === 'modify' ? '수정하기' : '취소하기'}
+                cancelLabel="닫기"
+                confirmTone={confirmAction === 'cancel' ? 'danger' : 'primary'}
+                onConfirm={handleConfirmAction}
+                onClose={() => setConfirmAction(null)}
+            />
         </div>
     );
 }
