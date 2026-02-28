@@ -38,15 +38,15 @@ const createAudioEngine = (): AudioEngine => {
     compressor.connect(context.destination);
 
     const masterGain = context.createGain();
-    masterGain.gain.value = 0.42;
+    masterGain.gain.value = 0.72;
     masterGain.connect(compressor);
 
     const musicBus = context.createGain();
-    musicBus.gain.value = 0.18;
+    musicBus.gain.value = 0.24;
     musicBus.connect(masterGain);
 
     const sfxBus = context.createGain();
-    sfxBus.gain.value = 0.52;
+    sfxBus.gain.value = 0.82;
     sfxBus.connect(masterGain);
 
     const noiseLength = Math.floor(context.sampleRate * 2.2);
