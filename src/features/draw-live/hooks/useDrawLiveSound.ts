@@ -67,50 +67,77 @@ export default function useDrawLiveSound({ phase, eventId }: UseDrawLiveSoundPar
         rhythmTimeoutsRef.current = [];
     }, []);
 
-    const playDrumHit = useCallback((engine: AudioEngine, intensity = 1) => {
+    const playDrumHit = useCallback((engine: AudioEngine, options?: {
+        intensity?: number;
+        pitch?: number;
+        target?: 'tension' | 'master';
+    }) => {
+        const intensity = options?.intensity ?? 1;
+        const pitch = options?.pitch ?? 1;
+        const target = options?.target ?? 'tension';
+        const targetBus = target === 'master' ? engine.masterGain : engine.tensionBus;
         const now = engine.context.currentTime;
         const body = engine.context.createOscillator();
         const bodyGain = engine.context.createGain();
 
         body.type = 'triangle';
-        body.frequency.setValueAtTime(160, now);
-        body.frequency.exponentialRampToValueAtTime(52, now + 0.24);
+        body.frequency.setValueAtTime(190 * pitch, now);
+        body.frequency.exponentialRampToValueAtTime(58 * pitch, now + 0.22);
         bodyGain.gain.setValueAtTime(0.0001, now);
-        bodyGain.gain.exponentialRampToValueAtTime(0.18 * intensity, now + 0.015);
-        bodyGain.gain.exponentialRampToValueAtTime(0.0001, now + 0.26);
+        bodyGain.gain.exponentialRampToValueAtTime(0.16 * intensity, now + 0.01);
+        bodyGain.gain.exponentialRampToValueAtTime(0.0001, now + 0.23);
         body.connect(bodyGain);
-        bodyGain.connect(engine.tensionBus);
+        bodyGain.connect(targetBus);
         body.start(now);
-        body.stop(now + 0.28);
+        body.stop(now + 0.24);
 
         const sub = engine.context.createOscillator();
         const subGain = engine.context.createGain();
         sub.type = 'sine';
-        sub.frequency.setValueAtTime(82, now);
-        sub.frequency.exponentialRampToValueAtTime(38, now + 0.28);
+        sub.frequency.setValueAtTime(94 * pitch, now);
+        sub.frequency.exponentialRampToValueAtTime(42 * pitch, now + 0.24);
         subGain.gain.setValueAtTime(0.0001, now);
-        subGain.gain.exponentialRampToValueAtTime(0.12 * intensity, now + 0.02);
-        subGain.gain.exponentialRampToValueAtTime(0.0001, now + 0.3);
+        subGain.gain.exponentialRampToValueAtTime(0.1 * intensity, now + 0.015);
+        subGain.gain.exponentialRampToValueAtTime(0.0001, now + 0.26);
         sub.connect(subGain);
-        subGain.connect(engine.tensionBus);
+        subGain.connect(targetBus);
         sub.start(now);
-        sub.stop(now + 0.32);
+        sub.stop(now + 0.28);
 
         const noise = engine.context.createBufferSource();
         noise.buffer = engine.noiseBuffer;
         const noiseFilter = engine.context.createBiquadFilter();
-        noiseFilter.type = 'lowpass';
-        noiseFilter.frequency.setValueAtTime(440, now);
+        noiseFilter.type = 'bandpass';
+        noiseFilter.frequency.setValueAtTime(880 * pitch, now);
         noiseFilter.Q.setValueAtTime(0.8, now);
         const noiseGain = engine.context.createGain();
         noiseGain.gain.setValueAtTime(0.0001, now);
-        noiseGain.gain.exponentialRampToValueAtTime(0.05 * intensity, now + 0.01);
-        noiseGain.gain.exponentialRampToValueAtTime(0.0001, now + 0.12);
+        noiseGain.gain.exponentialRampToValueAtTime(0.03 * intensity, now + 0.008);
+        noiseGain.gain.exponentialRampToValueAtTime(0.0001, now + 0.085);
         noise.connect(noiseFilter);
         noiseFilter.connect(noiseGain);
-        noiseGain.connect(engine.tensionBus);
+        noiseGain.connect(targetBus);
         noise.start(now);
-        noise.stop(now + 0.14);
+        noise.stop(now + 0.1);
+    }, []);
+
+    const playRumbleSweep = useCallback((engine: AudioEngine) => {
+        const now = engine.context.currentTime;
+        const osc = engine.context.createOscillator();
+        const gain = engine.context.createGain();
+
+        osc.type = 'sawtooth';
+        osc.frequency.setValueAtTime(84, now);
+        osc.frequency.exponentialRampToValueAtTime(132, now + 0.22);
+
+        gain.gain.setValueAtTime(0.0001, now);
+        gain.gain.exponentialRampToValueAtTime(0.018, now + 0.03);
+        gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.24);
+
+        osc.connect(gain);
+        gain.connect(engine.tensionBus);
+        osc.start(now);
+        osc.stop(now + 0.26);
     }, []);
 
     const startRhythm = useCallback((engine: AudioEngine) => {
@@ -119,16 +146,29 @@ export default function useDrawLiveSound({ phase, eventId }: UseDrawLiveSoundPar
         }
 
         const runPattern = () => {
-            playDrumHit(engine, 1);
-            const timer = setTimeout(() => {
-                playDrumHit(engine, 0.75);
-            }, 170);
-            rhythmTimeoutsRef.current.push(timer);
+            const pattern = [
+                { at: 0, intensity: 0.92, pitch: 1.08 },
+                { at: 116, intensity: 0.72, pitch: 0.94 },
+                { at: 244, intensity: 1.0, pitch: 1.05 },
+                { at: 378, intensity: 0.78, pitch: 0.9 }
+            ];
+
+            pattern.forEach(step => {
+                const timer = setTimeout(() => {
+                    playDrumHit(engine, { intensity: step.intensity, pitch: step.pitch });
+                }, step.at);
+                rhythmTimeoutsRef.current.push(timer);
+            });
+
+            const sweepTimer = setTimeout(() => {
+                playRumbleSweep(engine);
+            }, 162);
+            rhythmTimeoutsRef.current.push(sweepTimer);
         };
 
         runPattern();
-        rhythmTimerRef.current = setInterval(runPattern, 760);
-    }, [playDrumHit]);
+        rhythmTimerRef.current = setInterval(runPattern, 980);
+    }, [playDrumHit, playRumbleSweep]);
 
     const ensureEngine = useCallback(async () => {
         if (!engineRef.current) {
@@ -183,11 +223,43 @@ export default function useDrawLiveSound({ phase, eventId }: UseDrawLiveSoundPar
         if (!engine) {
             return;
         }
-        playDrumHit(engine, 1.2);
-        const timer = setTimeout(() => {
-            playDrumHit(engine, 0.95);
-        }, 200);
-        rhythmTimeoutsRef.current.push(timer);
+
+        const now = engine.context.currentTime + 0.02;
+        playDrumHit(engine, { intensity: 1.08, pitch: 1.08, target: 'master' });
+
+        const notes = [784, 1046, 1318, 1760];
+        notes.forEach((frequency, index) => {
+            const startAt = now + index * 0.11;
+            const osc = engine.context.createOscillator();
+            const gain = engine.context.createGain();
+            osc.type = index % 2 === 0 ? 'triangle' : 'sine';
+            osc.frequency.setValueAtTime(frequency, startAt);
+
+            gain.gain.setValueAtTime(0.0001, startAt);
+            gain.gain.exponentialRampToValueAtTime(0.055, startAt + 0.018);
+            gain.gain.exponentialRampToValueAtTime(0.0001, startAt + 0.42);
+
+            osc.connect(gain);
+            gain.connect(engine.masterGain);
+            osc.start(startAt);
+            osc.stop(startAt + 0.46);
+        });
+
+        const sparkle = engine.context.createBufferSource();
+        sparkle.buffer = engine.noiseBuffer;
+        const sparkleFilter = engine.context.createBiquadFilter();
+        sparkleFilter.type = 'highpass';
+        sparkleFilter.frequency.setValueAtTime(2200, now);
+        const sparkleGain = engine.context.createGain();
+        sparkleGain.gain.setValueAtTime(0.0001, now);
+        sparkleGain.gain.exponentialRampToValueAtTime(0.032, now + 0.02);
+        sparkleGain.gain.exponentialRampToValueAtTime(0.0001, now + 0.3);
+
+        sparkle.connect(sparkleFilter);
+        sparkleFilter.connect(sparkleGain);
+        sparkleGain.connect(engine.masterGain);
+        sparkle.start(now);
+        sparkle.stop(now + 0.34);
     }, [ensureEngine, playDrumHit]);
 
     const toggleSoundEnabled = useCallback(() => {

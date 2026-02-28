@@ -54,9 +54,12 @@ export default function useDrawLiveFeed() {
 
     const timersRef = useRef<ReturnType<typeof setTimeout>[]>([]);
     const preStartTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+    const kickoffTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
     const queueRef = useRef<DrawLiveEventRecord[]>([]);
     const startNextQueuedEventRef = useRef<() => boolean>(() => false);
     const runTimelineRef = useRef<() => void>(() => {});
+    const phaseRef = useRef<DrawAnimationPhase>('idle');
+    const currentEventRef = useRef<DrawLiveEventRecord | null>(null);
 
     const clearTimers = useCallback(() => {
         timersRef.current.forEach(timerId => clearTimeout(timerId));
@@ -83,23 +86,28 @@ export default function useDrawLiveFeed() {
         queueRef.current = queue;
     }, [queue]);
 
+    useEffect(() => {
+        phaseRef.current = phase;
+    }, [phase]);
+
+    useEffect(() => {
+        currentEventRef.current = currentEvent;
+    }, [currentEvent]);
+
     const startNextQueuedEvent = useCallback(() => {
-        let started = false;
+        const currentQueue = queueRef.current;
+        if (!currentQueue.length) {
+            return false;
+        }
 
-        setQueue(prev => {
-            if (prev.length === 0) {
-                return prev;
-            }
-
-            const [next, ...rest] = prev;
-            started = true;
-            clearPreStartTimer();
-            setPreStartItemName(null);
-            setCurrentEvent(next);
-            setPhase('announce');
-            return rest;
-        });
-        return started;
+        const [next, ...rest] = currentQueue;
+        queueRef.current = rest;
+        setQueue(rest);
+        clearPreStartTimer();
+        setPreStartItemName(null);
+        setCurrentEvent(next);
+        setPhase('announce');
+        return true;
     }, [clearPreStartTimer]);
 
     const loadRecentWinners = useCallback(async () => {
@@ -219,29 +227,18 @@ export default function useDrawLiveFeed() {
                 const event = payload.new as DrawLiveEventRecord;
 
                 if (settings.live_page_enabled && event?.is_public) {
-                    setQueue(prev => [...prev, event]);
-                }
+                    setQueue(prev => {
+                        const next = [...prev, event];
+                        queueRef.current = next;
+                        return next;
+                    });
 
-                if (settings.show_recent_winners) {
-                    loadRecentWinners();
-                }
-            })
-            .on('postgres_changes', {
-                event: '*',
-                schema: 'public',
-                table: 'draw_winners'
-            }, () => {
-                if (settings.show_recent_winners) {
-                    loadRecentWinners();
-                }
-            })
-            .on('postgres_changes', {
-                event: '*',
-                schema: 'public',
-                table: 'draw_items'
-            }, () => {
-                if (settings.show_recent_winners) {
-                    loadRecentWinners();
+                    if (!kickoffTimerRef.current && phaseRef.current === 'idle' && !currentEventRef.current) {
+                        kickoffTimerRef.current = setTimeout(() => {
+                            kickoffTimerRef.current = null;
+                            startNextQueuedEventWithTimeline();
+                        }, 24);
+                    }
                 }
             })
             .on('postgres_changes', {
@@ -290,22 +287,14 @@ export default function useDrawLiveFeed() {
         return () => {
             clearTimers();
             clearPreStartTimer();
+            if (kickoffTimerRef.current) {
+                clearTimeout(kickoffTimerRef.current);
+                kickoffTimerRef.current = null;
+            }
             supabase.removeChannel(dbChannel);
             supabase.removeChannel(controlChannel);
         };
-    }, [activatePreStart, clearPreStartTimer, clearTimers, loadRecentWinners, loadStudentNumbers, settings.live_page_enabled, settings.show_recent_winners]);
-
-    useEffect(() => {
-        if (!settings.live_page_enabled) {
-            return;
-        }
-
-        if (phase !== 'idle' || currentEvent || queue.length === 0) {
-            return;
-        }
-
-        startNextQueuedEventWithTimeline();
-    }, [currentEvent, phase, queue.length, settings.live_page_enabled, startNextQueuedEventWithTimeline]);
+    }, [activatePreStart, clearPreStartTimer, clearTimers, loadRecentWinners, loadStudentNumbers, settings.live_page_enabled, settings.show_recent_winners, startNextQueuedEventWithTimeline]);
 
     const isAnimating = phase !== 'idle' && Boolean(currentEvent);
 

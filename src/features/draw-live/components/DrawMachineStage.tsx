@@ -178,6 +178,11 @@ export default function DrawMachineStage({
             </div>
 
             <div className={`draw-machine-stage relative mx-auto h-[440px] w-full max-w-4xl overflow-hidden rounded-2xl border border-blue-100 ${isCinematic ? 'cinematic' : ''}`}>
+                <div className={`draw-cinema-bars ${isCinematic || isReveal ? 'show' : ''}`}>
+                    <span className="draw-cinema-bar top" />
+                    <span className="draw-cinema-bar bottom" />
+                </div>
+                <div className={`draw-lens-flare ${isCinematic ? 'show' : ''} ${isReveal ? 'reveal' : ''}`} />
                 <div className={`draw-stage-vignette ${isStageActive ? 'show' : ''}`} />
                 <div className={`draw-stage-spotlight ${isCinematic ? 'show' : ''}`} />
                 <div className={`draw-reveal-flash ${isReveal ? 'active' : ''}`} />
@@ -253,7 +258,64 @@ export default function DrawMachineStage({
 
                 .draw-machine-stage.cinematic {
                     background: radial-gradient(circle at 50% 16%, #f8fbff 0%, #dcecff 54%, #cfe3ff 100%);
-                    animation: stageBreath 1800ms ease-in-out infinite;
+                    animation: stageBreath 1500ms ease-in-out infinite;
+                }
+
+                .draw-cinema-bars {
+                    position: absolute;
+                    inset: 0;
+                    z-index: 22;
+                    pointer-events: none;
+                }
+
+                .draw-cinema-bar {
+                    position: absolute;
+                    left: 0;
+                    width: 100%;
+                    height: 0;
+                    background: linear-gradient(180deg, rgba(2, 6, 23, 0.9), rgba(2, 6, 23, 0.8));
+                    transition: height 280ms ease;
+                }
+
+                .draw-cinema-bar.top {
+                    top: 0;
+                    border-bottom: 1px solid rgba(148, 163, 184, 0.2);
+                }
+
+                .draw-cinema-bar.bottom {
+                    bottom: 0;
+                    border-top: 1px solid rgba(148, 163, 184, 0.2);
+                }
+
+                .draw-cinema-bars.show .draw-cinema-bar {
+                    height: 16px;
+                }
+
+                .draw-lens-flare {
+                    position: absolute;
+                    top: 10%;
+                    left: -42%;
+                    width: 52%;
+                    height: 80%;
+                    z-index: 6;
+                    opacity: 0;
+                    pointer-events: none;
+                    background: linear-gradient(
+                        105deg,
+                        rgba(255, 255, 255, 0) 0%,
+                        rgba(255, 255, 255, 0.18) 28%,
+                        rgba(255, 255, 255, 0.06) 52%,
+                        rgba(255, 255, 255, 0) 74%
+                    );
+                    transform: skewX(-12deg);
+                }
+
+                .draw-lens-flare.show {
+                    animation: lensSweep 1800ms cubic-bezier(0.2, 0.9, 0.26, 1) infinite;
+                }
+
+                .draw-lens-flare.reveal {
+                    animation-duration: 940ms;
                 }
 
                 .draw-stage-vignette {
@@ -611,6 +673,23 @@ export default function DrawMachineStage({
                 @keyframes stageBreath {
                     0%, 100% { transform: scale(1); }
                     50% { transform: scale(1.004); }
+                }
+
+                @keyframes lensSweep {
+                    0% {
+                        left: -42%;
+                        opacity: 0;
+                    }
+                    18% {
+                        opacity: 0.92;
+                    }
+                    64% {
+                        opacity: 0.26;
+                    }
+                    100% {
+                        left: 126%;
+                        opacity: 0;
+                    }
                 }
 
                 @keyframes revealFlash {

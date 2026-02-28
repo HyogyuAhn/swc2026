@@ -86,7 +86,7 @@ export default function DrawSequenceModal({
                                         <option value="">항목 선택</option>
                                         {selectableItems.map(item => (
                                             <option key={item.id} value={item.id}>
-                                                {item.name} (남은 {item.remainingCount})
+                                                {item.name} (남은 개수: {item.remainingCount})
                                             </option>
                                         ))}
                                     </select>
