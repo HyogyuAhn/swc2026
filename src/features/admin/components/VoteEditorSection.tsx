@@ -36,6 +36,7 @@ export default function VoteEditorSection({
     const isStatusRestricted = view === 'EDIT' && (status === 'ACTIVE' || status === 'ENDED');
     const canEditShowBeforeStartOptions = view === 'CREATE' || status === 'UPCOMING';
     const canEditAllowVoteChangeWhileActive = view === 'CREATE' || status === 'UPCOMING' || status === 'ACTIVE';
+    const statusLabel = status === 'UPCOMING' ? '시작 전' : status === 'ACTIVE' ? '진행 중' : status === 'ENDED' ? '종료됨' : '';
 
     return (
         <div className="p-10 max-w-3xl mx-auto">
@@ -223,11 +224,11 @@ export default function VoteEditorSection({
                                 <span className="flex items-center gap-1 mt-0.5">
                                     {formData.showBeforeStartOptions ? <Eye size={12} /> : <EyeOff size={12} />}
                                     체크 해제 시 시작 전에는 항목 미리보기가 숨겨집니다.
-                                    {!canEditShowBeforeStartOptions && ' (시작 전 상태에서만 변경 가능)'}
                                 </span>
                             }
                             onChange={checked => setFormData({ ...formData, showBeforeStartOptions: checked })}
                             disabled={!canEditShowBeforeStartOptions}
+                            disabledReason={statusLabel ? `현재 상태(${statusLabel})에서는 변경할 수 없습니다.` : undefined}
                         />
 
                         <FormToggleSetting
@@ -236,11 +237,11 @@ export default function VoteEditorSection({
                             description={
                                 <>
                                     체크 시 참여자가 진행 중인 투표에서 기존 선택을 다른 항목으로 수정할 수 있습니다.
-                                    {!canEditAllowVoteChangeWhileActive && ' (시작 전/진행 중 상태에서만 변경 가능)'}
                                 </>
                             }
                             onChange={checked => setFormData({ ...formData, allowVoteChangeWhileActive: checked })}
                             disabled={!canEditAllowVoteChangeWhileActive}
+                            disabledReason={statusLabel ? `현재 상태(${statusLabel})에서는 변경할 수 없습니다.` : undefined}
                         />
 
                         <FormToggleSetting

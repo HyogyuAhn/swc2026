@@ -163,6 +163,26 @@ export default function useVotePageController() {
         }, delay);
     }, [fetchVotesData]);
 
+    const applyVoteCooldown = useCallback((voteId: string, targetStudentId?: string | null) => {
+        const idToUse = targetStudentId || studentId || localStorage.getItem('swc_vote_student_id');
+        if (!idToUse) {
+            return;
+        }
+
+        const now = Date.now();
+        const expiresAt = now + (EDIT_COOLDOWN_SECONDS * 1000);
+
+        setVoteEditCooldowns(prev => ({
+            ...prev,
+            [voteId]: expiresAt
+        }));
+
+        const key = getCooldownStorageKey(idToUse);
+        const stored = parseCooldownMap(localStorage.getItem(key), now);
+        stored[voteId] = expiresAt;
+        localStorage.setItem(key, JSON.stringify(stored));
+    }, [studentId]);
+
     useEffect(() => {
         const storedId = localStorage.getItem('swc_vote_student_id');
 
@@ -266,7 +286,8 @@ export default function useVotePageController() {
             return 0;
         }
 
-        return Math.max(0, Math.ceil((expiresAt - Date.now()) / 1000));
+        const remainingSeconds = Math.ceil((expiresAt - Date.now()) / 1000);
+        return Math.max(0, Math.min(EDIT_COOLDOWN_SECONDS, remainingSeconds));
     }, [currentTime, voteEditCooldowns]);
 
     const filteredVotes = useMemo(() => {
@@ -327,7 +348,7 @@ export default function useVotePageController() {
             return;
         }
 
-        if (canChangeVoteWhileActive && cooldownRemaining > 0) {
+        if (cooldownRemaining > 0) {
             alert(`${cooldownRemaining}초 뒤에 다시 수정할 수 있습니다.`);
             return;
         }
@@ -356,16 +377,13 @@ export default function useVotePageController() {
         });
 
         if (alreadyVoted && canChangeVoteWhileActive) {
-            setVoteEditCooldowns(prev => ({
-                ...prev,
-                [voteId]: currentTime.getTime() + (EDIT_COOLDOWN_SECONDS * 1000)
-            }));
+            applyVoteCooldown(voteId);
         }
 
         alert(alreadyVoted && canChangeVoteWhileActive ? '투표가 수정되었습니다!' : '투표완료!');
         await fetchVotesData(studentId || localStorage.getItem('swc_vote_student_id'));
         scheduleVotesRefresh(0);
-    }, [currentTime, fetchVotesData, getVoteEditCooldownRemaining, scheduleVotesRefresh, selectedOptions, studentId, userVotes]);
+    }, [applyVoteCooldown, fetchVotesData, getVoteEditCooldownRemaining, scheduleVotesRefresh, selectedOptions, studentId, userVotes]);
 
     const handleCancelVote = useCallback(async (vote: any) => {
         const voteId = vote.id;
@@ -398,15 +416,12 @@ export default function useVotePageController() {
             return next;
         });
 
-        setVoteEditCooldowns(prev => ({
-            ...prev,
-            [voteId]: currentTime.getTime() + (EDIT_COOLDOWN_SECONDS * 1000)
-        }));
+        applyVoteCooldown(voteId, idToUse);
 
         alert('투표가 취소되었습니다. 30초 뒤에 재투표할 수 있습니다.');
         await fetchVotesData(idToUse);
         scheduleVotesRefresh(0);
-    }, [currentTime, fetchVotesData, scheduleVotesRefresh, studentId, userVotes]);
+    }, [applyVoteCooldown, fetchVotesData, scheduleVotesRefresh, studentId, userVotes]);
 
     return {
         studentId,

@@ -95,7 +95,7 @@ export default function VoteCardVotingSection({
                             : 'bg-gray-200 text-gray-400 cursor-not-allowed shadow-none'
                     }`}
                 >
-                    {isCooldownActive ? `${cooldownRemainingSeconds}초 뒤 재투표 가능` : '투표 완료'}
+                    {isCooldownActive ? `${cooldownRemainingSeconds}초 뒤 투표 가능` : '투표'}
                 </button>
             )}
 
