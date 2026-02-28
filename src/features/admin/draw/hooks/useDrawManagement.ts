@@ -993,9 +993,26 @@ export default function useDrawManagement(showToast: ShowToast, enabled = true) 
             return;
         }
 
-        showToast(nextPublic ? '당첨자를 라이브에 공개합니다.' : '당첨자를 라이브에서 숨깁니다.', 'success');
-        await refresh();
-    }, [refresh, showToast]);
+        const appliedPublic = result.data?.is_public ?? nextPublic;
+
+        // 즉시 화면 반영(새로고침 없이 토글 상태 확인 가능)
+        setItems(prev => prev.map(currentItem => {
+            if (currentItem.id !== item.id) {
+                return currentItem;
+            }
+
+            return {
+                ...currentItem,
+                winners: currentItem.winners.map(currentWinner => (
+                    currentWinner.id === winner.id
+                        ? { ...currentWinner, is_public: appliedPublic }
+                        : currentWinner
+                ))
+            };
+        }));
+
+        showToast(appliedPublic ? '당첨자를 라이브에 공개합니다.' : '당첨자를 라이브에서 숨깁니다.', 'success');
+    }, [showToast]);
 
     return {
         loading,

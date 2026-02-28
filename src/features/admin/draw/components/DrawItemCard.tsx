@@ -1,9 +1,8 @@
 import DrawWinnerList from '@/features/admin/draw/components/DrawWinnerList';
-import { DrawItemWithComputed, DrawMode, DrawWinner } from '@/features/admin/draw/types';
+import { DrawItemWithComputed, DrawWinner } from '@/features/admin/draw/types';
 
 type DrawItemCardProps = {
     item: DrawItemWithComputed;
-    drawMode: DrawMode;
     drawInProgressItemId: string | null;
     activeStudentIds: string[];
     editingWinnerById: Record<string, boolean>;
@@ -21,7 +20,6 @@ type DrawItemCardProps = {
 
 export default function DrawItemCard({
     item,
-    drawMode,
     drawInProgressItemId,
     activeStudentIds,
     editingWinnerById,
@@ -38,7 +36,6 @@ export default function DrawItemCard({
 }: DrawItemCardProps) {
     const isAnotherDrawInProgress = Boolean(drawInProgressItemId && drawInProgressItemId !== item.id);
     const isThisDrawInProgress = drawInProgressItemId === item.id;
-    const modeLabel = drawMode === 'RANDOM' ? '랜덤 뽑기' : '수동 지정';
 
     return (
         <article className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
@@ -49,9 +46,6 @@ export default function DrawItemCard({
                         당첨 {item.winnerCount} / {item.winner_quota} · 남은 개수: {item.remainingCount}
                     </p>
                     <div className="mt-2 flex flex-wrap items-center gap-1.5">
-                        <span className="rounded-md bg-blue-50 px-2 py-0.5 text-[11px] font-bold text-blue-700">
-                            모드: {modeLabel}
-                        </span>
                         <span className={`rounded-md px-2 py-0.5 text-[11px] font-bold ${item.is_public ? 'bg-emerald-50 text-emerald-700' : 'bg-gray-100 text-gray-600'}`}>
                             실시간 당첨자 공개 {item.is_public ? 'ON' : 'OFF'}
                         </span>
@@ -61,11 +55,11 @@ export default function DrawItemCard({
                     </div>
                 </div>
 
-                <div className="flex flex-col items-end gap-2">
+                <div className="flex items-center justify-end gap-2">
                     <button
                         type="button"
                         onClick={onOpenSettingsModal}
-                        className="rounded-xl border border-gray-200 bg-white px-3 py-2 text-xs font-bold text-gray-700 hover:bg-gray-50"
+                        className="rounded-xl border border-gray-200 bg-white px-4 py-2 text-sm font-bold text-gray-700 hover:bg-gray-50"
                     >
                         항목 설정
                     </button>

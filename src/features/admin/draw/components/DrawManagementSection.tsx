@@ -194,29 +194,57 @@ export default function DrawManagementSection({
 
     return (
         <div className="mx-auto max-w-6xl px-10 pb-10 pt-4">
-            <div className="mb-8 flex flex-wrap items-end justify-between gap-3">
+            <div className="mb-6">
                 <div>
                     <h2 className="text-3xl font-bold text-gray-800">추첨 관리</h2>
                     <p className="mt-1 text-sm text-gray-500">활성 학번을 기준으로 항목별 추첨/수정/삭제를 관리합니다.</p>
                 </div>
+            </div>
 
-                <div className="flex items-center gap-2">
-                    <button
-                        type="button"
-                        onClick={() => setShowLiveSettingsModal(true)}
-                        className="inline-flex items-center gap-2 rounded-xl border border-gray-200 bg-white px-4 py-2 text-sm font-bold text-gray-700 hover:bg-gray-50"
-                    >
-                        <Settings2 size={16} />
-                        설정
-                    </button>
-
+            <div className="mb-8 grid grid-cols-1 gap-3 md:grid-cols-2">
+                <div className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm">
+                    <div className="mb-3 flex items-center gap-2 text-gray-900">
+                        <div className="rounded-lg bg-blue-50 p-2 text-blue-700">
+                            <Plus size={16} />
+                        </div>
+                        <div>
+                            <p className="text-sm font-bold">추첨 항목 추가</p>
+                            <p className="text-xs text-gray-500">새 항목 이름/개수/공개 옵션을 설정합니다.</p>
+                        </div>
+                    </div>
                     <button
                         type="button"
                         onClick={() => setShowCreateModal(true)}
-                        className="inline-flex items-center gap-2 rounded-xl bg-blue-600 px-4 py-2 text-sm font-bold text-white hover:bg-blue-700"
+                        className="inline-flex w-full items-center justify-center rounded-xl bg-blue-600 px-4 py-2 text-sm font-bold text-white hover:bg-blue-700"
                     >
-                        <Plus size={16} />
-                        추첨 항목 추가
+                        항목 추가 열기
+                    </button>
+                </div>
+
+                <div className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm">
+                    <div className="mb-3 flex items-center gap-2 text-gray-900">
+                        <div className="rounded-lg bg-indigo-50 p-2 text-indigo-700">
+                            <Settings2 size={16} />
+                        </div>
+                        <div>
+                            <p className="text-sm font-bold">라이브 설정</p>
+                            <p className="text-xs text-gray-500">페이지 공개 및 최근 결과 노출 범위를 관리합니다.</p>
+                        </div>
+                    </div>
+                    <div className="mb-3 flex flex-wrap items-center gap-2 text-[11px] font-bold">
+                        <span className={`rounded-full px-2 py-1 ${settings.live_page_enabled ? 'bg-emerald-100 text-emerald-700' : 'bg-gray-100 text-gray-600'}`}>
+                            라이브 페이지 {settings.live_page_enabled ? 'ON' : 'OFF'}
+                        </span>
+                        <span className={`rounded-full px-2 py-1 ${settings.show_recent_winners ? 'bg-blue-100 text-blue-700' : 'bg-gray-100 text-gray-600'}`}>
+                            최근 결과 {settings.show_recent_winners ? 'ON' : 'OFF'}
+                        </span>
+                    </div>
+                    <button
+                        type="button"
+                        onClick={() => setShowLiveSettingsModal(true)}
+                        className="inline-flex w-full items-center justify-center rounded-xl border border-gray-200 bg-white px-4 py-2 text-sm font-bold text-gray-700 hover:bg-gray-50"
+                    >
+                        설정 열기
                     </button>
                 </div>
             </div>
@@ -235,7 +263,6 @@ export default function DrawManagementSection({
                         <DrawItemCard
                             key={item.id}
                             item={item}
-                            drawMode={drawModeByItem[item.id] || 'RANDOM'}
                             drawInProgressItemId={drawInProgressItemId}
                             activeStudentIds={activeStudentIds}
                             editingWinnerById={editingWinnerById}

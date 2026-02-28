@@ -172,7 +172,9 @@ export async function updateDrawWinnerPublic(params: {
             is_public: params.isPublic,
             updated_at: new Date().toISOString()
         })
-        .eq('id', params.winnerId);
+        .eq('id', params.winnerId)
+        .select('id, draw_item_id, is_public')
+        .single();
 }
 
 export async function updateWinnerDirect(params: {

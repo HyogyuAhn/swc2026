@@ -1,4 +1,5 @@
 import { Settings2, X } from 'lucide-react';
+import FormToggleSetting from '@/features/admin/components/FormToggleSetting';
 
 type DrawLiveSettingsModalProps = {
     isOpen: boolean;
@@ -30,7 +31,7 @@ export default function DrawLiveSettingsModal({
                 aria-label="라이브 설정 닫기"
             />
 
-            <div className="relative w-full max-w-md rounded-2xl border border-gray-200 bg-white p-5 shadow-2xl">
+            <div className="relative w-full max-w-2xl rounded-2xl border border-gray-200 bg-white p-5 shadow-2xl">
                 <button
                     type="button"
                     onClick={onClose}
@@ -45,25 +46,29 @@ export default function DrawLiveSettingsModal({
                     라이브 설정
                 </h3>
 
-                <div className="space-y-2">
-                    <button
-                        type="button"
-                        onClick={onToggleLivePage}
-                        className={`w-full rounded-xl px-4 py-3 text-left text-sm font-bold ${
-                            livePageEnabled ? 'bg-emerald-50 text-emerald-700' : 'bg-gray-100 text-gray-600'
-                        }`}
-                    >
-                        라이브 페이지: {livePageEnabled ? 'ON' : 'OFF'}
-                    </button>
+                <div className="space-y-3">
+                    <FormToggleSetting
+                        checked={livePageEnabled}
+                        title="라이브 페이지 공개"
+                        description="OFF면 /draw 페이지에서 추첨 화면이 비활성 안내 상태로 표시됩니다."
+                        onChange={() => onToggleLivePage()}
+                    />
 
+                    <FormToggleSetting
+                        checked={showRecentWinners}
+                        title="최근 당첨 결과 공개"
+                        description="OFF면 라이브 페이지에서 최근 당첨 결과 목록이 숨겨집니다."
+                        onChange={() => onToggleRecentWinners()}
+                    />
+                </div>
+
+                <div className="mt-4 flex justify-end">
                     <button
                         type="button"
-                        onClick={onToggleRecentWinners}
-                        className={`w-full rounded-xl px-4 py-3 text-left text-sm font-bold ${
-                            showRecentWinners ? 'bg-blue-50 text-blue-700' : 'bg-gray-100 text-gray-600'
-                        }`}
+                        onClick={onClose}
+                        className="rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm font-bold text-gray-600 hover:bg-gray-50"
                     >
-                        최근 당첨 결과 공개: {showRecentWinners ? 'ON' : 'OFF'}
+                        닫기
                     </button>
                 </div>
             </div>
