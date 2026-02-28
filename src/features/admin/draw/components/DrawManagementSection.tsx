@@ -215,9 +215,9 @@ export default function DrawManagementSection({
                     <button
                         type="button"
                         onClick={() => setShowCreateModal(true)}
-                        className="inline-flex items-center justify-center rounded-xl bg-blue-600 px-3 py-1.5 text-xs font-bold text-white hover:bg-blue-700"
+                        className="inline-flex items-center justify-center rounded-xl bg-blue-600 px-4 py-2 text-sm font-bold text-white hover:bg-blue-700"
                     >
-                        항목 추가 열기
+                        항목 추가
                     </button>
                 </div>
 
