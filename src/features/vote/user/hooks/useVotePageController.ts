@@ -266,7 +266,7 @@ export default function useVotePageController() {
             return 0;
         }
 
-        return Math.max(0, Math.ceil((expiresAt - currentTime.getTime()) / 1000));
+        return Math.max(0, Math.ceil((expiresAt - Date.now()) / 1000));
     }, [currentTime, voteEditCooldowns]);
 
     const filteredVotes = useMemo(() => {
@@ -327,7 +327,7 @@ export default function useVotePageController() {
             return;
         }
 
-        if (alreadyVoted && canChangeVoteWhileActive && cooldownRemaining > 0) {
+        if (canChangeVoteWhileActive && cooldownRemaining > 0) {
             alert(`${cooldownRemaining}초 뒤에 다시 수정할 수 있습니다.`);
             return;
         }
@@ -358,14 +358,14 @@ export default function useVotePageController() {
         if (alreadyVoted && canChangeVoteWhileActive) {
             setVoteEditCooldowns(prev => ({
                 ...prev,
-                [voteId]: Date.now() + (EDIT_COOLDOWN_SECONDS * 1000)
+                [voteId]: currentTime.getTime() + (EDIT_COOLDOWN_SECONDS * 1000)
             }));
         }
 
         alert(alreadyVoted && canChangeVoteWhileActive ? '투표가 수정되었습니다!' : '투표완료!');
         await fetchVotesData(studentId || localStorage.getItem('swc_vote_student_id'));
         scheduleVotesRefresh(0);
-    }, [fetchVotesData, getVoteEditCooldownRemaining, scheduleVotesRefresh, selectedOptions, studentId, userVotes]);
+    }, [currentTime, fetchVotesData, getVoteEditCooldownRemaining, scheduleVotesRefresh, selectedOptions, studentId, userVotes]);
 
     const handleCancelVote = useCallback(async (vote: any) => {
         const voteId = vote.id;
@@ -398,19 +398,15 @@ export default function useVotePageController() {
             return next;
         });
 
-        setVoteEditCooldowns(prev => {
-            if (!prev[voteId]) {
-                return prev;
-            }
-            const next = { ...prev };
-            delete next[voteId];
-            return next;
-        });
+        setVoteEditCooldowns(prev => ({
+            ...prev,
+            [voteId]: currentTime.getTime() + (EDIT_COOLDOWN_SECONDS * 1000)
+        }));
 
-        alert('투표가 취소되었습니다.');
+        alert('투표가 취소되었습니다. 30초 뒤에 재투표할 수 있습니다.');
         await fetchVotesData(idToUse);
         scheduleVotesRefresh(0);
-    }, [fetchVotesData, scheduleVotesRefresh, studentId, userVotes]);
+    }, [currentTime, fetchVotesData, scheduleVotesRefresh, studentId, userVotes]);
 
     return {
         studentId,

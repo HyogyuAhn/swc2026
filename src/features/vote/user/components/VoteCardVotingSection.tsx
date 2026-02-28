@@ -40,6 +40,11 @@ export default function VoteCardVotingSection({
                     이미 참여한 투표입니다. 아래에서 선택한 항목을 확인할 수 있습니다.
                 </p>
             )}
+            {!isVoted && isCooldownActive && (
+                <p className="mb-3 text-sm font-medium text-gray-500">
+                    방금 투표를 취소했습니다. {cooldownRemainingSeconds}초 뒤에 재투표할 수 있습니다.
+                </p>
+            )}
             <div className="grid gap-3">
                 {vote.vote_options.map(option => (
                     <label
@@ -83,14 +88,14 @@ export default function VoteCardVotingSection({
             {!isVoted && (
                 <button
                     onClick={() => onVote(vote)}
-                    disabled={!selectedOption}
+                    disabled={!selectedOption || isCooldownActive}
                     className={`w-full mt-6 py-4 rounded-xl font-bold text-lg shadow-lg active:scale-[0.98] transition-all ${
-                        selectedOption
+                        selectedOption && !isCooldownActive
                             ? 'bg-blue-600 text-white hover:bg-blue-700 hover:shadow-blue-200'
                             : 'bg-gray-200 text-gray-400 cursor-not-allowed shadow-none'
                     }`}
                 >
-                    투표 완료
+                    {isCooldownActive ? `${cooldownRemainingSeconds}초 뒤 재투표 가능` : '투표 완료'}
                 </button>
             )}
 
