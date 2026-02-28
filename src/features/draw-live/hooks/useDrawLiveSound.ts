@@ -73,7 +73,6 @@ const stopTrackedNode = (tracked: TrackedNode) => {
     try {
         tracked.stop();
     } catch {
-        // no-op
     }
 };
 
@@ -125,7 +124,6 @@ export default function useDrawLiveSound({ phase, eventId }: UseDrawLiveSoundPar
             try {
                 await engineRef.current.context.resume();
             } catch {
-                // blocked by browser policy
             }
         }
 
@@ -326,7 +324,6 @@ export default function useDrawLiveSound({ phase, eventId }: UseDrawLiveSoundPar
         engine.sfxBus.gain.exponentialRampToValueAtTime(0.78, numbersEnd);
         engine.sfxBus.gain.exponentialRampToValueAtTime(0.08, finaleEnd);
 
-        // [0.0 - 1.1] Intro
         trackOscillator(engine, engine.musicBus, 'sawtooth', 52, now, 1.1, {
             freqEnd: 110,
             peakGain: 0.16,
@@ -343,7 +340,6 @@ export default function useDrawLiveSound({ phase, eventId }: UseDrawLiveSoundPar
             scheduleImpact(engine, now + i * 0.24, 0.74 + i * 0.04, 0.5 + i * 0.08);
         }
 
-        // [1.1 - 3.9] Mixing & Tension (du-gu-du-gu + machine)
         const beatBase = introEnd;
         for (let t = beatBase; t < mixingEnd; t += 0.56) {
             scheduleImpact(engine, t, 0.94, 0.88);
@@ -374,7 +370,6 @@ export default function useDrawLiveSound({ phase, eventId }: UseDrawLiveSoundPar
             release: 0.3
         });
 
-        // [3.9 - 6.7] Extraction peak (high-pitch beeps removed, smoother premium whoosh)
         trackOscillator(engine, engine.musicBus, 'triangle', 132, mixingEnd, 2.8, {
             freqEnd: 520,
             peakGain: 0.13,
@@ -391,7 +386,7 @@ export default function useDrawLiveSound({ phase, eventId }: UseDrawLiveSoundPar
             attack: 0.08,
             release: 0.16
         });
-        scheduleImpact(engine, mixingEnd + 1.54, 1.08, 1.0); // clonk
+        scheduleImpact(engine, mixingEnd + 1.54, 1.08, 1.0);
         trackNoise(engine, engine.sfxBus, mixingEnd + 1.58, 0.72, {
             filterType: 'bandpass',
             freq: 260,
@@ -401,7 +396,7 @@ export default function useDrawLiveSound({ phase, eventId }: UseDrawLiveSoundPar
             attack: 0.03,
             release: 0.38,
             playbackRate: 1.04
-        }); // main whoosh through tube
+        });
         trackNoise(engine, engine.sfxBus, mixingEnd + 1.62, 0.56, {
             filterType: 'bandpass',
             freq: 820,
@@ -411,10 +406,9 @@ export default function useDrawLiveSound({ phase, eventId }: UseDrawLiveSoundPar
             attack: 0.02,
             release: 0.3,
             playbackRate: 0.84
-        }); // air tail
+        }); 
 
-        // [6.7 - 8.6] Click + paper + dramatic silence
-        scheduleImpact(engine, extractionEnd, 0.92, 0.5); // low plastic lock click
+        scheduleImpact(engine, extractionEnd, 0.92, 0.5);
         trackNoise(engine, engine.sfxBus, extractionEnd + 0.08, 0.44, {
             filterType: 'bandpass',
             freq: 720,
@@ -424,32 +418,31 @@ export default function useDrawLiveSound({ phase, eventId }: UseDrawLiveSoundPar
             attack: 0.02,
             release: 0.28,
             playbackRate: 0.88
-        }); // paper tear/unfold
+        });
         trackOscillator(engine, engine.musicBus, 'sine', 190, extractionEnd + 0.14, 0.9, {
             freqEnd: 138,
             peakGain: 0.018,
             attack: 0.18,
             release: 0.5
-        }); // faint eerie tail
+        }); 
 
-        // [8.6 - 12.6] Numbers (three impacts + snare roll)
-        scheduleImpact(engine, silenceEnd, 0.98, 1.18);
-        scheduleImpact(engine, silenceEnd + 1.0, 1.09, 1.2);
-        scheduleImpact(engine, silenceEnd + 2.0, 1.21, 1.3);
+        const digitRevealStart = silenceEnd + 1.0;
+        scheduleImpact(engine, digitRevealStart, 0.98, 1.12);
+        scheduleImpact(engine, digitRevealStart + 1.0, 1.08, 1.18);
+        scheduleImpact(engine, digitRevealStart + 2.0, 1.18, 1.24);
+        scheduleImpact(engine, digitRevealStart + 3.0, 1.28, 1.32);
 
-        // Removed "tick-tick" roll before reveal; replaced with a low tension swell.
-        trackNoise(engine, engine.musicBus, silenceEnd + 2.0, numbersEnd - (silenceEnd + 2.0), {
+        trackNoise(engine, engine.musicBus, digitRevealStart, numbersEnd - digitRevealStart, {
             filterType: 'bandpass',
-            freq: 180,
-            freqSweepTo: 520,
-            q: 0.52,
-            peakGain: 0.06,
-            attack: 0.06,
-            release: 0.22,
-            playbackRate: 0.72
+            freq: 170,
+            freqSweepTo: 420,
+            q: 0.5,
+            peakGain: 0.045,
+            attack: 0.12,
+            release: 0.28,
+            playbackRate: 0.76
         });
 
-        // [12.6 - 15.0] Grand finale
         const fanfareStart = numbersEnd;
         const fanfareNotes: Array<{ freq: number; dur: number; at: number; gain: number }> = [
             { freq: 392, dur: 1.2, at: 0, gain: 0.09 },
@@ -477,10 +470,9 @@ export default function useDrawLiveSound({ phase, eventId }: UseDrawLiveSoundPar
                 peakGain: 0.11,
                 attack: 0.006,
                 release: 0.06
-            }); // confetti pops
+            });
         }
 
-        // crowd cheer/applause (noise shaped)
         trackNoise(engine, engine.sfxBus, fanfareStart + 0.04, 2.2, {
             filterType: 'bandpass',
             freq: 780,
@@ -499,7 +491,7 @@ export default function useDrawLiveSound({ phase, eventId }: UseDrawLiveSoundPar
                 peakGain: 0.065,
                 attack: 0.008,
                 release: 0.07
-            }); // applause claps
+            });
         }
 
         const endTimer = setTimeout(() => {
@@ -516,7 +508,6 @@ export default function useDrawLiveSound({ phase, eventId }: UseDrawLiveSoundPar
             try {
                 window.localStorage.setItem(LIVE_SOUND_STORAGE_KEY, next ? '1' : '0');
             } catch {
-                // ignore
             }
             if (!next) {
                 stopCurrentTrack();
@@ -524,7 +515,6 @@ export default function useDrawLiveSound({ phase, eventId }: UseDrawLiveSoundPar
             return next;
         });
 
-        // Safari autoplay policy: unlock audio engine directly from this click gesture.
         if (!soundEnabled) {
             void primeAudioEngine();
         }

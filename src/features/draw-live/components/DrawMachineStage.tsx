@@ -45,9 +45,9 @@ const confettiConfigs = [
 const statusTextByPhase: Record<DrawAnimationPhase, string> = {
     idle: '추첨 대기 중',
     announce: '추첨 시작 안내',
-    mixing: '머신 믹싱 중',
-    ball: '당첨 공 추출 중',
-    paper: '종이 펼치는 중',
+    mixing: '당첨 공을 섞고 있어요',
+    ball: '당첨 공을 뽑고 있어요',
+    paper: '당첨자 종이를 열고 있어요',
     reveal: '당첨자 공개'
 };
 const LIVE_DRAW_DISPLAY_LENGTH = 4;
@@ -183,7 +183,6 @@ export default function DrawMachineStage({
                 <div className={`draw-reveal-flash ${isReveal ? 'active' : ''}`} />
                 {confettiConfigs.map((config, index) => (
                     <span
-                        // eslint-disable-next-line react/no-array-index-key
                         key={`confetti-${index}`}
                         className={`draw-confetti ${isReveal ? 'active' : ''}`}
                         style={{
@@ -200,7 +199,6 @@ export default function DrawMachineStage({
                     <div className={`draw-machine-light ${isStageActive ? 'show' : ''}`} />
                     {floatingBallConfigs.map((config, index) => (
                         <span
-                            // eslint-disable-next-line react/no-array-index-key
                             key={index}
                             className={`draw-floating-ball ${isMixing ? 'active' : ''}`}
                             style={{
@@ -216,7 +214,6 @@ export default function DrawMachineStage({
                     ))}
                     {sparkConfigs.map((config, index) => (
                         <span
-                            // eslint-disable-next-line react/no-array-index-key
                             key={`spark-${index}`}
                             className={`draw-spark ${isCinematic ? 'active' : ''}`}
                             style={{
