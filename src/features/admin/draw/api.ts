@@ -253,7 +253,7 @@ export function normalizeStudentPool(records: StudentPoolRecord[] | null | undef
         byId[record.student_id] = record;
         allIds.push(record.student_id);
 
-        const drawNumber = String(record.draw_number || '').trim();
+        const drawNumber = String(record.draw_number || '').replace(/\D/g, '').slice(0, 4);
         if (drawNumber) {
             drawNumberByStudentId[record.student_id] = drawNumber;
             studentIdByDrawNumber[drawNumber] = record.student_id;

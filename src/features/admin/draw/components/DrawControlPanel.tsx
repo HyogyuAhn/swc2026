@@ -57,9 +57,10 @@ export default function DrawControlPanel({
                     <span className="mb-1 block text-xs font-semibold text-gray-600">번호 뽑기 대상</span>
                     <input
                         value={manualStudentId}
-                        onChange={event => onManualStudentChange(event.target.value.replace(/\D/g, '').slice(0, 8))}
+                        onChange={event => onManualStudentChange(event.target.value.replace(/\D/g, '').slice(0, 4))}
                         list={manualListId}
                         placeholder="번호 입력/선택"
+                        maxLength={4}
                         className="w-full rounded-lg border border-gray-200 px-3 py-2"
                     />
                     <datalist id={manualListId}>
@@ -75,9 +76,10 @@ export default function DrawControlPanel({
                     <span className="mb-1 block text-xs font-semibold text-gray-600">강제 추가 번호</span>
                     <input
                         value={forceStudentId}
-                        onChange={event => onForceStudentChange(event.target.value.replace(/\D/g, '').slice(0, 8))}
+                        onChange={event => onForceStudentChange(event.target.value.replace(/\D/g, '').slice(0, 4))}
                         list={forceListId}
                         placeholder="뽑기 없이 직접 추가"
+                        maxLength={4}
                         className="w-full rounded-lg border border-gray-200 px-3 py-2"
                     />
                     <datalist id={forceListId}>

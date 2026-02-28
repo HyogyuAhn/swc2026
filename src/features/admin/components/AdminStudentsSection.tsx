@@ -62,7 +62,7 @@ export default function AdminStudentsSection({
                         type="text"
                         placeholder="추첨 번호 필수 (예: 1, 3)"
                         className="w-44 p-3 border rounded-xl text-lg"
-                        maxLength={8}
+                        maxLength={4}
                         required
                         value={studentNumberInput}
                         onChange={e => setStudentNumberInput(e.target.value.replace(/[^0-9]/g, ''))}
@@ -111,9 +111,10 @@ export default function AdminStudentsSection({
                                                 <input
                                                     type="text"
                                                     value={numberDraftByStudentId[student.student_id] ?? String(student.draw_number || '')}
+                                                    maxLength={4}
                                                     onChange={event => setNumberDraftByStudentId(prev => ({
                                                         ...prev,
-                                                        [student.student_id]: event.target.value.replace(/[^0-9]/g, '').slice(0, 8)
+                                                        [student.student_id]: event.target.value.replace(/[^0-9]/g, '').slice(0, 4)
                                                     }))}
                                                     className="w-24 rounded-lg border border-gray-200 bg-white px-2 py-1.5 text-xs font-semibold text-gray-700"
                                                     placeholder="미지정"

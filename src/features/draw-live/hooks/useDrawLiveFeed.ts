@@ -16,6 +16,7 @@ import {
 
 const MAX_RECENT_WINNERS = 30;
 const PRE_START_TIMEOUT_MS = 6000;
+const DRAW_CHAIN_GAP_MS = 260;
 const DRAW_LIVE_CONTROL_CHANNEL = 'draw-live-control';
 
 const toRecentWinner = (row: any): DrawRecentWinner | null => {
@@ -53,6 +54,9 @@ export default function useDrawLiveFeed() {
 
     const timersRef = useRef<ReturnType<typeof setTimeout>[]>([]);
     const preStartTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+    const queueRef = useRef<DrawLiveEventRecord[]>([]);
+    const startNextQueuedEventRef = useRef<() => boolean>(() => false);
+    const runTimelineRef = useRef<() => void>(() => {});
 
     const clearTimers = useCallback(() => {
         timersRef.current.forEach(timerId => clearTimeout(timerId));
@@ -75,6 +79,29 @@ export default function useDrawLiveFeed() {
         }, PRE_START_TIMEOUT_MS);
     }, [clearPreStartTimer]);
 
+    useEffect(() => {
+        queueRef.current = queue;
+    }, [queue]);
+
+    const startNextQueuedEvent = useCallback(() => {
+        let started = false;
+
+        setQueue(prev => {
+            if (prev.length === 0) {
+                return prev;
+            }
+
+            const [next, ...rest] = prev;
+            started = true;
+            clearPreStartTimer();
+            setPreStartItemName(null);
+            setCurrentEvent(next);
+            setPhase('announce');
+            return rest;
+        });
+        return started;
+    }, [clearPreStartTimer]);
+
     const loadRecentWinners = useCallback(async () => {
         const result = await fetchPublicRecentWinners(MAX_RECENT_WINNERS);
         if (result.error) {
@@ -88,6 +115,57 @@ export default function useDrawLiveFeed() {
         setRecentWinners(normalized);
     }, []);
 
+    const scheduleCurrentAnimation = useCallback(() => {
+        clearTimers();
+
+        timersRef.current.push(setTimeout(() => setPhase('mixing'), 1100));
+        timersRef.current.push(setTimeout(() => setPhase('ball'), 3900));
+        timersRef.current.push(setTimeout(() => setPhase('paper'), 6700));
+        timersRef.current.push(setTimeout(() => setPhase('reveal'), 8600));
+        timersRef.current.push(setTimeout(async () => {
+            if (settings.show_recent_winners) {
+                await loadRecentWinners();
+            } else {
+                setRecentWinners([]);
+            }
+
+            if (queueRef.current.length > 0) {
+                setCurrentEvent(null);
+                timersRef.current.push(setTimeout(() => {
+                    const started = startNextQueuedEventRef.current();
+                    if (!started) {
+                        setPhase('idle');
+                        return;
+                    }
+
+                    runTimelineRef.current();
+                }, DRAW_CHAIN_GAP_MS));
+                return;
+            }
+
+            setPhase('idle');
+            setCurrentEvent(null);
+        }, 11800));
+    }, [clearTimers, loadRecentWinners, settings.show_recent_winners]);
+
+    const startNextQueuedEventWithTimeline = useCallback(() => {
+        const started = startNextQueuedEvent();
+        if (!started) {
+            return false;
+        }
+
+        scheduleCurrentAnimation();
+        return true;
+    }, [scheduleCurrentAnimation, startNextQueuedEvent]);
+
+    useEffect(() => {
+        startNextQueuedEventRef.current = startNextQueuedEvent;
+    }, [startNextQueuedEvent]);
+
+    useEffect(() => {
+        runTimelineRef.current = scheduleCurrentAnimation;
+    }, [scheduleCurrentAnimation]);
+
     const loadStudentNumbers = useCallback(async () => {
         const result = await fetchStudentPool();
         if (result.error) {
@@ -96,7 +174,7 @@ export default function useDrawLiveFeed() {
 
         const map: Record<string, string> = {};
         (result.data || []).forEach(student => {
-            const drawNumber = String(student.draw_number || '').trim();
+            const drawNumber = String(student.draw_number || '').replace(/\D/g, '').slice(0, 4);
             if (!drawNumber) {
                 return;
             }
@@ -226,29 +304,8 @@ export default function useDrawLiveFeed() {
             return;
         }
 
-        const [next, ...rest] = queue;
-        clearPreStartTimer();
-        setPreStartItemName(null);
-        setQueue(rest);
-        setCurrentEvent(next);
-        setPhase('announce');
-
-        clearTimers();
-
-        timersRef.current.push(setTimeout(() => setPhase('mixing'), 1100));
-        timersRef.current.push(setTimeout(() => setPhase('ball'), 3900));
-        timersRef.current.push(setTimeout(() => setPhase('paper'), 6700));
-        timersRef.current.push(setTimeout(() => setPhase('reveal'), 8600));
-        timersRef.current.push(setTimeout(async () => {
-            setPhase('idle');
-            setCurrentEvent(null);
-            if (settings.show_recent_winners) {
-                await loadRecentWinners();
-            } else {
-                setRecentWinners([]);
-            }
-        }, 11800));
-    }, [clearPreStartTimer, clearTimers, currentEvent, loadRecentWinners, phase, queue, settings.live_page_enabled, settings.show_recent_winners]);
+        startNextQueuedEventWithTimeline();
+    }, [currentEvent, phase, queue.length, settings.live_page_enabled, startNextQueuedEventWithTimeline]);
 
     const isAnimating = phase !== 'idle' && Boolean(currentEvent);
 

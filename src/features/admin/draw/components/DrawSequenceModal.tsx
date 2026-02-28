@@ -117,9 +117,10 @@ export default function DrawSequenceModal({
                                         번호
                                         <input
                                             value={step.targetDrawNumber}
-                                            onChange={event => onChangeStep(step.id, { targetDrawNumber: event.target.value.replace(/\D/g, '').slice(0, 8) })}
+                                            onChange={event => onChangeStep(step.id, { targetDrawNumber: event.target.value.replace(/\D/g, '').slice(0, 4) })}
                                             list={`draw-sequence-number-${step.id}`}
                                             placeholder="번호 입력/선택"
+                                            maxLength={4}
                                             className="mt-1 w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm"
                                         />
                                         <datalist id={`draw-sequence-number-${step.id}`}>
@@ -173,4 +174,3 @@ export default function DrawSequenceModal({
         </div>
     );
 }
-

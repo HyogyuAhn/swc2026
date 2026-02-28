@@ -20,14 +20,15 @@ export default function DrawRecentWinners({ winners, studentNumberById }: DrawRe
             ) : (
                 <div className="space-y-2">
                     {winners.map(winner => (
-                        <div key={`${winner.id}-${winner.created_at}`} className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-gray-200 px-3 py-2">
+                        <div key={`${winner.id}-${winner.created_at}`} className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-gray-200 px-4 py-3 shadow-[0_1px_0_rgba(15,23,42,0.02)]">
                             <div>
                                 <p className="text-sm font-bold text-gray-900">{winner.draw_item_name}</p>
                                 <p className="text-xs text-gray-400">{new Date(winner.created_at).toLocaleString()}</p>
                             </div>
 
-                            <div className="flex items-center gap-2">
-                                <span className="font-mono text-sm font-extrabold text-blue-900">
+                            <div className="flex items-center gap-2 rounded-lg border border-blue-100 bg-blue-50 px-3 py-2">
+                                <span className="text-[11px] font-bold text-blue-600">당첨 번호</span>
+                                <span className="font-mono text-xl font-extrabold tracking-wide text-blue-900">
                                     {studentNumberById[winner.student_id] || '번호 미지정'}
                                 </span>
                             </div>

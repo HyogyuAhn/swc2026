@@ -66,8 +66,8 @@ export default function useStudentManagement({ onVotesChanged }: UseStudentManag
             return;
         }
 
-        if (!/^\d{1,8}$/.test(normalizedDrawNumber)) {
-            alert('추첨 번호는 1~8자리 숫자여야 합니다.');
+        if (!/^\d{1,4}$/.test(normalizedDrawNumber)) {
+            alert('추첨 번호는 1~4자리 숫자여야 합니다.');
             return;
         }
 
@@ -103,8 +103,8 @@ export default function useStudentManagement({ onVotesChanged }: UseStudentManag
             return false;
         }
 
-        if (!/^\d{1,8}$/.test(normalizedDrawNumber)) {
-            alert('추첨 번호는 1~8자리 숫자여야 합니다.');
+        if (!/^\d{1,4}$/.test(normalizedDrawNumber)) {
+            alert('추첨 번호는 1~4자리 숫자여야 합니다.');
             return false;
         }
 

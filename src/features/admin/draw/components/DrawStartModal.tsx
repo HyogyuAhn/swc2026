@@ -81,9 +81,10 @@ export default function DrawStartModal({
                         <span className="mb-1 block text-xs font-semibold text-gray-600">대상 번호</span>
                         <input
                             value={manualStudentId}
-                            onChange={event => onManualStudentChange(event.target.value.replace(/\D/g, '').slice(0, 8))}
+                            onChange={event => onManualStudentChange(event.target.value.replace(/\D/g, '').slice(0, 4))}
                             list="draw-start-manual-numbers"
                             placeholder="추첨 번호 입력/선택"
+                            maxLength={4}
                             className="w-full rounded-lg border border-gray-200 px-3 py-2"
                         />
                         <datalist id="draw-start-manual-numbers">

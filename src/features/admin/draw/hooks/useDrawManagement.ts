@@ -40,9 +40,16 @@ const DRAW_LIVE_CONTROL_CHANNEL = 'draw-live-control';
 const DRAW_BUSY_MS = 14500;
 const DRAW_PRE_START_DELAY_MS = 1100;
 const DRAW_SEQUENCE_STEP_GAP_MS = 500;
+const DRAW_SEQUENCE_PRE_DELAY_MS = 120;
 const wait = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
-const normalizeDrawNumberInput = (value: string) => value.replace(/\D/g, '').slice(0, 8);
+const normalizeDrawNumberInput = (value: string) => value.replace(/\D/g, '').slice(0, 4);
+
+type DrawExecuteOptions = {
+    preDelayMs?: number;
+    releaseBusyImmediately?: boolean;
+    suppressSuccessToast?: boolean;
+};
 
 export default function useDrawManagement(showToast: ShowToast, enabled = true) {
     const [loading, setLoading] = useState(true);
@@ -358,7 +365,7 @@ export default function useDrawManagement(showToast: ShowToast, enabled = true) 
         return candidates[index];
     }, [getAllWinnerStudentIds, pool.activeIds]);
 
-    const startRandomDrawFallback = useCallback(async (item: DrawItemWithComputed) => {
+    const startRandomDrawFallback = useCallback(async (item: DrawItemWithComputed, options?: DrawExecuteOptions) => {
         if (item.remainingCount <= 0) {
             showToast('남은 당첨 자리가 없습니다.');
             return false;
@@ -391,13 +398,25 @@ export default function useDrawManagement(showToast: ShowToast, enabled = true) 
             isPublic: item.is_public
         });
 
-        const winnerNumber = getDrawNumberByStudentId(winnerStudentId) || '번호 미지정';
-        showToast(`${winnerNumber} 번호가 당첨되었습니다.`, 'success');
+        if (!options?.suppressSuccessToast) {
+            const winnerNumber = getDrawNumberByStudentId(winnerStudentId) || '번호 미지정';
+            showToast(`${winnerNumber} 번호가 당첨되었습니다.`, 'success');
+        }
         await refresh();
-        return true;
-    }, [getDrawNumberByStudentId, pickRandomCandidate, refresh, showToast]);
 
-    const startManualDrawFallback = useCallback(async (item: DrawItemWithComputed, targetDrawNumber: string, forceOverride: boolean) => {
+        if (options?.releaseBusyImmediately) {
+            clearDrawBusyForItem(item.id);
+        }
+
+        return true;
+    }, [clearDrawBusyForItem, getDrawNumberByStudentId, pickRandomCandidate, refresh, showToast]);
+
+    const startManualDrawFallback = useCallback(async (
+        item: DrawItemWithComputed,
+        targetDrawNumber: string,
+        forceOverride: boolean,
+        options?: DrawExecuteOptions
+    ) => {
         if (item.remainingCount <= 0) {
             showToast('남은 당첨 자리가 없습니다.');
             return false;
@@ -441,21 +460,29 @@ export default function useDrawManagement(showToast: ShowToast, enabled = true) 
             isPublic: item.is_public
         });
 
-        showToast(`${targetDrawNumber} 번호가 당첨되었습니다.`, 'success');
+        if (!options?.suppressSuccessToast) {
+            showToast(`${targetDrawNumber} 번호가 당첨되었습니다.`, 'success');
+        }
         await refresh();
-        return true;
-    }, [getWarningCheck, refresh, showToast]);
 
-    const executeRandomDraw = useCallback(async (item: DrawItemWithComputed) => {
+        if (options?.releaseBusyImmediately) {
+            clearDrawBusyForItem(item.id);
+        }
+
+        return true;
+    }, [clearDrawBusyForItem, getWarningCheck, refresh, showToast]);
+
+    const executeRandomDraw = useCallback(async (item: DrawItemWithComputed, options?: DrawExecuteOptions) => {
         if (item.remainingCount <= 0) {
             showToast('남은 당첨 자리가 없습니다.');
             return false;
         }
 
+        const preDelayMs = options?.preDelayMs ?? DRAW_PRE_START_DELAY_MS;
         markDrawBusy(item.id);
         setSubmitting(true);
         await announceDrawStart(item, 'RANDOM');
-        await wait(DRAW_PRE_START_DELAY_MS);
+        await wait(preDelayMs);
 
         const rpcResult = await pickWinnerWithRpc({
             itemId: item.id,
@@ -466,7 +493,7 @@ export default function useDrawManagement(showToast: ShowToast, enabled = true) 
 
         if (rpcResult.error) {
             if (isRpcMissingError(rpcResult.error.message)) {
-                const fallbackSuccess = await startRandomDrawFallback(item);
+                const fallbackSuccess = await startRandomDrawFallback(item, options);
                 if (!fallbackSuccess) {
                     await announceDrawCancel(item, '추첨 실패');
                     clearDrawBusyForItem(item.id);
@@ -490,15 +517,25 @@ export default function useDrawManagement(showToast: ShowToast, enabled = true) 
             return false;
         }
 
-        const winnerStudentId = String(rpcResult.parsed.winner_student_id || '');
-        const winnerNumber = getDrawNumberByStudentId(winnerStudentId) || '번호 미지정';
-        showToast(`${winnerNumber} 번호가 당첨되었습니다.`, 'success');
+        if (!options?.suppressSuccessToast) {
+            const winnerStudentId = String(rpcResult.parsed.winner_student_id || '');
+            const winnerNumber = getDrawNumberByStudentId(winnerStudentId) || '번호 미지정';
+            showToast(`${winnerNumber} 번호가 당첨되었습니다.`, 'success');
+        }
         await refresh();
+        if (options?.releaseBusyImmediately) {
+            clearDrawBusyForItem(item.id);
+        }
         setSubmitting(false);
         return true;
     }, [announceDrawCancel, announceDrawStart, clearDrawBusy, clearDrawBusyForItem, getDrawNumberByStudentId, markDrawBusy, refresh, showToast, startRandomDrawFallback]);
 
-    const executeManualDraw = useCallback(async (item: DrawItemWithComputed, targetDrawNumber: string, forceOverride: boolean) => {
+    const executeManualDraw = useCallback(async (
+        item: DrawItemWithComputed,
+        targetDrawNumber: string,
+        forceOverride: boolean,
+        options?: DrawExecuteOptions
+    ) => {
         const check = getWarningCheck({ item, targetDrawNumber, mode: 'MANUAL_PICK' });
         if (check.blockingReason) {
             showToast(check.blockingReason);
@@ -516,10 +553,11 @@ export default function useDrawManagement(showToast: ShowToast, enabled = true) 
             return false;
         }
 
+        const preDelayMs = options?.preDelayMs ?? DRAW_PRE_START_DELAY_MS;
         markDrawBusy(item.id);
         setSubmitting(true);
         await announceDrawStart(item, 'MANUAL');
-        await wait(DRAW_PRE_START_DELAY_MS);
+        await wait(preDelayMs);
 
         const rpcResult = await pickWinnerWithRpc({
             itemId: item.id,
@@ -530,7 +568,7 @@ export default function useDrawManagement(showToast: ShowToast, enabled = true) 
 
         if (rpcResult.error) {
             if (isRpcMissingError(rpcResult.error.message)) {
-                const fallbackSuccess = await startManualDrawFallback(item, targetDrawNumber, forceOverride);
+                const fallbackSuccess = await startManualDrawFallback(item, targetDrawNumber, forceOverride, options);
                 if (!fallbackSuccess) {
                     await announceDrawCancel(item, '추첨 실패');
                     clearDrawBusyForItem(item.id);
@@ -554,8 +592,13 @@ export default function useDrawManagement(showToast: ShowToast, enabled = true) 
             return false;
         }
 
-        showToast(`${targetDrawNumber} 번호가 당첨되었습니다.`, 'success');
+        if (!options?.suppressSuccessToast) {
+            showToast(`${targetDrawNumber} 번호가 당첨되었습니다.`, 'success');
+        }
         await refresh();
+        if (options?.releaseBusyImmediately) {
+            clearDrawBusyForItem(item.id);
+        }
         setSubmitting(false);
         return true;
     }, [announceDrawCancel, announceDrawStart, clearDrawBusy, clearDrawBusyForItem, getWarningCheck, markDrawBusy, refresh, showToast, startManualDrawFallback]);
@@ -608,11 +651,27 @@ export default function useDrawManagement(showToast: ShowToast, enabled = true) 
                 return false;
             }
 
-            const startedAt = Date.now();
-            const ok = await handleStartDraw(stepItem, {
-                mode: step.mode,
-                targetStudentId: step.mode === 'MANUAL' ? step.targetDrawNumber : undefined
-            });
+            let ok = false;
+
+            if (step.mode === 'RANDOM') {
+                ok = await executeRandomDraw(stepItem, {
+                    preDelayMs: DRAW_SEQUENCE_PRE_DELAY_MS,
+                    releaseBusyImmediately: true,
+                    suppressSuccessToast: true
+                });
+            } else {
+                const targetDrawNumber = (step.targetDrawNumber || '').trim();
+                if (!targetDrawNumber) {
+                    showToast(`${index + 1}번 순서의 대상 번호를 입력해주세요.`);
+                    return false;
+                }
+
+                ok = await executeManualDraw(stepItem, targetDrawNumber, false, {
+                    preDelayMs: DRAW_SEQUENCE_PRE_DELAY_MS,
+                    releaseBusyImmediately: true,
+                    suppressSuccessToast: true
+                });
+            }
 
             if (!ok) {
                 showToast(`${index + 1}번 순서에서 연속 뽑기를 중단했습니다.`);
@@ -620,16 +679,14 @@ export default function useDrawManagement(showToast: ShowToast, enabled = true) 
             }
 
             if (index < steps.length - 1) {
-                const elapsed = Date.now() - startedAt;
-                const waitMs = Math.max(DRAW_BUSY_MS - elapsed + DRAW_SEQUENCE_STEP_GAP_MS, DRAW_SEQUENCE_STEP_GAP_MS);
-                await wait(waitMs);
-                await refresh();
+                await wait(DRAW_SEQUENCE_STEP_GAP_MS);
             }
         }
 
+        await refresh();
         showToast('연속 뽑기가 완료되었습니다.', 'success');
         return true;
-    }, [drawInProgressItemId, handleStartDraw, items, refresh, showToast]);
+    }, [drawInProgressItemId, executeManualDraw, executeRandomDraw, items, refresh, showToast]);
 
     const handleForceAdd = useCallback(async (item: DrawItemWithComputed) => {
         const targetDrawNumber = normalizeDrawNumberInput((forceStudentByItem[item.id] || '').trim());

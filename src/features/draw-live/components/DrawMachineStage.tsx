@@ -6,6 +6,8 @@ type DrawMachineStageProps = {
     currentEvent: DrawLiveEventRecord | null;
     preStartItemName: string | null;
     studentNumberById: Record<string, string>;
+    soundEnabled: boolean;
+    onToggleSound: () => void;
 };
 
 const floatingBallConfigs = [
@@ -48,12 +50,23 @@ const statusTextByPhase: Record<DrawAnimationPhase, string> = {
     paper: '종이 펼치는 중',
     reveal: '당첨자 공개'
 };
+const LIVE_DRAW_DISPLAY_LENGTH = 4;
+const normalizeLiveDrawNumber = (value: string) => {
+    const digits = value.replace(/\D/g, '');
+    if (!digits) {
+        return '';
+    }
+
+    return digits.padStart(LIVE_DRAW_DISPLAY_LENGTH, '0').slice(-LIVE_DRAW_DISPLAY_LENGTH);
+};
 
 export default function DrawMachineStage({
     phase,
     currentEvent,
     preStartItemName,
-    studentNumberById
+    studentNumberById,
+    soundEnabled,
+    onToggleSound
 }: DrawMachineStageProps) {
     const [revealedDigitCount, setRevealedDigitCount] = useState(0);
     const isMixing = phase === 'mixing' || phase === 'ball';
@@ -71,15 +84,22 @@ export default function DrawMachineStage({
 
         return studentNumberById[currentEvent.winner_student_id] || '번호 미지정';
     }, [currentEvent, studentNumberById]);
+    const winnerDisplayNumberPadded = useMemo(() => {
+        if (!winnerDisplayNumber || winnerDisplayNumber === '번호 미지정') {
+            return '';
+        }
+
+        return normalizeLiveDrawNumber(winnerDisplayNumber);
+    }, [winnerDisplayNumber]);
 
     useEffect(() => {
-        if (phase !== 'reveal' || !currentEvent || !winnerDisplayNumber || winnerDisplayNumber === '번호 미지정') {
+        if (phase !== 'reveal' || !currentEvent || !winnerDisplayNumberPadded) {
             setRevealedDigitCount(0);
             return;
         }
 
         setRevealedDigitCount(0);
-        const fullLength = winnerDisplayNumber.length;
+        const fullLength = winnerDisplayNumberPadded.length;
         const timer = setInterval(() => {
             setRevealedDigitCount(prev => {
                 if (prev >= fullLength) {
@@ -93,28 +113,32 @@ export default function DrawMachineStage({
         return () => {
             clearInterval(timer);
         };
-    }, [currentEvent, phase, winnerDisplayNumber]);
+    }, [currentEvent, phase, winnerDisplayNumberPadded]);
 
     const stagedWinnerDisplay = useMemo(() => {
-        if (!winnerDisplayNumber) {
-            return '--------';
+        if (!currentEvent || phase !== 'reveal') {
+            return '-'.repeat(LIVE_DRAW_DISPLAY_LENGTH);
         }
 
-        if (phase !== 'reveal' || !currentEvent) {
-            return '-'.repeat(Math.max(4, winnerDisplayNumber.length));
+        if (!winnerDisplayNumber) {
+            return '-'.repeat(LIVE_DRAW_DISPLAY_LENGTH);
         }
 
         if (winnerDisplayNumber === '번호 미지정') {
             return winnerDisplayNumber;
         }
 
-        const visibleCount = Math.min(revealedDigitCount, winnerDisplayNumber.length);
-        const hiddenCount = Math.max(winnerDisplayNumber.length - visibleCount, 0);
-        const hidden = '*'.repeat(hiddenCount);
-        const revealed = winnerDisplayNumber.slice(winnerDisplayNumber.length - visibleCount);
+        if (!winnerDisplayNumberPadded) {
+            return '-'.repeat(LIVE_DRAW_DISPLAY_LENGTH);
+        }
 
-        return `${hidden}${revealed}`;
-    }, [currentEvent, phase, revealedDigitCount, winnerDisplayNumber]);
+        const visibleCount = Math.min(revealedDigitCount, winnerDisplayNumberPadded.length);
+        const hiddenCount = Math.max(winnerDisplayNumberPadded.length - visibleCount, 0);
+        const revealed = winnerDisplayNumberPadded.slice(0, visibleCount);
+        const hidden = '•'.repeat(hiddenCount);
+
+        return `${revealed}${hidden}`;
+    }, [currentEvent, phase, revealedDigitCount, winnerDisplayNumber, winnerDisplayNumberPadded]);
 
     const statusText = phase === 'idle' && preStartItemName
         ? '추첨 시작 안내'
@@ -122,9 +146,24 @@ export default function DrawMachineStage({
 
     return (
         <section className="rounded-3xl border border-blue-200 bg-white p-6 shadow-sm">
-            <div className="mb-5">
-                <h2 className="text-2xl font-bold text-blue-900">실시간 추첨</h2>
-                <p className="text-sm text-gray-500">{statusText}</p>
+            <div className="mb-5 flex items-start justify-between gap-3">
+                <div>
+                    <h2 className="text-2xl font-bold text-blue-900">실시간 추첨</h2>
+                    <p className="text-sm text-gray-500">{statusText}</p>
+                </div>
+                <button
+                    type="button"
+                    role="switch"
+                    aria-checked={soundEnabled}
+                    onClick={onToggleSound}
+                    className={`rounded-xl border px-3 py-2 text-sm font-bold transition-colors ${
+                        soundEnabled
+                            ? 'border-blue-300 bg-blue-50 text-blue-700'
+                            : 'border-gray-200 bg-white text-gray-600'
+                    }`}
+                >
+                    효과음 {soundEnabled ? 'ON' : 'OFF'}
+                </button>
             </div>
 
             <div className="mb-4 rounded-xl border border-blue-100 bg-blue-50 p-4 text-center">
