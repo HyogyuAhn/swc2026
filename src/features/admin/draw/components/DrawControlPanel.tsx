@@ -45,7 +45,7 @@ export default function DrawControlPanel({
                                         : 'text-gray-600 hover:bg-gray-100'
                                 }`}
                             >
-                                {mode === 'RANDOM' ? '랜덤 뽑기' : '학번 뽑기'}
+                                {mode === 'RANDOM' ? '랜덤 뽑기' : '번호 뽑기'}
                             </button>
                         ))}
                     </div>
@@ -54,12 +54,12 @@ export default function DrawControlPanel({
 
             {drawMode === 'MANUAL' && (
                 <label className="mb-3 block text-sm">
-                    <span className="mb-1 block text-xs font-semibold text-gray-600">학번 뽑기 대상</span>
+                    <span className="mb-1 block text-xs font-semibold text-gray-600">번호 뽑기 대상</span>
                     <input
                         value={manualStudentId}
                         onChange={event => onManualStudentChange(event.target.value.replace(/\D/g, '').slice(0, 8))}
                         list={manualListId}
-                        placeholder="학번 입력/선택"
+                        placeholder="번호 입력/선택"
                         className="w-full rounded-lg border border-gray-200 px-3 py-2"
                     />
                     <datalist id={manualListId}>
@@ -72,7 +72,7 @@ export default function DrawControlPanel({
 
             <div className="grid gap-2 md:grid-cols-[1fr_auto]">
                 <label className="text-sm">
-                    <span className="mb-1 block text-xs font-semibold text-gray-600">강제 추가 학번</span>
+                    <span className="mb-1 block text-xs font-semibold text-gray-600">강제 추가 번호</span>
                     <input
                         value={forceStudentId}
                         onChange={event => onForceStudentChange(event.target.value.replace(/\D/g, '').slice(0, 8))}

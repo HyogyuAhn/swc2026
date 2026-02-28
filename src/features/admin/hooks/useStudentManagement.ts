@@ -22,6 +22,7 @@ type ForceAddVoteContext = {
 export default function useStudentManagement({ onVotesChanged }: UseStudentManagementParams) {
     const [students, setStudents] = useState<any[]>([]);
     const [studentIdInput, setStudentIdInput] = useState('');
+    const [studentNumberInput, setStudentNumberInput] = useState('');
     const [studentSearch, setStudentSearch] = useState('');
     const [selectedStudent, setSelectedStudent] = useState<any>(null);
     const [studentHistory, setStudentHistory] = useState<any[]>([]);
@@ -59,13 +60,31 @@ export default function useStudentManagement({ onVotesChanged }: UseStudentManag
             return;
         }
 
+        const normalizedDrawNumber = studentNumberInput.trim().replace(/\D/g, '');
+        if (!normalizedDrawNumber) {
+            alert('추첨 번호를 함께 입력해주세요.');
+            return;
+        }
+
+        if (!/^\d{1,8}$/.test(normalizedDrawNumber)) {
+            alert('추첨 번호는 1~8자리 숫자여야 합니다.');
+            return;
+        }
+
         const { error } = await supabase
             .from('students')
-            .insert({ student_id: studentIdInput });
+            .insert({
+                student_id: studentIdInput,
+                draw_number: normalizedDrawNumber
+            });
 
         if (error) {
             if (error.code === '23505') {
-                alert('이미 등록된 학번입니다.');
+                if ((error.message || '').toLowerCase().includes('draw_number')) {
+                    alert('이미 사용 중인 번호입니다.');
+                } else {
+                    alert('이미 등록된 학번입니다.');
+                }
             } else {
                 alert('등록 실패: ' + error.message);
             }
@@ -73,8 +92,39 @@ export default function useStudentManagement({ onVotesChanged }: UseStudentManag
         }
 
         setStudentIdInput('');
+        setStudentNumberInput('');
         fetchStudents();
-    }, [fetchStudents, studentIdInput]);
+    }, [fetchStudents, studentIdInput, studentNumberInput]);
+
+    const handleUpdateStudentDrawNumber = useCallback(async (student: any, drawNumber: string) => {
+        const normalizedDrawNumber = drawNumber.trim().replace(/\D/g, '');
+        if (!normalizedDrawNumber) {
+            alert('추첨 번호는 비워둘 수 없습니다.');
+            return false;
+        }
+
+        if (!/^\d{1,8}$/.test(normalizedDrawNumber)) {
+            alert('추첨 번호는 1~8자리 숫자여야 합니다.');
+            return false;
+        }
+
+        const { error } = await supabase
+            .from('students')
+            .update({ draw_number: normalizedDrawNumber })
+            .eq('student_id', student.student_id);
+
+        if (error) {
+            if (error.code === '23505') {
+                alert('이미 사용 중인 번호입니다.');
+            } else {
+                alert('번호 저장 실패: ' + error.message);
+            }
+            return false;
+        }
+
+        await fetchStudents();
+        return true;
+    }, [fetchStudents]);
 
     const handleToggleSuspend = useCallback(async (student: any) => {
         const confirmMsg = student.is_suspended
@@ -271,6 +321,8 @@ export default function useStudentManagement({ onVotesChanged }: UseStudentManag
         students,
         studentIdInput,
         setStudentIdInput,
+        studentNumberInput,
+        setStudentNumberInput,
         studentSearch,
         setStudentSearch,
         selectedStudent,
@@ -285,6 +337,7 @@ export default function useStudentManagement({ onVotesChanged }: UseStudentManag
         setForceVoteData,
         fetchStudents,
         handleAddStudent,
+        handleUpdateStudentDrawNumber,
         handleToggleSuspend,
         handleDeleteStudent,
         executeDeleteStudent,

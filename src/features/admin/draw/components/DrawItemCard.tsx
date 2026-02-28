@@ -5,6 +5,7 @@ type DrawItemCardProps = {
     item: DrawItemWithComputed;
     drawInProgressItemId: string | null;
     activeStudentIds: string[];
+    drawNumberByStudentId: Record<string, string>;
     editingWinnerById: Record<string, boolean>;
     editingStudentByWinnerId: Record<string, string>;
     disabled?: boolean;
@@ -22,6 +23,7 @@ export default function DrawItemCard({
     item,
     drawInProgressItemId,
     activeStudentIds,
+    drawNumberByStudentId,
     editingWinnerById,
     editingStudentByWinnerId,
     disabled = false,
@@ -85,6 +87,7 @@ export default function DrawItemCard({
                 <DrawWinnerList
                     item={item}
                     activeStudentIds={activeStudentIds}
+                    drawNumberByStudentId={drawNumberByStudentId}
                     editingWinnerById={editingWinnerById}
                     editingStudentByWinnerId={editingStudentByWinnerId}
                     disabled={disabled}

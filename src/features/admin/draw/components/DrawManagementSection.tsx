@@ -5,8 +5,9 @@ import DrawItemCard from '@/features/admin/draw/components/DrawItemCard';
 import DrawItemCreateModal from '@/features/admin/draw/components/DrawItemCreateModal';
 import DrawItemSettingsModal from '@/features/admin/draw/components/DrawItemSettingsModal';
 import DrawLiveSettingsModal from '@/features/admin/draw/components/DrawLiveSettingsModal';
+import DrawSequenceModal from '@/features/admin/draw/components/DrawSequenceModal';
 import DrawStartModal from '@/features/admin/draw/components/DrawStartModal';
-import { DrawItemWithComputed, DrawPendingAction } from '@/features/admin/draw/types';
+import { DrawItemWithComputed, DrawPendingAction, DrawSequenceStep } from '@/features/admin/draw/types';
 
 type DrawManagementSectionProps = {
     loading: boolean;
@@ -15,6 +16,7 @@ type DrawManagementSectionProps = {
     settings: { live_page_enabled: boolean; show_recent_winners: boolean };
     items: DrawItemWithComputed[];
     activeStudentIds: string[];
+    drawNumberByStudentId: Record<string, string>;
     newItemName: string;
     newItemQuota: string;
     newItemAllowDuplicate: boolean;
@@ -35,7 +37,8 @@ type DrawManagementSectionProps = {
     toggleRecentWinnersEnabled: () => void;
     setModeForItem: (itemId: string, mode: 'RANDOM' | 'MANUAL') => void;
     setManualStudentForItem: (itemId: string, studentId: string) => void;
-    handleStartDraw: (item: DrawItemWithComputed, options?: { mode: 'RANDOM' | 'MANUAL'; targetStudentId?: string }) => void;
+    handleStartDraw: (item: DrawItemWithComputed, options?: { mode: 'RANDOM' | 'MANUAL'; targetStudentId?: string }) => Promise<boolean>;
+    handleStartSequence: (steps: DrawSequenceStep[]) => Promise<boolean>;
     saveItemSettings: (item: DrawItemWithComputed, patch: {
         name: string;
         winner_quota: number;
@@ -69,20 +72,24 @@ const getPendingTitle = (pendingAction: DrawPendingAction) => {
     return '당첨자 수정 경고';
 };
 
-const getPendingDescription = (pendingAction: DrawPendingAction) => {
+const getPendingDescription = (
+    pendingAction: DrawPendingAction,
+    drawNumberByStudentId: Record<string, string>
+) => {
     if (!pendingAction) {
         return '';
     }
 
     if (pendingAction.type === 'MANUAL_PICK') {
-        return `${pendingAction.targetStudentId} 학번을 ${pendingAction.item.name} 항목에 당첨 처리합니다.`;
+        return `${pendingAction.targetStudentId} 번호를 ${pendingAction.item.name} 항목에 당첨 처리합니다.`;
     }
 
     if (pendingAction.type === 'FORCED_ADD') {
-        return `${pendingAction.targetStudentId} 학번을 뽑기 없이 당첨자로 강제 추가합니다.`;
+        return `${pendingAction.targetStudentId} 번호를 뽑기 없이 당첨자로 강제 추가합니다.`;
     }
 
-    return `${pendingAction.winner.student_id} → ${pendingAction.targetStudentId} 로 당첨자를 변경합니다.`;
+    const currentNumber = drawNumberByStudentId[pendingAction.winner.student_id] || '번호 미지정';
+    return `${currentNumber} → ${pendingAction.targetStudentId} 로 당첨자를 변경합니다.`;
 };
 
 export default function DrawManagementSection({
@@ -92,6 +99,7 @@ export default function DrawManagementSection({
     settings,
     items,
     activeStudentIds,
+    drawNumberByStudentId,
     newItemName,
     newItemQuota,
     newItemAllowDuplicate,
@@ -113,6 +121,7 @@ export default function DrawManagementSection({
     setModeForItem,
     setManualStudentForItem,
     handleStartDraw,
+    handleStartSequence,
     saveItemSettings,
     startEditWinner,
     cancelEditWinner,
@@ -134,6 +143,15 @@ export default function DrawManagementSection({
     const [settingsAllowDuplicate, setSettingsAllowDuplicate] = useState(false);
     const [settingsRealtimePublic, setSettingsRealtimePublic] = useState(true);
     const [settingsRecentPublic, setSettingsRecentPublic] = useState(true);
+    const [showSequenceModal, setShowSequenceModal] = useState(false);
+    const [sequenceSteps, setSequenceSteps] = useState<DrawSequenceStep[]>([]);
+
+    const createSequenceStep = (itemId = ''): DrawSequenceStep => ({
+        id: `seq-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+        itemId,
+        mode: 'RANDOM',
+        targetDrawNumber: ''
+    });
 
     const handleCreateWithClose = async () => {
         const ok = await handleCreateItem();
@@ -163,6 +181,60 @@ export default function DrawManagementSection({
             mode: drawStartMode,
             targetStudentId: drawStartMode === 'MANUAL' ? drawStartStudentId : undefined
         });
+    };
+
+    const openSequenceModal = () => {
+        const selectableItems = items.filter(item => item.remainingCount > 0);
+        const firstItemId = selectableItems[0]?.id || '';
+        const secondItemId = selectableItems[1]?.id || firstItemId;
+        setSequenceSteps([
+            createSequenceStep(firstItemId),
+            createSequenceStep(secondItemId)
+        ]);
+        setShowSequenceModal(true);
+    };
+
+    const changeSequenceStep = (stepId: string, patch: Partial<DrawSequenceStep>) => {
+        setSequenceSteps(prev => prev.map(step => {
+            if (step.id !== stepId) {
+                return step;
+            }
+
+            const nextStep = { ...step, ...patch };
+            if (typeof patch.targetDrawNumber === 'string') {
+                nextStep.targetDrawNumber = patch.targetDrawNumber.replace(/\D/g, '').slice(0, 8);
+            }
+
+            if (patch.mode === 'RANDOM') {
+                nextStep.targetDrawNumber = '';
+            }
+
+            return nextStep;
+        }));
+    };
+
+    const addSequenceStep = () => {
+        const selectableItems = items.filter(item => item.remainingCount > 0);
+        setSequenceSteps(prev => [
+            ...prev,
+            createSequenceStep(selectableItems[0]?.id || '')
+        ]);
+    };
+
+    const removeSequenceStep = (stepId: string) => {
+        setSequenceSteps(prev => {
+            if (prev.length <= 2) {
+                return prev;
+            }
+            return prev.filter(step => step.id !== stepId);
+        });
+    };
+
+    const startSequence = async () => {
+        const ok = await handleStartSequence(sequenceSteps);
+        if (ok) {
+            setShowSequenceModal(false);
+        }
     };
 
     const openItemSettings = (item: DrawItemWithComputed) => {
@@ -197,11 +269,11 @@ export default function DrawManagementSection({
             <div className="mb-6">
                 <div>
                     <h2 className="text-3xl font-bold text-gray-800">추첨 관리</h2>
-                    <p className="mt-1 text-sm text-gray-500">활성 학번을 기준으로 항목별 추첨/수정/삭제를 관리합니다.</p>
+                    <p className="mt-1 text-sm text-gray-500">활성 번호를 기준으로 항목별 추첨/수정/삭제를 관리합니다.</p>
                 </div>
             </div>
 
-            <div className="mb-8 grid grid-cols-1 gap-3 md:grid-cols-2">
+            <div className="mb-8 grid grid-cols-1 gap-3 md:grid-cols-3">
                 <div className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm">
                     <div className="mb-3 flex items-center gap-2 text-gray-900">
                         <div className="rounded-lg bg-blue-50 p-2 text-blue-700">
@@ -247,6 +319,25 @@ export default function DrawManagementSection({
                         설정 열기
                     </button>
                 </div>
+
+                <div className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm">
+                    <div className="mb-3 flex items-center gap-2 text-gray-900">
+                        <div className="rounded-lg bg-violet-50 p-2 text-violet-700">
+                            <Settings2 size={16} />
+                        </div>
+                        <div>
+                            <p className="text-sm font-bold">연속 뽑기</p>
+                            <p className="text-xs text-gray-500">여러 항목을 원하는 순서로 연속 추첨합니다.</p>
+                        </div>
+                    </div>
+                    <button
+                        type="button"
+                        onClick={openSequenceModal}
+                        className="inline-flex items-center justify-center rounded-xl border border-violet-200 bg-violet-50 px-3 py-1.5 text-xs font-bold text-violet-700 hover:bg-violet-100"
+                    >
+                        연속 뽑기 설정
+                    </button>
+                </div>
             </div>
 
             <div className="space-y-4">
@@ -265,6 +356,7 @@ export default function DrawManagementSection({
                             item={item}
                             drawInProgressItemId={drawInProgressItemId}
                             activeStudentIds={activeStudentIds}
+                            drawNumberByStudentId={drawNumberByStudentId}
                             editingWinnerById={editingWinnerById}
                             editingStudentByWinnerId={editingStudentByWinnerId}
                             disabled={submitting}
@@ -284,7 +376,7 @@ export default function DrawManagementSection({
             <DrawConfirmModal
                 isOpen={Boolean(pendingAction)}
                 title={getPendingTitle(pendingAction)}
-                description={getPendingDescription(pendingAction)}
+                description={getPendingDescription(pendingAction, drawNumberByStudentId)}
                 warnings={pendingAction?.warnings || []}
                 onCancel={cancelPendingAction}
                 onConfirm={confirmPendingAction}
@@ -345,6 +437,19 @@ export default function DrawManagementSection({
                 onRealtimePublicChange={setSettingsRealtimePublic}
                 onRecentPublicChange={setSettingsRecentPublic}
                 onSave={saveCurrentItemSettings}
+            />
+
+            <DrawSequenceModal
+                isOpen={showSequenceModal}
+                steps={sequenceSteps}
+                items={items}
+                activeDrawNumbers={activeStudentIds}
+                disabled={submitting}
+                onClose={() => setShowSequenceModal(false)}
+                onChangeStep={changeSequenceStep}
+                onAddStep={addSequenceStep}
+                onRemoveStep={removeSequenceStep}
+                onStart={startSequence}
             />
         </div>
     );

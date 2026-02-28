@@ -1,9 +1,11 @@
+import { useEffect, useMemo, useState } from 'react';
 import { DrawAnimationPhase, DrawLiveEventRecord } from '@/features/draw-live/types';
 
 type DrawMachineStageProps = {
     phase: DrawAnimationPhase;
     currentEvent: DrawLiveEventRecord | null;
     preStartItemName: string | null;
+    studentNumberById: Record<string, string>;
 };
 
 const floatingBallConfigs = [
@@ -26,6 +28,18 @@ const sparkConfigs = [
     { delay: '0.44s', duration: '1.06s', angle: '44deg' }
 ];
 
+const confettiConfigs = [
+    { left: '18%', color: '#60a5fa', rotate: '-18deg', delay: '0s' },
+    { left: '26%', color: '#fbbf24', rotate: '22deg', delay: '0.08s' },
+    { left: '34%', color: '#34d399', rotate: '-28deg', delay: '0.16s' },
+    { left: '42%', color: '#f472b6', rotate: '16deg', delay: '0.24s' },
+    { left: '50%', color: '#f87171', rotate: '-24deg', delay: '0.32s' },
+    { left: '58%', color: '#a78bfa', rotate: '24deg', delay: '0.4s' },
+    { left: '66%', color: '#22d3ee', rotate: '-20deg', delay: '0.48s' },
+    { left: '74%', color: '#facc15', rotate: '18deg', delay: '0.56s' },
+    { left: '82%', color: '#fb7185', rotate: '-16deg', delay: '0.64s' }
+];
+
 const statusTextByPhase: Record<DrawAnimationPhase, string> = {
     idle: '추첨 대기 중',
     announce: '추첨 시작 안내',
@@ -35,7 +49,13 @@ const statusTextByPhase: Record<DrawAnimationPhase, string> = {
     reveal: '당첨자 공개'
 };
 
-export default function DrawMachineStage({ phase, currentEvent, preStartItemName }: DrawMachineStageProps) {
+export default function DrawMachineStage({
+    phase,
+    currentEvent,
+    preStartItemName,
+    studentNumberById
+}: DrawMachineStageProps) {
+    const [revealedDigitCount, setRevealedDigitCount] = useState(0);
     const isMixing = phase === 'mixing' || phase === 'ball';
     const isCinematic = phase === 'mixing' || phase === 'ball' || phase === 'paper';
     const isBallSequence = phase === 'ball' || phase === 'paper' || phase === 'reveal';
@@ -44,6 +64,58 @@ export default function DrawMachineStage({ phase, currentEvent, preStartItemName
     const isReveal = phase === 'reveal';
     const isStageActive = phase !== 'idle';
     const currentItemName = currentEvent?.draw_item_name || preStartItemName;
+    const winnerDisplayNumber = useMemo(() => {
+        if (!currentEvent) {
+            return '';
+        }
+
+        return studentNumberById[currentEvent.winner_student_id] || '번호 미지정';
+    }, [currentEvent, studentNumberById]);
+
+    useEffect(() => {
+        if (phase !== 'reveal' || !currentEvent || !winnerDisplayNumber || winnerDisplayNumber === '번호 미지정') {
+            setRevealedDigitCount(0);
+            return;
+        }
+
+        setRevealedDigitCount(0);
+        const fullLength = winnerDisplayNumber.length;
+        const timer = setInterval(() => {
+            setRevealedDigitCount(prev => {
+                if (prev >= fullLength) {
+                    return prev;
+                }
+
+                return prev + 1;
+            });
+        }, 260);
+
+        return () => {
+            clearInterval(timer);
+        };
+    }, [currentEvent, phase, winnerDisplayNumber]);
+
+    const stagedWinnerDisplay = useMemo(() => {
+        if (!winnerDisplayNumber) {
+            return '--------';
+        }
+
+        if (phase !== 'reveal' || !currentEvent) {
+            return '-'.repeat(Math.max(4, winnerDisplayNumber.length));
+        }
+
+        if (winnerDisplayNumber === '번호 미지정') {
+            return winnerDisplayNumber;
+        }
+
+        const visibleCount = Math.min(revealedDigitCount, winnerDisplayNumber.length);
+        const hiddenCount = Math.max(winnerDisplayNumber.length - visibleCount, 0);
+        const hidden = '*'.repeat(hiddenCount);
+        const revealed = winnerDisplayNumber.slice(winnerDisplayNumber.length - visibleCount);
+
+        return `${hidden}${revealed}`;
+    }, [currentEvent, phase, revealedDigitCount, winnerDisplayNumber]);
+
     const statusText = phase === 'idle' && preStartItemName
         ? '추첨 시작 안내'
         : statusTextByPhase[phase];
@@ -70,6 +142,19 @@ export default function DrawMachineStage({ phase, currentEvent, preStartItemName
                 <div className={`draw-stage-vignette ${isStageActive ? 'show' : ''}`} />
                 <div className={`draw-stage-spotlight ${isCinematic ? 'show' : ''}`} />
                 <div className={`draw-reveal-flash ${isReveal ? 'active' : ''}`} />
+                {confettiConfigs.map((config, index) => (
+                    <span
+                        // eslint-disable-next-line react/no-array-index-key
+                        key={`confetti-${index}`}
+                        className={`draw-confetti ${isReveal ? 'active' : ''}`}
+                        style={{
+                            ['--left' as any]: config.left,
+                            ['--confetti-color' as any]: config.color,
+                            ['--rotate' as any]: config.rotate,
+                            ['--delay' as any]: config.delay
+                        }}
+                    />
+                ))}
 
                 <div className={`draw-machine-shell ${isMixing ? 'mixing' : ''} ${isCinematic ? 'cinematic' : ''}`}>
                     <div className={`draw-machine-rotor ${isMixing ? 'spinning' : ''}`} />
@@ -113,9 +198,9 @@ export default function DrawMachineStage({ phase, currentEvent, preStartItemName
 
                 <div className={`draw-paper-wrap ${isPaperVisible ? 'show' : ''} ${isReveal ? 'reveal' : ''}`}>
                     <div className="draw-paper-card">
-                        <p className="text-xs font-semibold text-gray-500">당첨 학번</p>
+                        <p className="text-xs font-semibold text-gray-500">당첨 번호</p>
                         <p className="mt-1 font-mono text-3xl font-extrabold text-gray-900">
-                            {phase === 'reveal' && currentEvent ? currentEvent.winner_student_id : '--------'}
+                            {stagedWinnerDisplay}
                         </p>
                     </div>
                 </div>
@@ -175,6 +260,26 @@ export default function DrawMachineStage({ phase, currentEvent, preStartItemName
 
                 .draw-reveal-flash.active {
                     animation: revealFlash 700ms ease-out;
+                }
+
+                .draw-confetti {
+                    position: absolute;
+                    top: -18px;
+                    left: var(--left);
+                    width: 10px;
+                    height: 20px;
+                    background: var(--confetti-color);
+                    border-radius: 2px;
+                    opacity: 0;
+                    transform: rotate(var(--rotate));
+                    z-index: 19;
+                    pointer-events: none;
+                    box-shadow: 0 2px 10px rgba(15, 23, 42, 0.15);
+                }
+
+                .draw-confetti.active {
+                    animation: confettiDrop 980ms cubic-bezier(0.2, 0.84, 0.24, 1) forwards;
+                    animation-delay: var(--delay);
                 }
 
                 .draw-machine-shell {
@@ -473,6 +578,20 @@ export default function DrawMachineStage({ phase, currentEvent, preStartItemName
                     0% { opacity: 0; }
                     24% { opacity: 1; }
                     100% { opacity: 0; }
+                }
+
+                @keyframes confettiDrop {
+                    0% {
+                        opacity: 0;
+                        transform: translateY(-12px) rotate(var(--rotate)) scale(0.8);
+                    }
+                    20% {
+                        opacity: 1;
+                    }
+                    100% {
+                        opacity: 0;
+                        transform: translateY(250px) rotate(calc(var(--rotate) * 4)) scale(1);
+                    }
                 }
             `}</style>
         </section>

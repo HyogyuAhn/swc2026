@@ -60,6 +60,7 @@ export type DrawPickResult = {
 export type DrawWarningCheck = {
     blockingReason: string | null;
     warnings: string[];
+    resolvedStudentId?: string | null;
 };
 
 export type DrawPendingAction =
@@ -83,3 +84,10 @@ export type DrawPendingAction =
         warnings: string[];
     }
     | null;
+
+export type DrawSequenceStep = {
+    id: string;
+    itemId: string;
+    mode: DrawMode;
+    targetDrawNumber: string;
+};

@@ -71,22 +71,22 @@ export default function DrawStartModal({
                                 mode === 'MANUAL' ? 'bg-blue-600 text-white' : 'bg-white text-gray-600 border border-gray-200'
                             }`}
                         >
-                            수동 지정
+                            번호 뽑기
                         </button>
                     </div>
                 </div>
 
                 {mode === 'MANUAL' && (
                     <label className="mb-4 block text-sm">
-                        <span className="mb-1 block text-xs font-semibold text-gray-600">대상 학번</span>
+                        <span className="mb-1 block text-xs font-semibold text-gray-600">대상 번호</span>
                         <input
                             value={manualStudentId}
                             onChange={event => onManualStudentChange(event.target.value.replace(/\D/g, '').slice(0, 8))}
-                            list="draw-start-manual-students"
-                            placeholder="학번 입력/선택"
+                            list="draw-start-manual-numbers"
+                            placeholder="추첨 번호 입력/선택"
                             className="w-full rounded-lg border border-gray-200 px-3 py-2"
                         />
-                        <datalist id="draw-start-manual-students">
+                        <datalist id="draw-start-manual-numbers">
                             {activeStudentIds.map(studentId => (
                                 <option key={studentId} value={studentId} />
                             ))}

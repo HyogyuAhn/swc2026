@@ -9,6 +9,7 @@ import {
 export type StudentPoolRecord = {
     student_id: string;
     is_suspended: boolean;
+    draw_number?: string | null;
 };
 
 const parseRpcResult = (raw: any): DrawPickResult => {
@@ -64,7 +65,7 @@ export async function fetchDrawItems() {
 export async function fetchStudentPool() {
     return supabase
         .from('students')
-        .select('student_id, is_suspended')
+        .select('student_id, is_suspended, draw_number')
         .order('student_id', { ascending: true });
 }
 
@@ -232,23 +233,48 @@ export function normalizeStudentPool(records: StudentPoolRecord[] | null | undef
         return {
             allIds: [] as string[],
             activeIds: [] as string[],
-            byId: {} as Record<string, StudentPoolRecord>
+            allDrawNumbers: [] as string[],
+            activeDrawNumbers: [] as string[],
+            byId: {} as Record<string, StudentPoolRecord>,
+            studentIdByDrawNumber: {} as Record<string, string>,
+            drawNumberByStudentId: {} as Record<string, string>
         };
     }
 
     const byId: Record<string, StudentPoolRecord> = {};
     const allIds: string[] = [];
     const activeIds: string[] = [];
+    const allDrawNumbers: string[] = [];
+    const activeDrawNumbers: string[] = [];
+    const studentIdByDrawNumber: Record<string, string> = {};
+    const drawNumberByStudentId: Record<string, string> = {};
 
     records.forEach(record => {
         byId[record.student_id] = record;
         allIds.push(record.student_id);
-        if (!record.is_suspended) {
+
+        const drawNumber = String(record.draw_number || '').trim();
+        if (drawNumber) {
+            drawNumberByStudentId[record.student_id] = drawNumber;
+            studentIdByDrawNumber[drawNumber] = record.student_id;
+            allDrawNumbers.push(drawNumber);
+        }
+
+        if (!record.is_suspended && drawNumber) {
             activeIds.push(record.student_id);
+            activeDrawNumbers.push(drawNumber);
         }
     });
 
-    return { byId, allIds, activeIds };
+    return {
+        byId,
+        allIds,
+        activeIds,
+        allDrawNumbers,
+        activeDrawNumbers,
+        studentIdByDrawNumber,
+        drawNumberByStudentId
+    };
 }
 
 export function normalizeDrawItems(items: DrawItem[] | null | undefined) {

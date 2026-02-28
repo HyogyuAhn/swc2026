@@ -2,9 +2,10 @@ import { DrawRecentWinner } from '@/features/draw-live/types';
 
 type DrawRecentWinnersProps = {
     winners: DrawRecentWinner[];
+    studentNumberById: Record<string, string>;
 };
 
-export default function DrawRecentWinners({ winners }: DrawRecentWinnersProps) {
+export default function DrawRecentWinners({ winners, studentNumberById }: DrawRecentWinnersProps) {
     return (
         <section className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
             <div className="mb-3 flex items-center justify-between">
@@ -26,7 +27,9 @@ export default function DrawRecentWinners({ winners }: DrawRecentWinnersProps) {
                             </div>
 
                             <div className="flex items-center gap-2">
-                                <span className="font-mono text-sm font-extrabold text-blue-900">{winner.student_id}</span>
+                                <span className="font-mono text-sm font-extrabold text-blue-900">
+                                    {studentNumberById[winner.student_id] || '번호 미지정'}
+                                </span>
                             </div>
                         </div>
                     ))}

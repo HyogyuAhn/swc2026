@@ -48,7 +48,7 @@ export default function DrawItemSettingsModal({
                 aria-label="항목 설정 닫기"
             />
 
-            <div className="relative w-full max-w-5xl rounded-2xl border border-gray-200 bg-white p-6 shadow-2xl">
+            <div className="relative w-full max-w-2xl rounded-2xl border border-gray-200 bg-white p-6 shadow-2xl">
                 <button
                     type="button"
                     onClick={onClose}

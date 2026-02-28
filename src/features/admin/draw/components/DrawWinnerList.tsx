@@ -3,6 +3,7 @@ import { DrawItemWithComputed, DrawWinner } from '@/features/admin/draw/types';
 type DrawWinnerListProps = {
     item: DrawItemWithComputed;
     activeStudentIds: string[];
+    drawNumberByStudentId: Record<string, string>;
     editingWinnerById: Record<string, boolean>;
     editingStudentByWinnerId: Record<string, string>;
     disabled?: boolean;
@@ -23,6 +24,7 @@ const modeLabel: Record<string, string> = {
 export default function DrawWinnerList({
     item,
     activeStudentIds,
+    drawNumberByStudentId,
     editingWinnerById,
     editingStudentByWinnerId,
     disabled = false,
@@ -45,7 +47,8 @@ export default function DrawWinnerList({
         <div className="space-y-2">
             {item.winners.map((winner, index) => {
                 const isEditing = Boolean(editingWinnerById[winner.id]);
-                const editingValue = editingStudentByWinnerId[winner.id] || winner.student_id;
+                const winnerDrawNumber = drawNumberByStudentId[winner.student_id] || '번호 미지정';
+                const editingValue = editingStudentByWinnerId[winner.id] || (winnerDrawNumber === '번호 미지정' ? '' : winnerDrawNumber);
                 const datalistId = `draw-winner-edit-${winner.id}`;
                 const winnerPublic = winner.is_public ?? true;
                 const canTogglePublic = item.is_public;
@@ -57,7 +60,7 @@ export default function DrawWinnerList({
                                 <span className="rounded-md bg-gray-100 px-2 py-0.5 text-xs font-bold text-gray-500">
                                     #{index + 1}
                                 </span>
-                                <span className="font-mono text-sm font-bold text-gray-900">{winner.student_id}</span>
+                                <span className="font-mono text-sm font-bold text-gray-900">{winnerDrawNumber}</span>
                                 <span className="rounded-md bg-blue-50 px-2 py-0.5 text-[11px] font-bold text-blue-700">
                                     {modeLabel[winner.selected_mode] || winner.selected_mode}
                                 </span>

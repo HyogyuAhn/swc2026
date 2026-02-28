@@ -76,6 +76,8 @@ export default function AdminPageClient() {
         students,
         studentIdInput,
         setStudentIdInput,
+        studentNumberInput,
+        setStudentNumberInput,
         studentSearch,
         setStudentSearch,
         selectedStudent,
@@ -90,6 +92,7 @@ export default function AdminPageClient() {
         setForceVoteData,
         fetchStudents,
         handleAddStudent,
+        handleUpdateStudentDrawNumber,
         handleToggleSuspend,
         handleDeleteStudent,
         executeDeleteStudent,
@@ -212,9 +215,12 @@ export default function AdminPageClient() {
                             students={students}
                             studentIdInput={studentIdInput}
                             setStudentIdInput={setStudentIdInput}
+                            studentNumberInput={studentNumberInput}
+                            setStudentNumberInput={setStudentNumberInput}
                             studentSearch={studentSearch}
                             setStudentSearch={setStudentSearch}
                             handleAddStudent={handleAddStudent}
+                            handleUpdateStudentDrawNumber={handleUpdateStudentDrawNumber}
                             handleResetStudentVotes={handleResetStudentVotes}
                             handleStudentDetails={handleStudentDetails}
                             handleToggleSuspend={handleToggleSuspend}
@@ -252,6 +258,7 @@ export default function AdminPageClient() {
                         settings={drawManagement.settings}
                         items={drawManagement.items}
                         activeStudentIds={drawManagement.activeStudentIds}
+                        drawNumberByStudentId={drawManagement.drawNumberByStudentId}
                         newItemName={drawManagement.newItemName}
                         newItemQuota={drawManagement.newItemQuota}
                         newItemAllowDuplicate={drawManagement.newItemAllowDuplicate}
@@ -273,6 +280,7 @@ export default function AdminPageClient() {
                         setModeForItem={drawManagement.setModeForItem}
                         setManualStudentForItem={drawManagement.setManualStudentForItem}
                         handleStartDraw={drawManagement.handleStartDraw}
+                        handleStartSequence={drawManagement.handleStartSequence}
                         saveItemSettings={drawManagement.saveItemSettings}
                         startEditWinner={drawManagement.startEditWinner}
                         cancelEditWinner={drawManagement.cancelEditWinner}

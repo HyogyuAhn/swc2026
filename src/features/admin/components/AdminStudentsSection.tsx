@@ -1,12 +1,15 @@
-import type { FormEvent } from 'react';
+import { useEffect, useState, type FormEvent } from 'react';
 
 type AdminStudentsSectionProps = {
     students: any[];
     studentIdInput: string;
     setStudentIdInput: (value: string) => void;
+    studentNumberInput: string;
+    setStudentNumberInput: (value: string) => void;
     studentSearch: string;
     setStudentSearch: (value: string) => void;
     handleAddStudent: (e?: FormEvent<HTMLFormElement>) => void;
+    handleUpdateStudentDrawNumber: (student: any, drawNumber: string) => Promise<boolean>;
     handleResetStudentVotes: (student: any) => void;
     handleStudentDetails: (student: any) => void;
     handleToggleSuspend: (student: any) => void;
@@ -17,14 +20,27 @@ export default function AdminStudentsSection({
     students,
     studentIdInput,
     setStudentIdInput,
+    studentNumberInput,
+    setStudentNumberInput,
     studentSearch,
     setStudentSearch,
     handleAddStudent,
+    handleUpdateStudentDrawNumber,
     handleResetStudentVotes,
     handleStudentDetails,
     handleToggleSuspend,
     handleDeleteStudent
 }: AdminStudentsSectionProps) {
+    const [numberDraftByStudentId, setNumberDraftByStudentId] = useState<Record<string, string>>({});
+
+    useEffect(() => {
+        const next: Record<string, string> = {};
+        students.forEach(student => {
+            next[student.student_id] = String(student.draw_number || '');
+        });
+        setNumberDraftByStudentId(next);
+    }, [students]);
+
     return (
         <div className="mx-auto max-w-5xl px-10 pb-10 pt-4">
             <div className="flex justify-between items-center mb-8">
@@ -42,6 +58,15 @@ export default function AdminStudentsSection({
                         value={studentIdInput}
                         onChange={e => setStudentIdInput(e.target.value.replace(/[^0-9]/g, ''))}
                     />
+                    <input
+                        type="text"
+                        placeholder="추첨 번호 필수 (예: 1, 3)"
+                        className="w-44 p-3 border rounded-xl text-lg"
+                        maxLength={8}
+                        required
+                        value={studentNumberInput}
+                        onChange={e => setStudentNumberInput(e.target.value.replace(/[^0-9]/g, ''))}
+                    />
                     <button type="submit" className="px-6 py-3 bg-blue-600 text-white font-bold rounded-xl hover:bg-blue-700 shadow-sm whitespace-nowrap">
                         등록하기
                     </button>
@@ -55,7 +80,7 @@ export default function AdminStudentsSection({
                     </h3>
                     <input
                         type="text"
-                        placeholder="학번 검색"
+                        placeholder="학번/번호 검색"
                         className="p-2 border rounded-lg text-sm w-64"
                         value={studentSearch}
                         onChange={e => setStudentSearch(e.target.value)}
@@ -66,6 +91,7 @@ export default function AdminStudentsSection({
                         <thead className="text-gray-500 bg-gray-50 border-b">
                             <tr>
                                 <th className="px-6 py-3">학번</th>
+                                <th className="px-6 py-3">번호</th>
                                 <th className="px-6 py-3">상태</th>
                                 <th className="px-6 py-3">등록일</th>
                                 <th className="px-6 py-3 text-right">관리</th>
@@ -73,10 +99,38 @@ export default function AdminStudentsSection({
                         </thead>
                         <tbody>
                             {students
-                                .filter(s => s.student_id.includes(studentSearch))
+                                .filter(s => (
+                                    s.student_id.includes(studentSearch) ||
+                                    String(s.draw_number || '').includes(studentSearch)
+                                ))
                                 .map(student => (
                                     <tr key={student.student_id} className="border-b last:border-0 hover:bg-gray-50">
                                         <td className="px-6 py-4 font-bold text-gray-800">{student.student_id}</td>
+                                        <td className="px-6 py-4">
+                                            <div className="flex items-center gap-2">
+                                                <input
+                                                    type="text"
+                                                    value={numberDraftByStudentId[student.student_id] ?? String(student.draw_number || '')}
+                                                    onChange={event => setNumberDraftByStudentId(prev => ({
+                                                        ...prev,
+                                                        [student.student_id]: event.target.value.replace(/[^0-9]/g, '').slice(0, 8)
+                                                    }))}
+                                                    className="w-24 rounded-lg border border-gray-200 bg-white px-2 py-1.5 text-xs font-semibold text-gray-700"
+                                                    placeholder="미지정"
+                                                />
+                                                <button
+                                                    onClick={async () => {
+                                                        await handleUpdateStudentDrawNumber(
+                                                            student,
+                                                            numberDraftByStudentId[student.student_id] ?? ''
+                                                        );
+                                                    }}
+                                                    className="rounded-md border border-blue-200 bg-blue-50 px-2 py-1 text-xs font-bold text-blue-700 hover:bg-blue-100"
+                                                >
+                                                    저장
+                                                </button>
+                                            </div>
+                                        </td>
                                         <td className="px-6 py-4">
                                             {student.is_suspended ? (
                                                 <span className="bg-red-100 text-red-600 px-2 py-1 rounded text-xs font-bold">정지됨</span>

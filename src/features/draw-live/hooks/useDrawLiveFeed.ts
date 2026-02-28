@@ -4,7 +4,8 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { supabase } from '@/lib/supabase';
 import {
     fetchDrawSettings,
-    fetchPublicRecentWinners
+    fetchPublicRecentWinners,
+    fetchStudentPool
 } from '@/features/admin/draw/api';
 import {
     DrawAnimationPhase,
@@ -44,6 +45,7 @@ export default function useDrawLiveFeed() {
         show_recent_winners: true
     });
     const [recentWinners, setRecentWinners] = useState<DrawRecentWinner[]>([]);
+    const [studentNumberById, setStudentNumberById] = useState<Record<string, string>>({});
     const [queue, setQueue] = useState<DrawLiveEventRecord[]>([]);
     const [currentEvent, setCurrentEvent] = useState<DrawLiveEventRecord | null>(null);
     const [preStartItemName, setPreStartItemName] = useState<string | null>(null);
@@ -86,6 +88,23 @@ export default function useDrawLiveFeed() {
         setRecentWinners(normalized);
     }, []);
 
+    const loadStudentNumbers = useCallback(async () => {
+        const result = await fetchStudentPool();
+        if (result.error) {
+            return;
+        }
+
+        const map: Record<string, string> = {};
+        (result.data || []).forEach(student => {
+            const drawNumber = String(student.draw_number || '').trim();
+            if (!drawNumber) {
+                return;
+            }
+            map[String(student.student_id)] = drawNumber;
+        });
+        setStudentNumberById(map);
+    }, []);
+
     const loadInitial = useCallback(async () => {
         setLoading(true);
 
@@ -97,13 +116,15 @@ export default function useDrawLiveFeed() {
             });
         }
 
+        await loadStudentNumbers();
+
         if ((settingsResult.data?.show_recent_winners ?? true) === true) {
             await loadRecentWinners();
         } else {
             setRecentWinners([]);
         }
         setLoading(false);
-    }, [loadRecentWinners]);
+    }, [loadRecentWinners, loadStudentNumbers]);
 
     useEffect(() => {
         loadInitial();
@@ -148,6 +169,13 @@ export default function useDrawLiveFeed() {
             .on('postgres_changes', {
                 event: '*',
                 schema: 'public',
+                table: 'students'
+            }, () => {
+                loadStudentNumbers();
+            })
+            .on('postgres_changes', {
+                event: '*',
+                schema: 'public',
                 table: 'draw_settings'
             }, payload => {
                 const next = payload.new as any;
@@ -187,7 +215,7 @@ export default function useDrawLiveFeed() {
             supabase.removeChannel(dbChannel);
             supabase.removeChannel(controlChannel);
         };
-    }, [activatePreStart, clearPreStartTimer, clearTimers, loadRecentWinners, settings.live_page_enabled, settings.show_recent_winners]);
+    }, [activatePreStart, clearPreStartTimer, clearTimers, loadRecentWinners, loadStudentNumbers, settings.live_page_enabled, settings.show_recent_winners]);
 
     useEffect(() => {
         if (!settings.live_page_enabled) {
@@ -226,16 +254,17 @@ export default function useDrawLiveFeed() {
 
     const latestWinner = useMemo(() => {
         if (phase === 'reveal' && currentEvent) {
-            return currentEvent.winner_student_id;
+            return studentNumberById[currentEvent.winner_student_id] || '번호 미지정';
         }
 
         return null;
-    }, [currentEvent, phase]);
+    }, [currentEvent, phase, studentNumberById]);
 
     return {
         loading,
         settings,
         recentWinners,
+        studentNumberById,
         currentEvent,
         preStartItemName,
         phase,
