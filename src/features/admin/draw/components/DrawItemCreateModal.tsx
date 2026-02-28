@@ -61,7 +61,7 @@ export default function DrawItemCreateModal({
                 <h3 className="text-xl font-bold text-gray-800">추첨 항목 추가</h3>
                 <p className="mt-1 text-sm text-gray-500">항목 정보와 공개 옵션을 선택한 뒤 생성합니다.</p>
 
-                <div className="mt-5 grid grid-cols-1 gap-4 lg:grid-cols-[1.4fr_0.8fr_1.8fr]">
+                <div className="mt-5 space-y-4">
                     <label className="text-sm">
                         <span className="mb-1.5 block font-semibold text-gray-700">당첨 항목 이름</span>
                         <input
@@ -102,6 +102,7 @@ export default function DrawItemCreateModal({
                                         {allowDuplicate ? 'ON' : 'OFF'}
                                     </span>
                                 </div>
+                                <p className="mt-1 text-xs">같은 항목 중복은 금지, 다른 항목 중복만 허용합니다.</p>
                             </button>
 
                             <button
@@ -119,6 +120,7 @@ export default function DrawItemCreateModal({
                                         {isRealtimePublic ? 'ON' : 'OFF'}
                                     </span>
                                 </div>
+                                <p className="mt-1 text-xs">추첨 중 종이 공개 장면에서 당첨자를 노출합니다.</p>
                             </button>
 
                             <button
@@ -136,6 +138,7 @@ export default function DrawItemCreateModal({
                                         {isRecentPublic ? 'ON' : 'OFF'}
                                     </span>
                                 </div>
+                                <p className="mt-1 text-xs">라이브 페이지 하단 최근 당첨 결과 목록 공개 여부입니다.</p>
                             </button>
                         </div>
                     </div>

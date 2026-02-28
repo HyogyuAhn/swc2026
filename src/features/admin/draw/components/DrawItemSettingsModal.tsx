@@ -61,7 +61,7 @@ export default function DrawItemSettingsModal({
                 <h3 className="text-xl font-bold text-gray-900">항목 설정</h3>
                 <p className="mt-1 text-sm text-gray-500">이름, 개수, 공개 범위를 수정할 수 있습니다.</p>
 
-                <div className="mt-5 grid grid-cols-1 gap-4 lg:grid-cols-[1.4fr_0.8fr_1.8fr]">
+                <div className="mt-5 space-y-4">
                     <label className="text-sm">
                         <span className="mb-1.5 block font-semibold text-gray-700">당첨 항목 이름</span>
                         <input
@@ -101,6 +101,7 @@ export default function DrawItemSettingsModal({
                                         {allowDuplicate ? 'ON' : 'OFF'}
                                     </span>
                                 </div>
+                                <p className="mt-1 text-xs">다른 항목 당첨자도 추첨 대상에 포함합니다.</p>
                             </button>
 
                             <button
@@ -118,6 +119,7 @@ export default function DrawItemSettingsModal({
                                         {isRealtimePublic ? 'ON' : 'OFF'}
                                     </span>
                                 </div>
+                                <p className="mt-1 text-xs">OFF면 라이브 추첨 장면에 해당 항목이 노출되지 않습니다.</p>
                             </button>
 
                             <button
@@ -135,6 +137,7 @@ export default function DrawItemSettingsModal({
                                         {isRecentPublic ? 'ON' : 'OFF'}
                                     </span>
                                 </div>
+                                <p className="mt-1 text-xs">라이브 페이지 하단 최근 당첨 결과 목록 반영 여부입니다.</p>
                             </button>
                         </div>
                     </div>
