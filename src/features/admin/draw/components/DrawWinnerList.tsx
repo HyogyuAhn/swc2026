@@ -11,6 +11,7 @@ type DrawWinnerListProps = {
     onChangeEditStudent: (winnerId: string, studentId: string) => void;
     onSaveEdit: (winner: DrawWinner) => void;
     onDeleteWinner: (winner: DrawWinner) => void;
+    onTogglePublic: (winner: DrawWinner) => void;
 };
 
 const modeLabel: Record<string, string> = {
@@ -29,7 +30,8 @@ export default function DrawWinnerList({
     onCancelEdit,
     onChangeEditStudent,
     onSaveEdit,
-    onDeleteWinner
+    onDeleteWinner,
+    onTogglePublic
 }: DrawWinnerListProps) {
     if (item.winners.length === 0) {
         return (
@@ -45,6 +47,8 @@ export default function DrawWinnerList({
                 const isEditing = Boolean(editingWinnerById[winner.id]);
                 const editingValue = editingStudentByWinnerId[winner.id] || winner.student_id;
                 const datalistId = `draw-winner-edit-${winner.id}`;
+                const winnerPublic = winner.is_public ?? true;
+                const canTogglePublic = item.is_public;
 
                 return (
                     <div key={winner.id} className="rounded-lg border border-gray-200 bg-white p-3">
@@ -66,6 +70,21 @@ export default function DrawWinnerList({
 
                             {!isEditing && (
                                 <div className="flex items-center gap-1">
+                                    <button
+                                        type="button"
+                                        onClick={() => onTogglePublic(winner)}
+                                        disabled={disabled || !canTogglePublic}
+                                        className={`rounded-md px-2 py-1 text-xs font-bold ${
+                                            canTogglePublic
+                                                ? winnerPublic
+                                                    ? 'border border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-100'
+                                                    : 'border border-gray-200 bg-gray-100 text-gray-600 hover:bg-gray-200'
+                                                : 'border border-gray-200 bg-gray-100 text-gray-400'
+                                        }`}
+                                        title={canTogglePublic ? '라이브 최근 결과 공개/비공개' : '항목이 비공개라 전환할 수 없습니다.'}
+                                    >
+                                        {winnerPublic ? '공개' : '비공개'}
+                                    </button>
                                     <button
                                         type="button"
                                         onClick={() => onStartEdit(winner)}

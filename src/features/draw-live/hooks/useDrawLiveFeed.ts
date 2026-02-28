@@ -22,7 +22,7 @@ const toRecentWinner = (row: any): DrawRecentWinner | null => {
         ? row.draw_items[0]
         : row.draw_items;
 
-    if (!drawItem || drawItem.is_public !== true) {
+    if (!drawItem || drawItem.show_recent_winners === false || row?.is_public === false) {
         return null;
     }
 
@@ -97,7 +97,11 @@ export default function useDrawLiveFeed() {
             });
         }
 
-        await loadRecentWinners();
+        if ((settingsResult.data?.show_recent_winners ?? true) === true) {
+            await loadRecentWinners();
+        } else {
+            setRecentWinners([]);
+        }
         setLoading(false);
     }, [loadRecentWinners]);
 
@@ -134,6 +138,11 @@ export default function useDrawLiveFeed() {
                         live_page_enabled: next.live_page_enabled,
                         show_recent_winners: typeof next.show_recent_winners === 'boolean' ? next.show_recent_winners : true
                     });
+                    if (next.show_recent_winners === false) {
+                        setRecentWinners([]);
+                    } else {
+                        loadRecentWinners();
+                    }
                 }
             })
             .subscribe();
@@ -180,16 +189,20 @@ export default function useDrawLiveFeed() {
 
         clearTimers();
 
-        timersRef.current.push(setTimeout(() => setPhase('mixing'), 300));
-        timersRef.current.push(setTimeout(() => setPhase('ball'), 1200));
-        timersRef.current.push(setTimeout(() => setPhase('paper'), 2200));
-        timersRef.current.push(setTimeout(() => setPhase('reveal'), 3000));
+        timersRef.current.push(setTimeout(() => setPhase('mixing'), 900));
+        timersRef.current.push(setTimeout(() => setPhase('ball'), 3000));
+        timersRef.current.push(setTimeout(() => setPhase('paper'), 5200));
+        timersRef.current.push(setTimeout(() => setPhase('reveal'), 6600));
         timersRef.current.push(setTimeout(async () => {
             setPhase('idle');
             setCurrentEvent(null);
-            await loadRecentWinners();
-        }, 5000));
-    }, [clearPreStartTimer, clearTimers, currentEvent, loadRecentWinners, phase, queue, settings.live_page_enabled]);
+            if (settings.show_recent_winners) {
+                await loadRecentWinners();
+            } else {
+                setRecentWinners([]);
+            }
+        }, 9000));
+    }, [clearPreStartTimer, clearTimers, currentEvent, loadRecentWinners, phase, queue, settings.live_page_enabled, settings.show_recent_winners]);
 
     const isAnimating = phase !== 'idle' && Boolean(currentEvent);
 

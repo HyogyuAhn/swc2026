@@ -256,9 +256,9 @@ export default function AdminPageClient() {
                         newItemQuota={drawManagement.newItemQuota}
                         newItemAllowDuplicate={drawManagement.newItemAllowDuplicate}
                         newItemPublic={drawManagement.newItemPublic}
+                        newItemShowRecentWinners={drawManagement.newItemShowRecentWinners}
                         drawModeByItem={drawManagement.drawModeByItem}
                         manualStudentByItem={drawManagement.manualStudentByItem}
-                        forceStudentByItem={drawManagement.forceStudentByItem}
                         editingWinnerById={drawManagement.editingWinnerById}
                         editingStudentByWinnerId={drawManagement.editingStudentByWinnerId}
                         pendingAction={drawManagement.pendingAction}
@@ -266,21 +266,20 @@ export default function AdminPageClient() {
                         setNewItemQuota={drawManagement.setNewItemQuota}
                         setNewItemAllowDuplicate={drawManagement.setNewItemAllowDuplicate}
                         setNewItemPublic={drawManagement.setNewItemPublic}
+                        setNewItemShowRecentWinners={drawManagement.setNewItemShowRecentWinners}
                         handleCreateItem={drawManagement.handleCreateItem}
                         toggleDrawLiveEnabled={drawManagement.toggleDrawLiveEnabled}
                         toggleRecentWinnersEnabled={drawManagement.toggleRecentWinnersEnabled}
                         setModeForItem={drawManagement.setModeForItem}
                         setManualStudentForItem={drawManagement.setManualStudentForItem}
-                        setForceStudentForItem={drawManagement.setForceStudentForItem}
                         handleStartDraw={drawManagement.handleStartDraw}
-                        handleForceAdd={drawManagement.handleForceAdd}
-                        toggleItemPublic={drawManagement.toggleItemPublic}
-                        toggleItemAllowDuplicate={drawManagement.toggleItemAllowDuplicate}
+                        saveItemSettings={drawManagement.saveItemSettings}
                         startEditWinner={drawManagement.startEditWinner}
                         cancelEditWinner={drawManagement.cancelEditWinner}
                         changeEditWinnerStudent={drawManagement.changeEditWinnerStudent}
                         handleUpdateWinner={drawManagement.handleUpdateWinner}
                         handleDeleteWinner={drawManagement.handleDeleteWinner}
+                        toggleWinnerPublic={drawManagement.toggleWinnerPublic}
                         confirmPendingAction={drawManagement.confirmPendingAction}
                         cancelPendingAction={drawManagement.cancelPendingAction}
                     />

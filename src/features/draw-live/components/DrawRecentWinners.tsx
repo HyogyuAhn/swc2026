@@ -27,14 +27,6 @@ export default function DrawRecentWinners({ winners }: DrawRecentWinnersProps) {
 
                             <div className="flex items-center gap-2">
                                 <span className="font-mono text-sm font-extrabold text-blue-900">{winner.student_id}</span>
-                                <span className="rounded-md bg-blue-50 px-2 py-0.5 text-[11px] font-bold text-blue-700">
-                                    {winner.selected_mode}
-                                </span>
-                                {winner.is_forced && (
-                                    <span className="rounded-md bg-amber-50 px-2 py-0.5 text-[11px] font-bold text-amber-700">
-                                        Override
-                                    </span>
-                                )}
                             </div>
                         </div>
                     ))}

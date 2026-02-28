@@ -73,6 +73,7 @@ export async function createDrawItem(params: {
     winner_quota: number;
     allow_duplicate_winners: boolean;
     is_public: boolean;
+    show_recent_winners: boolean;
     sort_order: number;
 }) {
     return supabase
@@ -82,13 +83,14 @@ export async function createDrawItem(params: {
             winner_quota: params.winner_quota,
             allow_duplicate_winners: params.allow_duplicate_winners,
             is_public: params.is_public,
+            show_recent_winners: params.show_recent_winners,
             sort_order: params.sort_order
         });
 }
 
 export async function updateDrawItem(
     itemId: string,
-    patch: Partial<Pick<DrawItem, 'name' | 'winner_quota' | 'allow_duplicate_winners' | 'is_public' | 'sort_order'>>
+    patch: Partial<Pick<DrawItem, 'name' | 'winner_quota' | 'allow_duplicate_winners' | 'is_public' | 'show_recent_winners' | 'sort_order'>>
 ) {
     return supabase
         .from('draw_items')
@@ -160,6 +162,19 @@ export async function deleteDrawWinner(winnerId: string) {
         .eq('id', winnerId);
 }
 
+export async function updateDrawWinnerPublic(params: {
+    winnerId: string;
+    isPublic: boolean;
+}) {
+    return supabase
+        .from('draw_winners')
+        .update({
+            is_public: params.isPublic,
+            updated_at: new Date().toISOString()
+        })
+        .eq('id', params.winnerId);
+}
+
 export async function updateWinnerDirect(params: {
     winnerId: string;
     studentId: string;
@@ -199,7 +214,7 @@ export async function createDrawLiveEvent(params: {
 export async function fetchPublicRecentWinners(limit = 20) {
     return supabase
         .from('draw_winners')
-        .select('id, draw_item_id, student_id, selected_mode, is_forced, created_at, draw_items(id, name, is_public)')
+        .select('*, draw_items(id, name, is_public, show_recent_winners)')
         .order('created_at', { ascending: false })
         .limit(limit);
 }
@@ -244,11 +259,16 @@ export function normalizeDrawItems(items: DrawItem[] | null | undefined) {
     return items.map(item => {
         const winners = ((item.draw_winners || []) as DrawWinner[])
             .slice()
+            .map(winner => ({
+                ...winner,
+                is_public: winner.is_public ?? true
+            }))
             .sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
         const winnerCount = winners.length;
 
         return {
             ...item,
+            show_recent_winners: item.show_recent_winners ?? true,
             winners,
             winnerCount,
             remainingCount: Math.max(0, Number(item.winner_quota || 0) - winnerCount)

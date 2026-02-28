@@ -15,6 +15,7 @@ import {
     pickWinnerWithRpc,
     StudentPoolRecord,
     updateDrawItem,
+    updateDrawWinnerPublic,
     updateWinnerDirect,
     updateWinnerWithRpc,
     upsertDrawSettings
@@ -35,7 +36,7 @@ const isRpcMissingError = (message?: string) => {
 
 type ShowToast = (message: string, kind?: 'error' | 'info' | 'success') => void;
 const DRAW_LIVE_CONTROL_CHANNEL = 'draw-live-control';
-const DRAW_BUSY_MS = 6500;
+const DRAW_BUSY_MS = 12000;
 const DRAW_PRE_START_DELAY_MS = 1100;
 const wait = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
@@ -54,6 +55,7 @@ export default function useDrawManagement(showToast: ShowToast, enabled = true) 
     const [newItemQuota, setNewItemQuota] = useState('1');
     const [newItemAllowDuplicate, setNewItemAllowDuplicate] = useState(false);
     const [newItemPublic, setNewItemPublic] = useState(true);
+    const [newItemShowRecentWinners, setNewItemShowRecentWinners] = useState(true);
 
     const [drawModeByItem, setDrawModeByItem] = useState<Record<string, DrawMode>>({});
     const [manualStudentByItem, setManualStudentByItem] = useState<Record<string, string>>({});
@@ -530,20 +532,23 @@ export default function useDrawManagement(showToast: ShowToast, enabled = true) 
         setSubmitting(false);
     }, [announceDrawCancel, announceDrawStart, clearDrawBusy, clearDrawBusyForItem, getWarningCheck, markDrawBusy, refresh, showToast, startManualDrawFallback]);
 
-    const handleStartDraw = useCallback(async (item: DrawItemWithComputed) => {
+    const handleStartDraw = useCallback(async (
+        item: DrawItemWithComputed,
+        options?: { mode: DrawMode; targetStudentId?: string }
+    ) => {
         if (drawInProgressItemId) {
             showToast('현재 다른 항목 추첨이 진행 중입니다.');
             return;
         }
 
-        const mode = drawModeByItem[item.id] || 'RANDOM';
+        const mode = options?.mode || drawModeByItem[item.id] || 'RANDOM';
 
         if (mode === 'RANDOM') {
             await executeRandomDraw(item);
             return;
         }
 
-        const targetStudentId = (manualStudentByItem[item.id] || '').trim();
+        const targetStudentId = (options?.targetStudentId || manualStudentByItem[item.id] || '').trim();
         if (!targetStudentId) {
             showToast('학번 뽑기 모드에서는 대상 학번을 선택해야 합니다.');
             return;
@@ -798,10 +803,16 @@ export default function useDrawManagement(showToast: ShowToast, enabled = true) 
             winner_quota: quota,
             allow_duplicate_winners: newItemAllowDuplicate,
             is_public: newItemPublic,
+            show_recent_winners: newItemShowRecentWinners,
             sort_order: nextSortOrder
         });
 
         if (result.error) {
+            const lowerMessage = (result.error.message || '').toLowerCase();
+            if (lowerMessage.includes('show_recent_winners') && lowerMessage.includes('column')) {
+                showToast('draw_items.show_recent_winners 컬럼이 없습니다. SQL 마이그레이션을 먼저 적용해주세요.');
+                return false;
+            }
             showToast(`추첨 항목 생성 실패: ${result.error.message}`);
             return false;
         }
@@ -810,11 +821,12 @@ export default function useDrawManagement(showToast: ShowToast, enabled = true) 
         setNewItemQuota('1');
         setNewItemAllowDuplicate(false);
         setNewItemPublic(true);
+        setNewItemShowRecentWinners(true);
 
         showToast('추첨 항목이 생성되었습니다.', 'success');
         await refresh();
         return true;
-    }, [items, newItemAllowDuplicate, newItemName, newItemPublic, newItemQuota, refresh, showToast]);
+    }, [items, newItemAllowDuplicate, newItemName, newItemPublic, newItemQuota, newItemShowRecentWinners, refresh, showToast]);
 
     const setModeForItem = useCallback((itemId: string, mode: DrawMode) => {
         setDrawModeByItem(prev => ({ ...prev, [itemId]: mode }));
@@ -908,6 +920,83 @@ export default function useDrawManagement(showToast: ShowToast, enabled = true) 
         await refresh();
     }, [refresh, showToast]);
 
+    const saveItemSettings = useCallback(async (
+        item: DrawItemWithComputed,
+        patch: {
+            name: string;
+            winner_quota: number;
+            allow_duplicate_winners: boolean;
+            is_public: boolean;
+            show_recent_winners: boolean;
+        }
+    ) => {
+        const normalizedName = patch.name.trim();
+        if (!normalizedName) {
+            showToast('항목 이름을 입력해주세요.');
+            return false;
+        }
+
+        if (!Number.isFinite(patch.winner_quota) || patch.winner_quota < 1) {
+            showToast('당첨 개수는 1 이상이어야 합니다.');
+            return false;
+        }
+
+        if (patch.winner_quota < item.winnerCount) {
+            showToast(`현재 당첨자(${item.winnerCount}명)보다 작은 개수로는 변경할 수 없습니다.`);
+            return false;
+        }
+
+        const result = await updateDrawItem(item.id, {
+            name: normalizedName,
+            winner_quota: patch.winner_quota,
+            allow_duplicate_winners: patch.allow_duplicate_winners,
+            is_public: patch.is_public,
+            show_recent_winners: patch.show_recent_winners
+        });
+
+        if (result.error) {
+            const lowerMessage = (result.error.message || '').toLowerCase();
+            if (lowerMessage.includes('show_recent_winners') && lowerMessage.includes('column')) {
+                showToast('draw_items.show_recent_winners 컬럼이 없습니다. SQL 마이그레이션을 먼저 적용해주세요.');
+                return false;
+            }
+
+            showToast(`항목 설정 저장 실패: ${result.error.message}`);
+            return false;
+        }
+
+        showToast('항목 설정이 저장되었습니다.', 'success');
+        await refresh();
+        return true;
+    }, [refresh, showToast]);
+
+    const toggleWinnerPublic = useCallback(async (item: DrawItemWithComputed, winner: DrawWinner) => {
+        if (!item.is_public) {
+            showToast('항목이 비공개 상태라 당첨자 공개 전환을 할 수 없습니다.');
+            return;
+        }
+
+        const nextPublic = !(winner.is_public ?? true);
+        const result = await updateDrawWinnerPublic({
+            winnerId: winner.id,
+            isPublic: nextPublic
+        });
+
+        if (result.error) {
+            const lowerMessage = (result.error.message || '').toLowerCase();
+            if (lowerMessage.includes('is_public') && lowerMessage.includes('column')) {
+                showToast('draw_winners.is_public 컬럼이 없습니다. SQL 마이그레이션을 먼저 적용해주세요.');
+                return;
+            }
+
+            showToast(`당첨자 공개 설정 변경 실패: ${result.error.message}`);
+            return;
+        }
+
+        showToast(nextPublic ? '당첨자를 라이브에 공개합니다.' : '당첨자를 라이브에서 숨깁니다.', 'success');
+        await refresh();
+    }, [refresh, showToast]);
+
     return {
         loading,
         submitting,
@@ -924,6 +1013,8 @@ export default function useDrawManagement(showToast: ShowToast, enabled = true) 
         setNewItemAllowDuplicate,
         newItemPublic,
         setNewItemPublic,
+        newItemShowRecentWinners,
+        setNewItemShowRecentWinners,
         drawModeByItem,
         manualStudentByItem,
         forceStudentByItem,
@@ -946,6 +1037,8 @@ export default function useDrawManagement(showToast: ShowToast, enabled = true) 
         toggleRecentWinnersEnabled,
         toggleItemPublic,
         toggleItemAllowDuplicate,
+        saveItemSettings,
+        toggleWinnerPublic,
         confirmPendingAction,
         cancelPendingAction
     };

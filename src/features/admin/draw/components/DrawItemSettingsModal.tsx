@@ -1,6 +1,6 @@
 import { X } from 'lucide-react';
 
-type DrawItemCreateModalProps = {
+type DrawItemSettingsModalProps = {
     isOpen: boolean;
     name: string;
     quota: string;
@@ -14,10 +14,10 @@ type DrawItemCreateModalProps = {
     onAllowDuplicateChange: (checked: boolean) => void;
     onRealtimePublicChange: (checked: boolean) => void;
     onRecentPublicChange: (checked: boolean) => void;
-    onCreate: () => void;
+    onSave: () => void;
 };
 
-export default function DrawItemCreateModal({
+export default function DrawItemSettingsModal({
     isOpen,
     name,
     quota,
@@ -31,19 +31,19 @@ export default function DrawItemCreateModal({
     onAllowDuplicateChange,
     onRealtimePublicChange,
     onRecentPublicChange,
-    onCreate
-}: DrawItemCreateModalProps) {
+    onSave
+}: DrawItemSettingsModalProps) {
     if (!isOpen) {
         return null;
     }
 
     return (
-        <div className="fixed inset-0 z-[96] flex items-center justify-center px-4">
+        <div className="fixed inset-0 z-[97] flex items-center justify-center px-4">
             <button
                 type="button"
                 className="absolute inset-0 bg-black/45"
                 onClick={onClose}
-                aria-label="추첨 항목 추가 닫기"
+                aria-label="항목 설정 닫기"
             />
 
             <div className="relative w-full max-w-xl rounded-2xl border border-gray-200 bg-white p-5 shadow-2xl">
@@ -56,7 +56,7 @@ export default function DrawItemCreateModal({
                     <X size={18} />
                 </button>
 
-                <h3 className="mb-4 text-lg font-bold text-gray-800">추첨 항목 추가</h3>
+                <h3 className="mb-4 text-lg font-bold text-gray-900">항목 설정</h3>
 
                 <div className="grid gap-3 md:grid-cols-2">
                     <label className="text-sm">
@@ -66,7 +66,6 @@ export default function DrawItemCreateModal({
                             className="w-full rounded-lg border border-gray-200 px-3 py-2"
                             value={name}
                             onChange={event => onNameChange(event.target.value)}
-                            placeholder="예: 기프티콘"
                         />
                     </label>
 
@@ -111,7 +110,7 @@ export default function DrawItemCreateModal({
                     </label>
                 </div>
 
-                <div className="mt-5 flex items-center justify-end gap-2">
+                <div className="mt-5 flex justify-end gap-2">
                     <button
                         type="button"
                         onClick={onClose}
@@ -121,11 +120,11 @@ export default function DrawItemCreateModal({
                     </button>
                     <button
                         type="button"
-                        onClick={onCreate}
+                        onClick={onSave}
                         disabled={disabled}
                         className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-bold text-white hover:bg-blue-700 disabled:cursor-not-allowed disabled:bg-gray-300"
                     >
-                        항목 추가
+                        저장
                     </button>
                 </div>
             </div>

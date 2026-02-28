@@ -7,6 +7,7 @@ export type DrawItem = {
     winner_quota: number;
     allow_duplicate_winners: boolean;
     is_public: boolean;
+    show_recent_winners: boolean;
     sort_order: number;
     created_at: string;
     updated_at?: string;
@@ -19,6 +20,7 @@ export type DrawWinner = {
     student_id: string;
     selected_mode: DrawWinnerMode;
     is_forced: boolean;
+    is_public?: boolean;
     created_at: string;
     updated_at?: string;
 };
