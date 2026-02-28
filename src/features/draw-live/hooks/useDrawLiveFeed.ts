@@ -130,6 +130,24 @@ export default function useDrawLiveFeed() {
             .on('postgres_changes', {
                 event: '*',
                 schema: 'public',
+                table: 'draw_winners'
+            }, () => {
+                if (settings.show_recent_winners) {
+                    loadRecentWinners();
+                }
+            })
+            .on('postgres_changes', {
+                event: '*',
+                schema: 'public',
+                table: 'draw_items'
+            }, () => {
+                if (settings.show_recent_winners) {
+                    loadRecentWinners();
+                }
+            })
+            .on('postgres_changes', {
+                event: '*',
+                schema: 'public',
                 table: 'draw_settings'
             }, payload => {
                 const next = payload.new as any;
@@ -189,10 +207,10 @@ export default function useDrawLiveFeed() {
 
         clearTimers();
 
-        timersRef.current.push(setTimeout(() => setPhase('mixing'), 900));
-        timersRef.current.push(setTimeout(() => setPhase('ball'), 3000));
-        timersRef.current.push(setTimeout(() => setPhase('paper'), 5200));
-        timersRef.current.push(setTimeout(() => setPhase('reveal'), 6600));
+        timersRef.current.push(setTimeout(() => setPhase('mixing'), 1100));
+        timersRef.current.push(setTimeout(() => setPhase('ball'), 3900));
+        timersRef.current.push(setTimeout(() => setPhase('paper'), 6700));
+        timersRef.current.push(setTimeout(() => setPhase('reveal'), 8600));
         timersRef.current.push(setTimeout(async () => {
             setPhase('idle');
             setCurrentEvent(null);
@@ -201,7 +219,7 @@ export default function useDrawLiveFeed() {
             } else {
                 setRecentWinners([]);
             }
-        }, 9000));
+        }, 11800));
     }, [clearPreStartTimer, clearTimers, currentEvent, loadRecentWinners, phase, queue, settings.live_page_enabled, settings.show_recent_winners]);
 
     const isAnimating = phase !== 'idle' && Boolean(currentEvent);

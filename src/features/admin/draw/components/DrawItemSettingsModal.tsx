@@ -37,7 +37,7 @@ export default function DrawItemSettingsModal({
         return null;
     }
 
-    const optionCardClass = 'rounded-xl border p-4 text-left transition-colors';
+    const optionCardClass = 'rounded-lg border px-3 py-2 text-left transition-colors';
 
     return (
         <div className="fixed inset-0 z-[97] flex items-center justify-center px-4">
@@ -48,7 +48,7 @@ export default function DrawItemSettingsModal({
                 aria-label="항목 설정 닫기"
             />
 
-            <div className="relative w-full max-w-2xl rounded-2xl border border-gray-200 bg-white p-6 shadow-2xl">
+            <div className="relative w-full max-w-5xl rounded-2xl border border-gray-200 bg-white p-6 shadow-2xl">
                 <button
                     type="button"
                     onClick={onClose}
@@ -61,7 +61,7 @@ export default function DrawItemSettingsModal({
                 <h3 className="text-xl font-bold text-gray-900">항목 설정</h3>
                 <p className="mt-1 text-sm text-gray-500">이름, 개수, 공개 범위를 수정할 수 있습니다.</p>
 
-                <div className="mt-5 grid gap-3 md:grid-cols-2">
+                <div className="mt-5 grid grid-cols-1 gap-4 lg:grid-cols-[1.4fr_0.8fr_1.8fr]">
                     <label className="text-sm">
                         <span className="mb-1.5 block font-semibold text-gray-700">당첨 항목 이름</span>
                         <input
@@ -82,62 +82,62 @@ export default function DrawItemSettingsModal({
                             onChange={event => onQuotaChange(event.target.value)}
                         />
                     </label>
-                </div>
 
-                <div className="mt-4 grid gap-3 md:grid-cols-2">
-                    <button
-                        type="button"
-                        onClick={() => onAllowDuplicateChange(!allowDuplicate)}
-                        className={`${optionCardClass} ${
-                            allowDuplicate
-                                ? 'border-emerald-200 bg-emerald-50 text-emerald-800'
-                                : 'border-gray-200 bg-white text-gray-600 hover:bg-gray-50'
-                        }`}
-                    >
-                        <div className="flex items-center justify-between gap-2">
-                            <span className="text-sm font-bold">중복 당첨 허용</span>
-                            <span className="rounded-full bg-white/80 px-2 py-0.5 text-[11px] font-bold">
-                                {allowDuplicate ? 'ON' : 'OFF'}
-                            </span>
-                        </div>
-                        <p className="mt-1 text-xs">다른 항목 당첨자도 추첨 대상에 포함합니다.</p>
-                    </button>
+                    <div className="rounded-xl border border-gray-200 bg-gray-50 p-3">
+                        <p className="mb-2 text-xs font-bold text-gray-600">옵션</p>
+                        <div className="space-y-2">
+                            <button
+                                type="button"
+                                onClick={() => onAllowDuplicateChange(!allowDuplicate)}
+                                className={`${optionCardClass} w-full ${
+                                    allowDuplicate
+                                        ? 'border-emerald-200 bg-emerald-50 text-emerald-800'
+                                        : 'border-gray-200 bg-white text-gray-600 hover:bg-gray-50'
+                                }`}
+                            >
+                                <div className="flex items-center justify-between gap-2">
+                                    <span className="text-sm font-bold">중복 당첨 허용</span>
+                                    <span className="rounded-full bg-white/80 px-2 py-0.5 text-[11px] font-bold">
+                                        {allowDuplicate ? 'ON' : 'OFF'}
+                                    </span>
+                                </div>
+                            </button>
 
-                    <button
-                        type="button"
-                        onClick={() => onRealtimePublicChange(!isRealtimePublic)}
-                        className={`${optionCardClass} ${
-                            isRealtimePublic
-                                ? 'border-blue-200 bg-blue-50 text-blue-800'
-                                : 'border-gray-200 bg-white text-gray-600 hover:bg-gray-50'
-                        }`}
-                    >
-                        <div className="flex items-center justify-between gap-2">
-                            <span className="text-sm font-bold">실시간 당첨자 공개</span>
-                            <span className="rounded-full bg-white/80 px-2 py-0.5 text-[11px] font-bold">
-                                {isRealtimePublic ? 'ON' : 'OFF'}
-                            </span>
-                        </div>
-                        <p className="mt-1 text-xs">OFF면 /draw 라이브 추첨 장면에 해당 항목이 노출되지 않습니다.</p>
-                    </button>
+                            <button
+                                type="button"
+                                onClick={() => onRealtimePublicChange(!isRealtimePublic)}
+                                className={`${optionCardClass} w-full ${
+                                    isRealtimePublic
+                                        ? 'border-blue-200 bg-blue-50 text-blue-800'
+                                        : 'border-gray-200 bg-white text-gray-600 hover:bg-gray-50'
+                                }`}
+                            >
+                                <div className="flex items-center justify-between gap-2">
+                                    <span className="text-sm font-bold">실시간 당첨자 공개</span>
+                                    <span className="rounded-full bg-white/80 px-2 py-0.5 text-[11px] font-bold">
+                                        {isRealtimePublic ? 'ON' : 'OFF'}
+                                    </span>
+                                </div>
+                            </button>
 
-                    <button
-                        type="button"
-                        onClick={() => onRecentPublicChange(!isRecentPublic)}
-                        className={`${optionCardClass} ${
-                            isRecentPublic
-                                ? 'border-indigo-200 bg-indigo-50 text-indigo-800'
-                                : 'border-gray-200 bg-white text-gray-600 hover:bg-gray-50'
-                        } md:col-span-2`}
-                    >
-                        <div className="flex items-center justify-between gap-2">
-                            <span className="text-sm font-bold">최근 당첨 결과 공개</span>
-                            <span className="rounded-full bg-white/80 px-2 py-0.5 text-[11px] font-bold">
-                                {isRecentPublic ? 'ON' : 'OFF'}
-                            </span>
+                            <button
+                                type="button"
+                                onClick={() => onRecentPublicChange(!isRecentPublic)}
+                                className={`${optionCardClass} w-full ${
+                                    isRecentPublic
+                                        ? 'border-indigo-200 bg-indigo-50 text-indigo-800'
+                                        : 'border-gray-200 bg-white text-gray-600 hover:bg-gray-50'
+                                }`}
+                            >
+                                <div className="flex items-center justify-between gap-2">
+                                    <span className="text-sm font-bold">최근 당첨 결과 공개</span>
+                                    <span className="rounded-full bg-white/80 px-2 py-0.5 text-[11px] font-bold">
+                                        {isRecentPublic ? 'ON' : 'OFF'}
+                                    </span>
+                                </div>
+                            </button>
                         </div>
-                        <p className="mt-1 text-xs">라이브 페이지 하단 최근 당첨 결과 목록 반영 여부입니다.</p>
-                    </button>
+                    </div>
                 </div>
 
                 <div className="mt-6 flex justify-end gap-2">

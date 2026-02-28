@@ -50,7 +50,7 @@ export default function DrawLiveSettingsModal({
                     <FormToggleSetting
                         checked={livePageEnabled}
                         title="라이브 페이지 공개"
-                        description="OFF면 /draw 페이지에서 추첨 화면이 비활성 안내 상태로 표시됩니다."
+                        description="OFF면 라이브 페이지에서 추첨 화면이 비활성 안내 상태로 표시됩니다."
                         onChange={() => onToggleLivePage()}
                     />
 

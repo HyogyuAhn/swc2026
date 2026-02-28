@@ -6,6 +6,26 @@ type DrawMachineStageProps = {
     preStartItemName: string | null;
 };
 
+const floatingBallConfigs = [
+    { delay: '0s', duration: '1.18s', orbitA: '24px', orbitB: '96px', orbitC: '52px', dir: '1', color: '#fde68a' },
+    { delay: '0.12s', duration: '1.35s', orbitA: '20px', orbitB: '108px', orbitC: '62px', dir: '-1', color: '#fcd34d' },
+    { delay: '0.24s', duration: '1.26s', orbitA: '28px', orbitB: '92px', orbitC: '58px', dir: '1', color: '#fbbf24' },
+    { delay: '0.32s', duration: '1.47s', orbitA: '22px', orbitB: '102px', orbitC: '54px', dir: '-1', color: '#fef08a' },
+    { delay: '0.46s', duration: '1.29s', orbitA: '26px', orbitB: '98px', orbitC: '60px', dir: '1', color: '#fde68a' },
+    { delay: '0.6s', duration: '1.41s', orbitA: '18px', orbitB: '110px', orbitC: '56px', dir: '-1', color: '#facc15' },
+    { delay: '0.76s', duration: '1.2s', orbitA: '25px', orbitB: '94px', orbitC: '50px', dir: '1', color: '#fbbf24' },
+    { delay: '0.9s', duration: '1.36s', orbitA: '21px', orbitB: '106px', orbitC: '64px', dir: '-1', color: '#fef08a' }
+];
+
+const sparkConfigs = [
+    { delay: '0s', duration: '0.95s', angle: '-18deg' },
+    { delay: '0.12s', duration: '1.05s', angle: '14deg' },
+    { delay: '0.2s', duration: '0.88s', angle: '-32deg' },
+    { delay: '0.28s', duration: '1.1s', angle: '28deg' },
+    { delay: '0.34s', duration: '0.92s', angle: '-46deg' },
+    { delay: '0.44s', duration: '1.06s', angle: '44deg' }
+];
+
 const statusTextByPhase: Record<DrawAnimationPhase, string> = {
     idle: '추첨 대기 중',
     announce: '추첨 시작 안내',
@@ -17,10 +37,12 @@ const statusTextByPhase: Record<DrawAnimationPhase, string> = {
 
 export default function DrawMachineStage({ phase, currentEvent, preStartItemName }: DrawMachineStageProps) {
     const isMixing = phase === 'mixing' || phase === 'ball';
+    const isCinematic = phase === 'mixing' || phase === 'ball' || phase === 'paper';
     const isBallSequence = phase === 'ball' || phase === 'paper' || phase === 'reveal';
     const isBallOpening = phase === 'paper' || phase === 'reveal';
     const isPaperVisible = phase === 'paper' || phase === 'reveal';
     const isReveal = phase === 'reveal';
+    const isStageActive = phase !== 'idle';
     const currentItemName = currentEvent?.draw_item_name || preStartItemName;
     const statusText = phase === 'idle' && preStartItemName
         ? '추첨 시작 안내'
@@ -44,16 +66,40 @@ export default function DrawMachineStage({ phase, currentEvent, preStartItemName
                 )}
             </div>
 
-            <div className="draw-machine-stage relative mx-auto h-[440px] w-full max-w-4xl overflow-hidden rounded-2xl border border-blue-100">
-                <div className={`draw-machine-shell ${isMixing ? 'mixing' : ''}`}>
+            <div className={`draw-machine-stage relative mx-auto h-[440px] w-full max-w-4xl overflow-hidden rounded-2xl border border-blue-100 ${isCinematic ? 'cinematic' : ''}`}>
+                <div className={`draw-stage-vignette ${isStageActive ? 'show' : ''}`} />
+                <div className={`draw-stage-spotlight ${isCinematic ? 'show' : ''}`} />
+                <div className={`draw-reveal-flash ${isReveal ? 'active' : ''}`} />
+
+                <div className={`draw-machine-shell ${isMixing ? 'mixing' : ''} ${isCinematic ? 'cinematic' : ''}`}>
                     <div className={`draw-machine-rotor ${isMixing ? 'spinning' : ''}`} />
-                    <div className="draw-machine-light" />
-                    {[0, 1, 2, 3, 4, 5].map(index => (
+                    <div className={`draw-machine-light ${isStageActive ? 'show' : ''}`} />
+                    {floatingBallConfigs.map((config, index) => (
                         <span
                             // eslint-disable-next-line react/no-array-index-key
                             key={index}
                             className={`draw-floating-ball ${isMixing ? 'active' : ''}`}
-                            style={{ ['--delay' as any]: `${index * 0.22}s` }}
+                            style={{
+                                ['--delay' as any]: config.delay,
+                                ['--duration' as any]: config.duration,
+                                ['--orbit-a' as any]: config.orbitA,
+                                ['--orbit-b' as any]: config.orbitB,
+                                ['--orbit-c' as any]: config.orbitC,
+                                ['--dir' as any]: config.dir,
+                                ['--ball-color' as any]: config.color
+                            }}
+                        />
+                    ))}
+                    {sparkConfigs.map((config, index) => (
+                        <span
+                            // eslint-disable-next-line react/no-array-index-key
+                            key={`spark-${index}`}
+                            className={`draw-spark ${isCinematic ? 'active' : ''}`}
+                            style={{
+                                ['--delay' as any]: config.delay,
+                                ['--duration' as any]: config.duration,
+                                ['--angle' as any]: config.angle
+                            }}
                         />
                     ))}
                 </div>
@@ -78,6 +124,57 @@ export default function DrawMachineStage({ phase, currentEvent, preStartItemName
             <style jsx>{`
                 .draw-machine-stage {
                     background: radial-gradient(circle at 50% 20%, #ffffff 0%, #edf5ff 52%, #dfedff 100%);
+                    transition: background 280ms ease;
+                }
+
+                .draw-machine-stage.cinematic {
+                    background: radial-gradient(circle at 50% 16%, #f8fbff 0%, #dcecff 54%, #cfe3ff 100%);
+                    animation: stageBreath 1800ms ease-in-out infinite;
+                }
+
+                .draw-stage-vignette {
+                    position: absolute;
+                    inset: 0;
+                    pointer-events: none;
+                    background: radial-gradient(circle at center, rgba(8, 47, 110, 0) 38%, rgba(8, 47, 110, 0.26) 100%);
+                    opacity: 0;
+                    transition: opacity 260ms ease;
+                    z-index: 1;
+                }
+
+                .draw-stage-vignette.show {
+                    opacity: 1;
+                }
+
+                .draw-stage-spotlight {
+                    position: absolute;
+                    left: 50%;
+                    top: -26px;
+                    width: 240px;
+                    height: 220px;
+                    transform: translateX(-50%);
+                    background: radial-gradient(ellipse at top, rgba(255, 233, 148, 0.62) 0%, rgba(255, 233, 148, 0.08) 52%, transparent 76%);
+                    opacity: 0;
+                    pointer-events: none;
+                    z-index: 2;
+                }
+
+                .draw-stage-spotlight.show {
+                    opacity: 1;
+                    animation: spotlightPulse 900ms ease-in-out infinite;
+                }
+
+                .draw-reveal-flash {
+                    position: absolute;
+                    inset: 0;
+                    pointer-events: none;
+                    background: radial-gradient(circle at 50% 52%, rgba(255, 255, 255, 0.85) 0%, rgba(255, 255, 255, 0) 56%);
+                    opacity: 0;
+                    z-index: 20;
+                }
+
+                .draw-reveal-flash.active {
+                    animation: revealFlash 700ms ease-out;
                 }
 
                 .draw-machine-shell {
@@ -92,10 +189,15 @@ export default function DrawMachineStage({ phase, currentEvent, preStartItemName
                     background: linear-gradient(180deg, #ffffff 0%, #eaf4ff 100%);
                     box-shadow: 0 20px 35px rgba(31, 89, 165, 0.16);
                     overflow: hidden;
+                    z-index: 3;
                 }
 
                 .draw-machine-shell.mixing {
-                    animation: shellShake 520ms ease-in-out infinite;
+                    animation: shellShake 420ms ease-in-out infinite;
+                }
+
+                .draw-machine-shell.cinematic {
+                    box-shadow: 0 24px 46px rgba(31, 89, 165, 0.22);
                 }
 
                 .draw-machine-rotor {
@@ -124,6 +226,11 @@ export default function DrawMachineStage({ phase, currentEvent, preStartItemName
                     border-radius: 9999px;
                     background: #fef08a;
                     box-shadow: 0 0 0 8px rgba(254, 240, 138, 0.28), 0 0 40px rgba(253, 224, 71, 0.6);
+                    opacity: 0;
+                }
+
+                .draw-machine-light.show {
+                    animation: topLightBlink 740ms ease-in-out infinite;
                 }
 
                 .draw-floating-ball {
@@ -135,13 +242,33 @@ export default function DrawMachineStage({ phase, currentEvent, preStartItemName
                     margin-left: -8px;
                     margin-top: -8px;
                     border-radius: 9999px;
-                    background: #fde68a;
+                    background: radial-gradient(circle at 32% 28%, #fff 0%, var(--ball-color, #fde68a) 65%, #f59e0b 100%);
+                    box-shadow: 0 2px 8px rgba(245, 158, 11, 0.45);
                     opacity: 0;
                 }
 
                 .draw-floating-ball.active {
                     opacity: 1;
-                    animation: floatBall 1.8s ease-in-out infinite;
+                    animation: chaosOrbit var(--duration, 1.35s) cubic-bezier(0.25, 0.78, 0.26, 1) infinite;
+                    animation-delay: var(--delay);
+                }
+
+                .draw-spark {
+                    position: absolute;
+                    left: 50%;
+                    top: 50%;
+                    width: 4px;
+                    height: 22px;
+                    border-radius: 9999px;
+                    background: linear-gradient(180deg, rgba(255, 255, 255, 0.98) 0%, rgba(251, 191, 36, 0.15) 100%);
+                    opacity: 0;
+                    transform: translate(-50%, -50%) rotate(var(--angle));
+                    z-index: 4;
+                    filter: blur(0.2px);
+                }
+
+                .draw-spark.active {
+                    animation: sparkBurst var(--duration, 1s) ease-out infinite;
                     animation-delay: var(--delay);
                 }
 
@@ -154,6 +281,7 @@ export default function DrawMachineStage({ phase, currentEvent, preStartItemName
                     margin-left: -46px;
                     opacity: 0;
                     transform: translateY(28px) scale(0.68);
+                    z-index: 10;
                 }
 
                 .draw-picked-ball.active {
@@ -241,6 +369,7 @@ export default function DrawMachineStage({ phase, currentEvent, preStartItemName
                     bottom: 26px;
                     transform: translate(-50%, 58px) scale(0.92);
                     opacity: 0;
+                    z-index: 12;
                 }
 
                 .draw-paper-wrap.show {
@@ -270,15 +399,25 @@ export default function DrawMachineStage({ phase, currentEvent, preStartItemName
 
                 @keyframes shellShake {
                     0%, 100% { transform: translate(-50%, -50%) rotate(0deg); }
-                    25% { transform: translate(calc(-50% - 2px), calc(-50% + 1px)) rotate(-1.6deg); }
-                    50% { transform: translate(calc(-50% + 2px), calc(-50% - 1px)) rotate(1.2deg); }
-                    75% { transform: translate(calc(-50% - 1px), calc(-50% + 1px)) rotate(-0.8deg); }
+                    20% { transform: translate(calc(-50% - 3px), calc(-50% + 2px)) rotate(-2.1deg); }
+                    40% { transform: translate(calc(-50% + 3px), calc(-50% - 2px)) rotate(1.6deg); }
+                    60% { transform: translate(calc(-50% - 2px), calc(-50% + 1px)) rotate(-1.2deg); }
+                    80% { transform: translate(calc(-50% + 2px), calc(-50% - 1px)) rotate(1.1deg); }
                 }
 
-                @keyframes floatBall {
-                    0% { transform: rotate(0deg) translateX(14px) scale(0.6); }
-                    50% { transform: rotate(180deg) translateX(98px) scale(1); }
-                    100% { transform: rotate(360deg) translateX(14px) scale(0.6); }
+                @keyframes chaosOrbit {
+                    0% { transform: rotate(calc(var(--dir, 1) * 0deg)) translateX(var(--orbit-a, 22px)) translateY(-7px) scale(0.55); }
+                    24% { transform: rotate(calc(var(--dir, 1) * 124deg)) translateX(var(--orbit-b, 98px)) translateY(10px) scale(1); }
+                    51% { transform: rotate(calc(var(--dir, 1) * 236deg)) translateX(var(--orbit-c, 56px)) translateY(-15px) scale(0.8); }
+                    78% { transform: rotate(calc(var(--dir, 1) * 318deg)) translateX(var(--orbit-b, 98px)) translateY(8px) scale(0.95); }
+                    100% { transform: rotate(calc(var(--dir, 1) * 360deg)) translateX(var(--orbit-a, 22px)) translateY(-7px) scale(0.55); }
+                }
+
+                @keyframes sparkBurst {
+                    0% { opacity: 0; transform: translate(-50%, -50%) rotate(var(--angle)) translateY(0) scale(0.5); }
+                    20% { opacity: 0.95; }
+                    70% { opacity: 0.45; transform: translate(-50%, -50%) rotate(var(--angle)) translateY(-62px) scale(1); }
+                    100% { opacity: 0; transform: translate(-50%, -50%) rotate(var(--angle)) translateY(-74px) scale(0.8); }
                 }
 
                 @keyframes pickBall {
@@ -313,6 +452,27 @@ export default function DrawMachineStage({ phase, currentEvent, preStartItemName
                 @keyframes paperSettle {
                     0% { transform: translateY(0) scale(1.02); }
                     100% { transform: translateY(0) scale(1); }
+                }
+
+                @keyframes topLightBlink {
+                    0%, 100% { opacity: 0.75; transform: translateX(-50%) scale(0.96); }
+                    50% { opacity: 1; transform: translateX(-50%) scale(1.04); }
+                }
+
+                @keyframes spotlightPulse {
+                    0%, 100% { transform: translateX(-50%) scale(0.95); opacity: 0.65; }
+                    50% { transform: translateX(-50%) scale(1.05); opacity: 1; }
+                }
+
+                @keyframes stageBreath {
+                    0%, 100% { transform: scale(1); }
+                    50% { transform: scale(1.004); }
+                }
+
+                @keyframes revealFlash {
+                    0% { opacity: 0; }
+                    24% { opacity: 1; }
+                    100% { opacity: 0; }
                 }
             `}</style>
         </section>

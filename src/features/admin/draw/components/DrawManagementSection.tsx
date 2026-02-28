@@ -215,7 +215,7 @@ export default function DrawManagementSection({
                     <button
                         type="button"
                         onClick={() => setShowCreateModal(true)}
-                        className="inline-flex w-full items-center justify-center rounded-xl bg-blue-600 px-4 py-2 text-sm font-bold text-white hover:bg-blue-700"
+                        className="inline-flex items-center justify-center rounded-xl bg-blue-600 px-3 py-1.5 text-xs font-bold text-white hover:bg-blue-700"
                     >
                         항목 추가 열기
                     </button>
@@ -242,7 +242,7 @@ export default function DrawManagementSection({
                     <button
                         type="button"
                         onClick={() => setShowLiveSettingsModal(true)}
-                        className="inline-flex w-full items-center justify-center rounded-xl border border-gray-200 bg-white px-4 py-2 text-sm font-bold text-gray-700 hover:bg-gray-50"
+                        className="inline-flex items-center justify-center rounded-xl border border-gray-200 bg-white px-3 py-1.5 text-xs font-bold text-gray-700 hover:bg-gray-50"
                     >
                         설정 열기
                     </button>

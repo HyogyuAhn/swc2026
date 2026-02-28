@@ -36,7 +36,7 @@ const isRpcMissingError = (message?: string) => {
 
 type ShowToast = (message: string, kind?: 'error' | 'info' | 'success') => void;
 const DRAW_LIVE_CONTROL_CHANNEL = 'draw-live-control';
-const DRAW_BUSY_MS = 12000;
+const DRAW_BUSY_MS = 14500;
 const DRAW_PRE_START_DELAY_MS = 1100;
 const wait = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
@@ -976,26 +976,9 @@ export default function useDrawManagement(showToast: ShowToast, enabled = true) 
             return;
         }
 
+        const prevPublic = winner.is_public ?? true;
         const nextPublic = !(winner.is_public ?? true);
-        const result = await updateDrawWinnerPublic({
-            winnerId: winner.id,
-            isPublic: nextPublic
-        });
-
-        if (result.error) {
-            const lowerMessage = (result.error.message || '').toLowerCase();
-            if (lowerMessage.includes('is_public') && lowerMessage.includes('column')) {
-                showToast('draw_winners.is_public 컬럼이 없습니다. SQL 마이그레이션을 먼저 적용해주세요.');
-                return;
-            }
-
-            showToast(`당첨자 공개 설정 변경 실패: ${result.error.message}`);
-            return;
-        }
-
-        const appliedPublic = result.data?.is_public ?? nextPublic;
-
-        // 즉시 화면 반영(새로고침 없이 토글 상태 확인 가능)
+        // 즉시 화면 반영
         setItems(prev => prev.map(currentItem => {
             if (currentItem.id !== item.id) {
                 return currentItem;
@@ -1005,13 +988,44 @@ export default function useDrawManagement(showToast: ShowToast, enabled = true) 
                 ...currentItem,
                 winners: currentItem.winners.map(currentWinner => (
                     currentWinner.id === winner.id
-                        ? { ...currentWinner, is_public: appliedPublic }
+                        ? { ...currentWinner, is_public: nextPublic }
                         : currentWinner
                 ))
             };
         }));
 
-        showToast(appliedPublic ? '당첨자를 라이브에 공개합니다.' : '당첨자를 라이브에서 숨깁니다.', 'success');
+        const result = await updateDrawWinnerPublic({
+            winnerId: winner.id,
+            isPublic: nextPublic
+        });
+
+        if (result.error) {
+            const lowerMessage = (result.error.message || '').toLowerCase();
+            if (lowerMessage.includes('is_public') && lowerMessage.includes('column')) {
+                showToast('draw_winners.is_public 컬럼이 없습니다. SQL 마이그레이션을 먼저 적용해주세요.');
+            } else {
+                showToast(`당첨자 공개 설정 변경 실패: ${result.error.message}`);
+            }
+
+            // 실패 시 롤백
+            setItems(prev => prev.map(currentItem => {
+                if (currentItem.id !== item.id) {
+                    return currentItem;
+                }
+
+                return {
+                    ...currentItem,
+                    winners: currentItem.winners.map(currentWinner => (
+                        currentWinner.id === winner.id
+                            ? { ...currentWinner, is_public: prevPublic }
+                            : currentWinner
+                    ))
+                };
+            }));
+            return;
+        }
+
+        showToast(nextPublic ? '당첨자를 라이브에 공개합니다.' : '당첨자를 라이브에서 숨깁니다.', 'success');
     }, [showToast]);
 
     return {
