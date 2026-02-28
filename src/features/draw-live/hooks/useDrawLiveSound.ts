@@ -82,6 +82,7 @@ export default function useDrawLiveSound({ phase, eventId }: UseDrawLiveSoundPar
     const activeNodesRef = useRef<TrackedNode[]>([]);
     const activeTimersRef = useRef<ReturnType<typeof setTimeout>[]>([]);
     const playingEventIdRef = useRef<string | null>(null);
+    const pendingEventIdRef = useRef<string | null>(null);
 
     const clearScheduledTimers = useCallback(() => {
         activeTimersRef.current.forEach(timer => clearTimeout(timer));
@@ -93,6 +94,7 @@ export default function useDrawLiveSound({ phase, eventId }: UseDrawLiveSoundPar
         activeNodesRef.current.forEach(stopTrackedNode);
         activeNodesRef.current = [];
         playingEventIdRef.current = null;
+        pendingEventIdRef.current = null;
 
         const engine = engineRef.current;
         if (!engine) {
@@ -502,6 +504,26 @@ export default function useDrawLiveSound({ phase, eventId }: UseDrawLiveSoundPar
         activeTimersRef.current.push(endTimer);
     }, [ensureEngine, scheduleImpact, stopCurrentTrack, trackNoise, trackOscillator]);
 
+    const tryStartTrack = useCallback(async (targetEventId: string | null) => {
+        if (!targetEventId) {
+            return;
+        }
+
+        if (playingEventIdRef.current === targetEventId) {
+            pendingEventIdRef.current = null;
+            return;
+        }
+
+        const engine = await ensureEngine();
+        if (!engine) {
+            pendingEventIdRef.current = targetEventId;
+            return;
+        }
+
+        pendingEventIdRef.current = null;
+        await playPromptTimelineTrack(targetEventId);
+    }, [ensureEngine, playPromptTimelineTrack]);
+
     const toggleSoundEnabled = useCallback(() => {
         setSoundEnabled(prev => {
             const next = !prev;
@@ -516,9 +538,14 @@ export default function useDrawLiveSound({ phase, eventId }: UseDrawLiveSoundPar
         });
 
         if (!soundEnabled) {
-            void primeAudioEngine();
+            void (async () => {
+                await primeAudioEngine();
+                if (eventId && phase !== 'idle') {
+                    await tryStartTrack(eventId);
+                }
+            })();
         }
-    }, [primeAudioEngine, soundEnabled, stopCurrentTrack]);
+    }, [eventId, phase, primeAudioEngine, soundEnabled, stopCurrentTrack, tryStartTrack]);
 
     useEffect(() => {
         try {
@@ -542,8 +569,11 @@ export default function useDrawLiveSound({ phase, eventId }: UseDrawLiveSoundPar
                     return;
                 }
 
-                if (eventId && phase !== 'idle' && playingEventIdRef.current !== eventId) {
-                    void playPromptTimelineTrack(eventId);
+                const activeEventId = pendingEventIdRef.current
+                    || (eventId && phase !== 'idle' ? eventId : null);
+
+                if (activeEventId) {
+                    await tryStartTrack(activeEventId);
                 }
             })();
         };
@@ -557,7 +587,7 @@ export default function useDrawLiveSound({ phase, eventId }: UseDrawLiveSoundPar
             window.removeEventListener('touchstart', unlock);
             window.removeEventListener('keydown', unlock);
         };
-    }, [ensureEngine, eventId, phase, playPromptTimelineTrack, soundEnabled, stopCurrentTrack]);
+    }, [ensureEngine, eventId, phase, soundEnabled, stopCurrentTrack, tryStartTrack]);
 
     useEffect(() => {
         if (!soundEnabled || !eventId) {
@@ -568,12 +598,8 @@ export default function useDrawLiveSound({ phase, eventId }: UseDrawLiveSoundPar
             return;
         }
 
-        if (playingEventIdRef.current === eventId) {
-            return;
-        }
-
-        void playPromptTimelineTrack(eventId);
-    }, [eventId, phase, playPromptTimelineTrack, soundEnabled]);
+        void tryStartTrack(eventId);
+    }, [eventId, phase, soundEnabled, tryStartTrack]);
 
     useEffect(() => {
         if (!soundEnabled) {
