@@ -1,0 +1,287 @@
+'use client';
+
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { LogOut } from 'lucide-react';
+import { ToastState } from '@/features/vote/common/types';
+import ToastBanner from '@/features/vote/common/ToastBanner';
+import AdminLoginScreen from '@/features/admin/components/AdminLoginScreen';
+import AdminSidebar from '@/features/admin/components/AdminSidebar';
+import AdminDashboardSection from '@/features/admin/components/AdminDashboardSection';
+import AdminStudentsSection from '@/features/admin/components/AdminStudentsSection';
+import StudentDeleteModal from '@/features/admin/components/StudentDeleteModal';
+import StudentHistoryModal from '@/features/admin/components/StudentHistoryModal';
+import VoteEditorSection from '@/features/admin/components/VoteEditorSection';
+import VoteDetailsModal from '@/features/admin/components/VoteDetailsModal';
+import useAdminAuth from '@/features/admin/hooks/useAdminAuth';
+import useStudentManagement from '@/features/admin/hooks/useStudentManagement';
+import useVoteManagement from '@/features/admin/hooks/useVoteManagement';
+
+export default function AdminPageClient() {
+    const {
+        isAuthenticated,
+        id,
+        setId,
+        pw,
+        setPw,
+        error,
+        handleLogin,
+        handleLogout: baseHandleLogout
+    } = useAdminAuth();
+    const [view, setView] = useState('DASHBOARD');
+    const [toast, setToast] = useState<ToastState>(null);
+    const toastTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+    const showToast = useCallback((message: string, kind: 'error' | 'info' = 'error') => {
+        setToast({ message, kind });
+
+        if (toastTimerRef.current) {
+            clearTimeout(toastTimerRef.current);
+        }
+
+        toastTimerRef.current = setTimeout(() => {
+            setToast(null);
+            toastTimerRef.current = null;
+        }, 5000);
+    }, []);
+
+    const {
+        dashboardFilter,
+        setDashboardFilter,
+        votes,
+        selectedVote,
+        voteRecords,
+        showDetailsModal,
+        setShowDetailsModal,
+        detailsVote,
+        counts,
+        voteStats,
+        formData,
+        setFormData,
+        fetchVotes,
+        fetchVoteDetails: fetchVoteDetailsRaw,
+        toggleValidity: toggleValidityRaw,
+        handlePin,
+        getStatus,
+        getRemainingTime,
+        startCreate: prepareCreate,
+        startEdit: prepareEdit,
+        handleSave: saveVote,
+        handleDelete: deleteVote,
+        handleEarlyEnd,
+        removeOption
+    } = useVoteManagement(isAuthenticated);
+
+    const {
+        students,
+        studentIdInput,
+        setStudentIdInput,
+        studentSearch,
+        setStudentSearch,
+        selectedStudent,
+        studentHistory,
+        showStudentModal,
+        setShowStudentModal,
+        showDeleteModal,
+        setShowDeleteModal,
+        deleteTarget,
+        setDeleteTarget,
+        forceVoteData,
+        setForceVoteData,
+        fetchStudents,
+        handleAddStudent,
+        handleToggleSuspend,
+        handleDeleteStudent,
+        executeDeleteStudent,
+        handleResetStudentVotes,
+        handleDeleteRecord,
+        handleForceAddVote,
+        handleStudentDetails,
+        patchStudentHistoryValidity
+    } = useStudentManagement({ onVotesChanged: fetchVotes });
+
+    useEffect(() => {
+        return () => {
+            if (toastTimerRef.current) {
+                clearTimeout(toastTimerRef.current);
+                toastTimerRef.current = null;
+            }
+        };
+    }, []);
+
+    useEffect(() => {
+        if (showDetailsModal || showStudentModal || showDeleteModal) {
+            document.body.style.overflow = 'hidden';
+        } else {
+            document.body.style.overflow = 'unset';
+        }
+
+        return () => {
+            document.body.style.overflow = 'unset';
+        };
+    }, [showDetailsModal, showStudentModal, showDeleteModal]);
+
+    const handleLogout = () => {
+        baseHandleLogout();
+        setView('DASHBOARD');
+    };
+
+    const fetchVoteDetails = useCallback(async (vote: any) => {
+        await fetchVoteDetailsRaw(vote, setForceVoteData);
+    }, [fetchVoteDetailsRaw, setForceVoteData]);
+
+    const toggleValidity = useCallback(async (recordId: string, currentStatus: boolean) => {
+        await toggleValidityRaw(recordId, currentStatus, patchStudentHistoryValidity);
+    }, [patchStudentHistoryValidity, toggleValidityRaw]);
+
+    const startCreate = useCallback(() => {
+        prepareCreate();
+        setView('CREATE');
+    }, [prepareCreate]);
+
+    const startEdit = useCallback((vote: any) => {
+        prepareEdit(vote);
+        setView('EDIT');
+    }, [prepareEdit]);
+
+    const handleSave = useCallback(async () => {
+        await saveVote(view, showToast, () => setView('DASHBOARD'));
+    }, [saveVote, showToast, view]);
+
+    const handleDelete = useCallback(async () => {
+        await deleteVote(() => setView('DASHBOARD'));
+    }, [deleteVote]);
+
+    const runForceAddVote = useCallback(async () => {
+        await handleForceAddVote({
+            showDetailsModal,
+            detailsVote,
+            refreshVoteDetails: fetchVoteDetails
+        });
+    }, [detailsVote, fetchVoteDetails, handleForceAddVote, showDetailsModal]);
+
+    if (!isAuthenticated) {
+        return (
+            <AdminLoginScreen
+                id={id}
+                pw={pw}
+                error={error}
+                onIdChange={setId}
+                onPwChange={setPw}
+                onSubmit={handleLogin}
+            />
+        );
+    }
+
+    return (
+        <div className="h-screen overflow-hidden bg-gray-50 flex">
+            <AdminSidebar
+                view={view}
+                setView={setView}
+                fetchStudents={fetchStudents}
+                startCreate={startCreate}
+                votes={votes}
+                selectedVote={selectedVote}
+                startEdit={startEdit}
+                getStatus={getStatus}
+                onLogout={handleLogout}
+            />
+
+            <div className="flex-1 h-full overflow-y-auto relative bg-gray-50">
+                <div className="sticky top-0 z-30 flex justify-end p-4 sm:p-6 pointer-events-none">
+                    <button
+                        onClick={handleLogout}
+                        className="pointer-events-auto inline-flex items-center gap-2 rounded-xl border border-red-200 bg-white px-4 py-2 text-sm font-semibold text-red-600 shadow-sm transition hover:bg-red-50"
+                    >
+                        <LogOut size={16} />
+                        로그아웃
+                    </button>
+                </div>
+
+                {view === 'DASHBOARD' && (
+                    <AdminDashboardSection
+                        votes={votes}
+                        dashboardFilter={dashboardFilter}
+                        setDashboardFilter={setDashboardFilter}
+                        counts={counts}
+                        voteStats={voteStats}
+                        getStatus={getStatus}
+                        getRemainingTime={getRemainingTime}
+                        handlePin={handlePin}
+                        fetchVoteDetails={fetchVoteDetails}
+                        startEdit={startEdit}
+                        handleEarlyEnd={handleEarlyEnd}
+                    />
+                )}
+
+                {view === 'STUDENTS' && (
+                    <>
+                        <AdminStudentsSection
+                            students={students}
+                            studentIdInput={studentIdInput}
+                            setStudentIdInput={setStudentIdInput}
+                            studentSearch={studentSearch}
+                            setStudentSearch={setStudentSearch}
+                            handleAddStudent={handleAddStudent}
+                            handleResetStudentVotes={handleResetStudentVotes}
+                            handleStudentDetails={handleStudentDetails}
+                            handleToggleSuspend={handleToggleSuspend}
+                            handleDeleteStudent={handleDeleteStudent}
+                        />
+                        <StudentDeleteModal
+                            showDeleteModal={showDeleteModal}
+                            deleteTarget={deleteTarget}
+                            executeDeleteStudent={executeDeleteStudent}
+                            setShowDeleteModal={setShowDeleteModal}
+                            setDeleteTarget={setDeleteTarget}
+                        />
+                        <StudentHistoryModal
+                            showStudentModal={showStudentModal}
+                            selectedStudent={selectedStudent}
+                            studentHistory={studentHistory}
+                            setShowStudentModal={setShowStudentModal}
+                            forceVoteData={forceVoteData}
+                            setForceVoteData={setForceVoteData}
+                            votes={votes}
+                            getStatus={getStatus}
+                            handleForceAddVote={runForceAddVote}
+                            toggleValidity={toggleValidity}
+                            handleDeleteRecord={handleDeleteRecord}
+                            handleStudentDetails={handleStudentDetails}
+                        />
+                    </>
+                )}
+
+                <VoteEditorSection
+                    view={view}
+                    selectedVote={selectedVote}
+                    getStatus={getStatus}
+                    fetchVoteDetails={fetchVoteDetails}
+                    formData={formData}
+                    setFormData={setFormData}
+                    removeOption={removeOption}
+                    handleDelete={handleDelete}
+                    handleSave={handleSave}
+                    setView={setView}
+                />
+
+                <VoteDetailsModal
+                    showDetailsModal={showDetailsModal}
+                    detailsVote={detailsVote}
+                    setShowDetailsModal={setShowDetailsModal}
+                    forceVoteData={forceVoteData}
+                    setForceVoteData={setForceVoteData}
+                    handleForceAddVote={runForceAddVote}
+                    voteRecords={voteRecords}
+                    toggleValidity={toggleValidity}
+                    handleDeleteRecord={handleDeleteRecord}
+                    fetchVoteDetails={fetchVoteDetails}
+                />
+            </div>
+
+            <ToastBanner
+                toast={toast}
+                positionClassName="fixed left-1/2 top-4 z-[80] w-[calc(100%-2rem)] max-w-sm -translate-x-1/2 sm:left-auto sm:right-6 sm:top-6 sm:w-auto sm:min-w-[360px] sm:max-w-[460px] sm:translate-x-0"
+            />
+        </div>
+    );
+}
