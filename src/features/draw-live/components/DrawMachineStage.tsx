@@ -108,7 +108,7 @@ export default function DrawMachineStage({
 
                 return prev + 1;
             });
-        }, 260);
+        }, 1000);
 
         return () => {
             clearInterval(timer);
@@ -156,11 +156,10 @@ export default function DrawMachineStage({
                     role="switch"
                     aria-checked={soundEnabled}
                     onClick={onToggleSound}
-                    className={`rounded-xl border px-3 py-2 text-sm font-bold transition-colors ${
-                        soundEnabled
-                            ? 'border-blue-300 bg-blue-50 text-blue-700'
-                            : 'border-gray-200 bg-white text-gray-600'
-                    }`}
+                    className={`rounded-xl border px-3 py-2 text-sm font-bold transition-colors ${soundEnabled
+                        ? 'border-blue-300 bg-blue-50 text-blue-700'
+                        : 'border-gray-200 bg-white text-gray-600'
+                        }`}
                 >
                     효과음 {soundEnabled ? 'ON' : 'OFF'}
                 </button>
@@ -178,10 +177,6 @@ export default function DrawMachineStage({
             </div>
 
             <div className={`draw-machine-stage relative mx-auto h-[440px] w-full max-w-4xl overflow-hidden rounded-2xl border border-blue-100 ${isCinematic ? 'cinematic' : ''}`}>
-                <div className={`draw-cinema-bars ${isCinematic || isReveal ? 'show' : ''}`}>
-                    <span className="draw-cinema-bar top" />
-                    <span className="draw-cinema-bar bottom" />
-                </div>
                 <div className={`draw-lens-flare ${isCinematic ? 'show' : ''} ${isReveal ? 'reveal' : ''}`} />
                 <div className={`draw-stage-vignette ${isStageActive ? 'show' : ''}`} />
                 <div className={`draw-stage-spotlight ${isCinematic ? 'show' : ''}`} />

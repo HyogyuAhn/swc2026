@@ -4,7 +4,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { DrawAnimationPhase } from '@/features/draw-live/types';
 
 const LIVE_SOUND_STORAGE_KEY = 'draw_live_tension_sound_enabled';
-const ACTIVE_PHASES: DrawAnimationPhase[] = ['announce', 'mixing', 'ball', 'paper'];
+const TRACK_TOTAL_MS = 15000;
 
 type UseDrawLiveSoundParams = {
     phase: DrawAnimationPhase;
@@ -14,7 +14,8 @@ type UseDrawLiveSoundParams = {
 type AudioEngine = {
     context: AudioContext;
     masterGain: GainNode;
-    tensionBus: GainNode;
+    musicBus: GainNode;
+    sfxBus: GainNode;
     noiseBuffer: AudioBuffer;
 };
 
@@ -27,148 +28,85 @@ const createAudioEngine = (): AudioEngine => {
     }
 
     const context = new ContextClass();
-    const masterGain = context.createGain();
-    masterGain.gain.value = 0.18;
-    masterGain.connect(context.destination);
 
-    const tensionBus = context.createGain();
-    tensionBus.gain.value = 0;
-    tensionBus.connect(masterGain);
-    const noiseLength = Math.floor(context.sampleRate * 0.16);
+    const compressor = context.createDynamicsCompressor();
+    compressor.threshold.value = -14;
+    compressor.knee.value = 20;
+    compressor.ratio.value = 4.2;
+    compressor.attack.value = 0.01;
+    compressor.release.value = 0.24;
+    compressor.connect(context.destination);
+
+    const masterGain = context.createGain();
+    masterGain.gain.value = 0.42;
+    masterGain.connect(compressor);
+
+    const musicBus = context.createGain();
+    musicBus.gain.value = 0.18;
+    musicBus.connect(masterGain);
+
+    const sfxBus = context.createGain();
+    sfxBus.gain.value = 0.52;
+    sfxBus.connect(masterGain);
+
+    const noiseLength = Math.floor(context.sampleRate * 2.2);
     const noiseBuffer = context.createBuffer(1, noiseLength, context.sampleRate);
     const noiseData = noiseBuffer.getChannelData(0);
     for (let i = 0; i < noiseLength; i += 1) {
-        const decay = 1 - i / noiseLength;
-        noiseData[i] = (Math.random() * 2 - 1) * decay;
+        noiseData[i] = Math.random() * 2 - 1;
     }
 
     return {
         context,
         masterGain,
-        tensionBus,
+        musicBus,
+        sfxBus,
         noiseBuffer
     };
+};
+
+type TrackedNode = {
+    stop: () => void;
+};
+
+const stopTrackedNode = (tracked: TrackedNode) => {
+    try {
+        tracked.stop();
+    } catch {
+        // no-op
+    }
 };
 
 export default function useDrawLiveSound({ phase, eventId }: UseDrawLiveSoundParams) {
     const [soundEnabled, setSoundEnabled] = useState(false);
     const engineRef = useRef<AudioEngine | null>(null);
-    const rhythmTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
-    const rhythmTimeoutsRef = useRef<ReturnType<typeof setTimeout>[]>([]);
-    const stingerPlayedForRef = useRef<string | null>(null);
+    const activeNodesRef = useRef<TrackedNode[]>([]);
+    const activeTimersRef = useRef<ReturnType<typeof setTimeout>[]>([]);
+    const playingEventIdRef = useRef<string | null>(null);
 
-    const clearRhythmTimers = useCallback(() => {
-        if (rhythmTimerRef.current) {
-            clearInterval(rhythmTimerRef.current);
-            rhythmTimerRef.current = null;
-        }
-
-        rhythmTimeoutsRef.current.forEach(timer => clearTimeout(timer));
-        rhythmTimeoutsRef.current = [];
+    const clearScheduledTimers = useCallback(() => {
+        activeTimersRef.current.forEach(timer => clearTimeout(timer));
+        activeTimersRef.current = [];
     }, []);
 
-    const playDrumHit = useCallback((engine: AudioEngine, options?: {
-        intensity?: number;
-        pitch?: number;
-        target?: 'tension' | 'master';
-    }) => {
-        const intensity = options?.intensity ?? 1;
-        const pitch = options?.pitch ?? 1;
-        const target = options?.target ?? 'tension';
-        const targetBus = target === 'master' ? engine.masterGain : engine.tensionBus;
-        const now = engine.context.currentTime;
-        const body = engine.context.createOscillator();
-        const bodyGain = engine.context.createGain();
+    const stopCurrentTrack = useCallback(() => {
+        clearScheduledTimers();
+        activeNodesRef.current.forEach(stopTrackedNode);
+        activeNodesRef.current = [];
+        playingEventIdRef.current = null;
 
-        body.type = 'triangle';
-        body.frequency.setValueAtTime(190 * pitch, now);
-        body.frequency.exponentialRampToValueAtTime(58 * pitch, now + 0.22);
-        bodyGain.gain.setValueAtTime(0.0001, now);
-        bodyGain.gain.exponentialRampToValueAtTime(0.16 * intensity, now + 0.01);
-        bodyGain.gain.exponentialRampToValueAtTime(0.0001, now + 0.23);
-        body.connect(bodyGain);
-        bodyGain.connect(targetBus);
-        body.start(now);
-        body.stop(now + 0.24);
-
-        const sub = engine.context.createOscillator();
-        const subGain = engine.context.createGain();
-        sub.type = 'sine';
-        sub.frequency.setValueAtTime(94 * pitch, now);
-        sub.frequency.exponentialRampToValueAtTime(42 * pitch, now + 0.24);
-        subGain.gain.setValueAtTime(0.0001, now);
-        subGain.gain.exponentialRampToValueAtTime(0.1 * intensity, now + 0.015);
-        subGain.gain.exponentialRampToValueAtTime(0.0001, now + 0.26);
-        sub.connect(subGain);
-        subGain.connect(targetBus);
-        sub.start(now);
-        sub.stop(now + 0.28);
-
-        const noise = engine.context.createBufferSource();
-        noise.buffer = engine.noiseBuffer;
-        const noiseFilter = engine.context.createBiquadFilter();
-        noiseFilter.type = 'bandpass';
-        noiseFilter.frequency.setValueAtTime(880 * pitch, now);
-        noiseFilter.Q.setValueAtTime(0.8, now);
-        const noiseGain = engine.context.createGain();
-        noiseGain.gain.setValueAtTime(0.0001, now);
-        noiseGain.gain.exponentialRampToValueAtTime(0.03 * intensity, now + 0.008);
-        noiseGain.gain.exponentialRampToValueAtTime(0.0001, now + 0.085);
-        noise.connect(noiseFilter);
-        noiseFilter.connect(noiseGain);
-        noiseGain.connect(targetBus);
-        noise.start(now);
-        noise.stop(now + 0.1);
-    }, []);
-
-    const playRumbleSweep = useCallback((engine: AudioEngine) => {
-        const now = engine.context.currentTime;
-        const osc = engine.context.createOscillator();
-        const gain = engine.context.createGain();
-
-        osc.type = 'sawtooth';
-        osc.frequency.setValueAtTime(84, now);
-        osc.frequency.exponentialRampToValueAtTime(132, now + 0.22);
-
-        gain.gain.setValueAtTime(0.0001, now);
-        gain.gain.exponentialRampToValueAtTime(0.018, now + 0.03);
-        gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.24);
-
-        osc.connect(gain);
-        gain.connect(engine.tensionBus);
-        osc.start(now);
-        osc.stop(now + 0.26);
-    }, []);
-
-    const startRhythm = useCallback((engine: AudioEngine) => {
-        if (rhythmTimerRef.current) {
+        const engine = engineRef.current;
+        if (!engine) {
             return;
         }
 
-        const runPattern = () => {
-            const pattern = [
-                { at: 0, intensity: 0.92, pitch: 1.08 },
-                { at: 116, intensity: 0.72, pitch: 0.94 },
-                { at: 244, intensity: 1.0, pitch: 1.05 },
-                { at: 378, intensity: 0.78, pitch: 0.9 }
-            ];
-
-            pattern.forEach(step => {
-                const timer = setTimeout(() => {
-                    playDrumHit(engine, { intensity: step.intensity, pitch: step.pitch });
-                }, step.at);
-                rhythmTimeoutsRef.current.push(timer);
-            });
-
-            const sweepTimer = setTimeout(() => {
-                playRumbleSweep(engine);
-            }, 162);
-            rhythmTimeoutsRef.current.push(sweepTimer);
-        };
-
-        runPattern();
-        rhythmTimerRef.current = setInterval(runPattern, 980);
-    }, [playDrumHit, playRumbleSweep]);
+        const now = engine.context.currentTime;
+        engine.musicBus.gain.cancelScheduledValues(now);
+        engine.sfxBus.gain.cancelScheduledValues(now);
+        engine.masterGain.gain.cancelScheduledValues(now);
+        engine.musicBus.gain.setValueAtTime(0, now);
+        engine.sfxBus.gain.setValueAtTime(0, now);
+    }, [clearScheduledTimers]);
 
     const ensureEngine = useCallback(async () => {
         if (!engineRef.current) {
@@ -187,80 +125,366 @@ export default function useDrawLiveSound({ phase, eventId }: UseDrawLiveSoundPar
             try {
                 await engineRef.current.context.resume();
             } catch {
-                // Browser blocked resume without interaction.
+                // blocked by browser policy
             }
         }
 
         return engineRef.current;
     }, []);
 
-    const setTensionActive = useCallback(async (active: boolean) => {
-        const engine = engineRef.current;
-        if (!active) {
-            clearRhythmTimers();
-            if (!engine) {
-                return;
+    const trackOscillator = useCallback((
+        engine: AudioEngine,
+        bus: GainNode,
+        type: OscillatorType,
+        freqStart: number,
+        startAt: number,
+        duration: number,
+        opts?: {
+            freqEnd?: number;
+            peakGain?: number;
+            attack?: number;
+            release?: number;
+            qFilter?: { type: BiquadFilterType; freq: number; q?: number };
+        }
+    ) => {
+        const osc = engine.context.createOscillator();
+        const gain = engine.context.createGain();
+        let targetBus: AudioNode = bus;
+
+        osc.type = type;
+        osc.frequency.setValueAtTime(freqStart, startAt);
+        if (opts?.freqEnd && opts.freqEnd !== freqStart) {
+            osc.frequency.exponentialRampToValueAtTime(Math.max(1, opts.freqEnd), startAt + duration);
+        }
+
+        if (opts?.qFilter) {
+            const filter = engine.context.createBiquadFilter();
+            filter.type = opts.qFilter.type;
+            filter.frequency.setValueAtTime(opts.qFilter.freq, startAt);
+            filter.Q.setValueAtTime(opts.qFilter.q ?? 0.8, startAt);
+            gain.connect(filter);
+            filter.connect(bus);
+            targetBus = filter;
+        }
+
+        const attack = opts?.attack ?? 0.02;
+        const release = opts?.release ?? Math.min(0.18, duration * 0.6);
+        const peak = opts?.peakGain ?? 0.1;
+
+        gain.gain.setValueAtTime(0.0001, startAt);
+        gain.gain.exponentialRampToValueAtTime(Math.max(0.0002, peak), startAt + attack);
+        gain.gain.exponentialRampToValueAtTime(0.0001, startAt + Math.max(attack + 0.01, duration - release));
+        gain.gain.exponentialRampToValueAtTime(0.0001, startAt + duration);
+
+        osc.connect(gain);
+        if (targetBus === bus) {
+            gain.connect(bus);
+        }
+
+        osc.start(startAt);
+        osc.stop(startAt + duration + 0.02);
+
+        activeNodesRef.current.push({
+            stop: () => {
+                osc.stop();
+                osc.disconnect();
+                gain.disconnect();
             }
+        });
+    }, []);
 
-            const now = engine.context.currentTime;
-            engine.tensionBus.gain.cancelScheduledValues(now);
-            engine.tensionBus.gain.setTargetAtTime(0, now, 0.08);
-            return;
+    const trackNoise = useCallback((
+        engine: AudioEngine,
+        bus: GainNode,
+        startAt: number,
+        duration: number,
+        opts?: {
+            filterType?: BiquadFilterType;
+            freq?: number;
+            q?: number;
+            peakGain?: number;
+            attack?: number;
+            release?: number;
+            playbackRate?: number;
+            freqSweepTo?: number;
+        }
+    ) => {
+        const source = engine.context.createBufferSource();
+        source.buffer = engine.noiseBuffer;
+        source.playbackRate.setValueAtTime(opts?.playbackRate ?? 1, startAt);
+
+        const filter = engine.context.createBiquadFilter();
+        filter.type = opts?.filterType ?? 'bandpass';
+        filter.frequency.setValueAtTime(opts?.freq ?? 900, startAt);
+        filter.Q.setValueAtTime(opts?.q ?? 1, startAt);
+        if (opts?.freqSweepTo) {
+            filter.frequency.exponentialRampToValueAtTime(Math.max(1, opts.freqSweepTo), startAt + duration);
         }
 
-        const runningEngine = await ensureEngine();
-        if (!runningEngine) {
-            return;
-        }
-        const now = runningEngine.context.currentTime;
-        runningEngine.tensionBus.gain.cancelScheduledValues(now);
-        runningEngine.tensionBus.gain.setTargetAtTime(1, now, 0.06);
-        startRhythm(runningEngine);
-    }, [clearRhythmTimers, ensureEngine, startRhythm]);
+        const gain = engine.context.createGain();
+        const attack = opts?.attack ?? 0.01;
+        const release = opts?.release ?? Math.min(0.12, duration * 0.7);
+        const peak = opts?.peakGain ?? 0.09;
 
-    const playRevealStinger = useCallback(async () => {
+        gain.gain.setValueAtTime(0.0001, startAt);
+        gain.gain.exponentialRampToValueAtTime(Math.max(0.0002, peak), startAt + attack);
+        gain.gain.exponentialRampToValueAtTime(0.0001, startAt + Math.max(attack + 0.01, duration - release));
+        gain.gain.exponentialRampToValueAtTime(0.0001, startAt + duration);
+
+        source.connect(filter);
+        filter.connect(gain);
+        gain.connect(bus);
+
+        source.start(startAt);
+        source.stop(startAt + duration + 0.02);
+
+        activeNodesRef.current.push({
+            stop: () => {
+                source.stop();
+                source.disconnect();
+                filter.disconnect();
+                gain.disconnect();
+            }
+        });
+    }, []);
+
+    const scheduleImpact = useCallback((engine: AudioEngine, at: number, pitch = 1, power = 1) => {
+        trackOscillator(engine, engine.sfxBus, 'triangle', 130 * pitch, at, 0.52, {
+            freqEnd: 42 * pitch,
+            peakGain: 0.28 * power,
+            attack: 0.008,
+            release: 0.34
+        });
+        trackOscillator(engine, engine.sfxBus, 'sine', 82 * pitch, at, 0.58, {
+            freqEnd: 30 * pitch,
+            peakGain: 0.22 * power,
+            attack: 0.01,
+            release: 0.38
+        });
+        trackNoise(engine, engine.sfxBus, at, 0.16, {
+            filterType: 'bandpass',
+            freq: 1200 * pitch,
+            q: 0.75,
+            peakGain: 0.14 * power
+        });
+    }, [trackNoise, trackOscillator]);
+
+    const playPromptTimelineTrack = useCallback(async (eventIdToPlay: string) => {
         const engine = await ensureEngine();
         if (!engine) {
             return;
         }
 
+        stopCurrentTrack();
+        playingEventIdRef.current = eventIdToPlay;
+
         const now = engine.context.currentTime + 0.02;
-        playDrumHit(engine, { intensity: 1.08, pitch: 1.08, target: 'master' });
+        const introEnd = now + 1.1;
+        const mixingEnd = now + 3.9;
+        const extractionEnd = now + 6.7;
+        const silenceEnd = now + 8.6;
+        const numbersEnd = now + 12.6;
+        const finaleEnd = now + 15.0;
 
-        const notes = [784, 1046, 1318, 1760];
-        notes.forEach((frequency, index) => {
-            const startAt = now + index * 0.11;
-            const osc = engine.context.createOscillator();
-            const gain = engine.context.createGain();
-            osc.type = index % 2 === 0 ? 'triangle' : 'sine';
-            osc.frequency.setValueAtTime(frequency, startAt);
+        engine.musicBus.gain.setValueAtTime(0.0001, now);
+        engine.musicBus.gain.exponentialRampToValueAtTime(0.22, introEnd - 0.08);
+        engine.musicBus.gain.exponentialRampToValueAtTime(0.32, extractionEnd - 0.05);
+        engine.musicBus.gain.exponentialRampToValueAtTime(0.0001, extractionEnd + 0.18);
+        engine.musicBus.gain.setValueAtTime(0.0001, silenceEnd);
+        engine.musicBus.gain.exponentialRampToValueAtTime(0.34, numbersEnd + 0.2);
+        engine.musicBus.gain.exponentialRampToValueAtTime(0.0001, finaleEnd);
 
-            gain.gain.setValueAtTime(0.0001, startAt);
-            gain.gain.exponentialRampToValueAtTime(0.055, startAt + 0.018);
-            gain.gain.exponentialRampToValueAtTime(0.0001, startAt + 0.42);
+        engine.sfxBus.gain.setValueAtTime(0.0001, now);
+        engine.sfxBus.gain.exponentialRampToValueAtTime(0.62, introEnd + 0.1);
+        engine.sfxBus.gain.exponentialRampToValueAtTime(0.74, extractionEnd);
+        engine.sfxBus.gain.exponentialRampToValueAtTime(0.06, extractionEnd + 0.2);
+        engine.sfxBus.gain.exponentialRampToValueAtTime(0.66, silenceEnd + 0.04);
+        engine.sfxBus.gain.exponentialRampToValueAtTime(0.78, numbersEnd);
+        engine.sfxBus.gain.exponentialRampToValueAtTime(0.08, finaleEnd);
 
-            osc.connect(gain);
-            gain.connect(engine.masterGain);
-            osc.start(startAt);
-            osc.stop(startAt + 0.46);
+        // [0.0 - 1.1] Intro
+        trackOscillator(engine, engine.musicBus, 'sawtooth', 52, now, 1.1, {
+            freqEnd: 110,
+            peakGain: 0.16,
+            attack: 0.05,
+            release: 0.32
+        });
+        trackOscillator(engine, engine.musicBus, 'triangle', 78, now + 0.1, 0.96, {
+            freqEnd: 166,
+            peakGain: 0.1,
+            attack: 0.06,
+            release: 0.2
+        });
+        for (let i = 0; i < 4; i += 1) {
+            scheduleImpact(engine, now + i * 0.24, 0.74 + i * 0.04, 0.5 + i * 0.08);
+        }
+
+        // [1.1 - 3.9] Mixing & Tension (du-gu-du-gu + machine)
+        const beatBase = introEnd;
+        for (let t = beatBase; t < mixingEnd; t += 0.56) {
+            scheduleImpact(engine, t, 0.94, 0.88);
+            scheduleImpact(engine, t + 0.17, 1.0, 0.74);
+        }
+        trackNoise(engine, engine.sfxBus, introEnd, 2.8, {
+            filterType: 'bandpass',
+            freq: 720,
+            freqSweepTo: 1460,
+            q: 0.7,
+            peakGain: 0.13,
+            attack: 0.05,
+            release: 0.18,
+            playbackRate: 1.08
+        });
+        for (let t = introEnd + 0.08; t < mixingEnd; t += 0.22) {
+            trackNoise(engine, engine.sfxBus, t, 0.08, {
+                filterType: 'bandpass',
+                freq: 1100 + (Math.random() * 420),
+                q: 1.2,
+                peakGain: 0.1
+            });
+        }
+        trackOscillator(engine, engine.musicBus, 'sawtooth', 140, introEnd, 2.8, {
+            freqEnd: 250,
+            peakGain: 0.13,
+            attack: 0.06,
+            release: 0.3
         });
 
-        const sparkle = engine.context.createBufferSource();
-        sparkle.buffer = engine.noiseBuffer;
-        const sparkleFilter = engine.context.createBiquadFilter();
-        sparkleFilter.type = 'highpass';
-        sparkleFilter.frequency.setValueAtTime(2200, now);
-        const sparkleGain = engine.context.createGain();
-        sparkleGain.gain.setValueAtTime(0.0001, now);
-        sparkleGain.gain.exponentialRampToValueAtTime(0.032, now + 0.02);
-        sparkleGain.gain.exponentialRampToValueAtTime(0.0001, now + 0.3);
+        // [3.9 - 6.7] Extraction peak
+        trackOscillator(engine, engine.musicBus, 'sawtooth', 210, mixingEnd, 2.8, {
+            freqEnd: 1640,
+            peakGain: 0.18,
+            attack: 0.03,
+            release: 0.16,
+            qFilter: { type: 'highpass', freq: 170, q: 0.7 }
+        });
+        trackNoise(engine, engine.musicBus, mixingEnd + 0.02, 2.6, {
+            filterType: 'bandpass',
+            freq: 860,
+            freqSweepTo: 3200,
+            q: 0.8,
+            peakGain: 0.11,
+            attack: 0.06,
+            release: 0.1
+        });
+        scheduleImpact(engine, mixingEnd + 1.54, 1.08, 1.0); // clonk
+        trackNoise(engine, engine.sfxBus, mixingEnd + 1.6, 0.58, {
+            filterType: 'bandpass',
+            freq: 420,
+            freqSweepTo: 2200,
+            q: 0.9,
+            peakGain: 0.2,
+            attack: 0.02,
+            release: 0.32,
+            playbackRate: 1.24
+        }); // whoosh through tube
 
-        sparkle.connect(sparkleFilter);
-        sparkleFilter.connect(sparkleGain);
-        sparkleGain.connect(engine.masterGain);
-        sparkle.start(now);
-        sparkle.stop(now + 0.34);
-    }, [ensureEngine, playDrumHit]);
+        // [6.7 - 8.6] Click + paper + dramatic silence
+        trackNoise(engine, engine.sfxBus, extractionEnd, 0.055, {
+            filterType: 'highpass',
+            freq: 2400,
+            q: 1.1,
+            peakGain: 0.24,
+            attack: 0.002,
+            release: 0.02
+        }); // plastic click
+        trackNoise(engine, engine.sfxBus, extractionEnd + 0.08, 0.44, {
+            filterType: 'bandpass',
+            freq: 1600,
+            freqSweepTo: 780,
+            q: 0.65,
+            peakGain: 0.22,
+            attack: 0.02,
+            release: 0.28,
+            playbackRate: 0.88
+        }); // paper tear/unfold
+        trackOscillator(engine, engine.musicBus, 'sine', 420, extractionEnd + 0.14, 0.9, {
+            freqEnd: 300,
+            peakGain: 0.024,
+            attack: 0.18,
+            release: 0.5
+        }); // faint eerie tail
+
+        // [8.6 - 12.6] Numbers (three impacts + snare roll)
+        scheduleImpact(engine, silenceEnd, 0.98, 1.18);
+        scheduleImpact(engine, silenceEnd + 1.0, 1.09, 1.2);
+        scheduleImpact(engine, silenceEnd + 2.0, 1.21, 1.3);
+
+        let snareAt = silenceEnd + 2.0;
+        let interval = 0.24;
+        while (snareAt < numbersEnd) {
+            trackNoise(engine, engine.sfxBus, snareAt, 0.055, {
+                filterType: 'highpass',
+                freq: 2600,
+                q: 0.8,
+                peakGain: 0.17,
+                attack: 0.004,
+                release: 0.03
+            });
+            snareAt += interval;
+            interval = Math.max(0.055, interval * 0.9);
+        }
+
+        // [12.6 - 15.0] Grand finale
+        const fanfareStart = numbersEnd;
+        const fanfareNotes: Array<{ freq: number; dur: number; at: number; gain: number }> = [
+            { freq: 392, dur: 1.2, at: 0, gain: 0.09 },
+            { freq: 494, dur: 1.2, at: 0, gain: 0.08 },
+            { freq: 587, dur: 1.2, at: 0, gain: 0.075 },
+            { freq: 523, dur: 1.15, at: 0.46, gain: 0.085 },
+            { freq: 659, dur: 1.15, at: 0.46, gain: 0.078 },
+            { freq: 784, dur: 1.15, at: 0.46, gain: 0.074 }
+        ];
+        fanfareNotes.forEach(note => {
+            trackOscillator(engine, engine.musicBus, 'sawtooth', note.freq, fanfareStart + note.at, note.dur, {
+                freqEnd: note.freq * 1.01,
+                peakGain: note.gain,
+                attack: 0.02,
+                release: 0.32,
+                qFilter: { type: 'bandpass', freq: 950, q: 0.7 }
+            });
+        });
+
+        for (let t = fanfareStart + 0.12; t < finaleEnd - 0.2; t += 0.2) {
+            trackNoise(engine, engine.sfxBus, t, 0.07, {
+                filterType: 'highpass',
+                freq: 1800 + Math.random() * 1200,
+                q: 0.7,
+                peakGain: 0.14,
+                attack: 0.003,
+                release: 0.04
+            }); // confetti pops
+        }
+
+        // crowd cheer/applause (noise shaped)
+        trackNoise(engine, engine.sfxBus, fanfareStart + 0.04, 2.2, {
+            filterType: 'bandpass',
+            freq: 780,
+            freqSweepTo: 420,
+            q: 0.5,
+            peakGain: 0.3,
+            attack: 0.06,
+            release: 0.5,
+            playbackRate: 0.62
+        });
+        for (let t = fanfareStart + 0.2; t < finaleEnd - 0.1; t += 0.18) {
+            trackNoise(engine, engine.sfxBus, t, 0.09, {
+                filterType: 'highpass',
+                freq: 1400,
+                q: 0.65,
+                peakGain: 0.08,
+                attack: 0.004,
+                release: 0.05
+            }); // applause claps
+        }
+
+        const endTimer = setTimeout(() => {
+            if (playingEventIdRef.current === eventIdToPlay) {
+                stopCurrentTrack();
+            }
+        }, TRACK_TOTAL_MS + 120);
+        activeTimersRef.current.push(endTimer);
+    }, [ensureEngine, scheduleImpact, stopCurrentTrack, trackNoise, trackOscillator]);
 
     const toggleSoundEnabled = useCallback(() => {
         setSoundEnabled(prev => {
@@ -268,7 +492,7 @@ export default function useDrawLiveSound({ phase, eventId }: UseDrawLiveSoundPar
             try {
                 window.localStorage.setItem(LIVE_SOUND_STORAGE_KEY, next ? '1' : '0');
             } catch {
-                // Ignore storage errors.
+                // ignore
             }
             return next;
         });
@@ -285,20 +509,7 @@ export default function useDrawLiveSound({ phase, eventId }: UseDrawLiveSoundPar
 
     useEffect(() => {
         if (!soundEnabled) {
-            setTensionActive(false);
-            return;
-        }
-
-        if (ACTIVE_PHASES.includes(phase)) {
-            void setTensionActive(true);
-            return;
-        }
-
-        void setTensionActive(false);
-    }, [phase, setTensionActive, soundEnabled]);
-
-    useEffect(() => {
-        if (!soundEnabled) {
+            stopCurrentTrack();
             return;
         }
 
@@ -313,36 +524,50 @@ export default function useDrawLiveSound({ phase, eventId }: UseDrawLiveSoundPar
             window.removeEventListener('pointerdown', unlock);
             window.removeEventListener('keydown', unlock);
         };
-    }, [ensureEngine, soundEnabled]);
+    }, [ensureEngine, soundEnabled, stopCurrentTrack]);
 
     useEffect(() => {
-        if (!soundEnabled || phase !== 'reveal' || !eventId) {
+        if (!soundEnabled || !eventId) {
             return;
         }
 
-        if (stingerPlayedForRef.current === eventId) {
+        if (phase !== 'announce') {
             return;
         }
 
-        stingerPlayedForRef.current = eventId;
-        void playRevealStinger();
-    }, [eventId, phase, playRevealStinger, soundEnabled]);
+        if (playingEventIdRef.current === eventId) {
+            return;
+        }
+
+        void playPromptTimelineTrack(eventId);
+    }, [eventId, phase, playPromptTimelineTrack, soundEnabled]);
+
+    useEffect(() => {
+        if (!soundEnabled) {
+            return;
+        }
+
+        if (phase === 'idle' && !eventId) {
+            stopCurrentTrack();
+        }
+    }, [eventId, phase, soundEnabled, stopCurrentTrack]);
 
     useEffect(() => {
         return () => {
-            clearRhythmTimers();
+            stopCurrentTrack();
 
             const engine = engineRef.current;
             if (!engine) {
                 return;
             }
 
-            engine.tensionBus.disconnect();
+            engine.musicBus.disconnect();
+            engine.sfxBus.disconnect();
             engine.masterGain.disconnect();
             void engine.context.close();
             engineRef.current = null;
         };
-    }, [clearRhythmTimers]);
+    }, [stopCurrentTrack]);
 
     return {
         soundEnabled,

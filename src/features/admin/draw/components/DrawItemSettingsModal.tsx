@@ -43,12 +43,12 @@ export default function DrawItemSettingsModal({
         <div className="fixed inset-0 z-[97] flex items-center justify-center px-4">
             <button
                 type="button"
-                className="absolute inset-0 bg-black/45"
+                className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm transition-opacity"
                 onClick={onClose}
                 aria-label="항목 설정 닫기"
             />
 
-            <div className="relative w-full max-w-2xl rounded-2xl border border-gray-200 bg-white p-6 shadow-2xl">
+            <div className="relative w-full max-w-lg overflow-hidden rounded-[28px] border border-white/60 bg-white/95 p-8 shadow-[0_24px_60px_-15px_rgba(0,0,0,0.1)] backdrop-blur-xl transition-all">
                 <button
                     type="button"
                     onClick={onClose}
@@ -58,42 +58,41 @@ export default function DrawItemSettingsModal({
                     <X size={18} />
                 </button>
 
-                <h3 className="text-xl font-bold text-gray-900">항목 설정</h3>
-                <p className="mt-1 text-sm text-gray-500">이름, 개수, 공개 범위를 수정할 수 있습니다.</p>
+                <h3 className="text-2xl font-extrabold tracking-tight text-gray-900">항목 설정</h3>
+                <p className="mt-2 text-sm text-gray-500">이름, 개수, 공개 범위를 수정할 수 있습니다.</p>
 
                 <div className="mt-5 space-y-4">
                     <label className="text-sm">
-                        <span className="mb-1.5 block font-semibold text-gray-700">당첨 항목 이름</span>
+                        <span className="mb-2 block font-bold text-gray-700">당첨 항목 이름</span>
                         <input
                             type="text"
-                            className="w-full rounded-xl border border-gray-200 bg-gray-50 px-3 py-2.5 transition focus:border-blue-300 focus:bg-white focus:outline-none"
+                            className="w-full rounded-2xl border border-gray-200 bg-gray-50/50 px-4 py-3.5 text-base font-medium transition focus:border-blue-500 focus:bg-white focus:outline-none focus:ring-4 focus:ring-blue-500/10"
                             value={name}
                             onChange={event => onNameChange(event.target.value)}
                         />
                     </label>
 
                     <label className="text-sm">
-                        <span className="mb-1.5 block font-semibold text-gray-700">당첨 개수</span>
+                        <span className="mb-2 block font-bold text-gray-700">당첨 개수</span>
                         <input
                             type="number"
                             min={1}
-                            className="w-full rounded-xl border border-gray-200 bg-gray-50 px-3 py-2.5 transition focus:border-blue-300 focus:bg-white focus:outline-none"
+                            className="w-full rounded-2xl border border-gray-200 bg-gray-50/50 px-4 py-3.5 text-base font-medium transition focus:border-blue-500 focus:bg-white focus:outline-none focus:ring-4 focus:ring-blue-500/10"
                             value={quota}
                             onChange={event => onQuotaChange(event.target.value)}
                         />
                     </label>
 
-                    <div className="rounded-xl border border-gray-200 bg-gray-50 p-3">
-                        <p className="mb-2 text-xs font-bold text-gray-600">옵션</p>
-                        <div className="space-y-2">
+                    <div className="rounded-2xl border border-gray-200 bg-gray-50/30 p-4">
+                        <p className="mb-3 text-xs font-bold uppercase tracking-wider text-gray-500">옵션 설정</p>
+                        <div className="space-y-2.5">
                             <button
                                 type="button"
                                 onClick={() => onAllowDuplicateChange(!allowDuplicate)}
-                                className={`${optionCardClass} w-full ${
-                                    allowDuplicate
-                                        ? 'border-emerald-200 bg-emerald-50 text-emerald-800'
-                                        : 'border-gray-200 bg-white text-gray-600 hover:bg-gray-50'
-                                }`}
+                                className={`${optionCardClass} w-full rounded-xl ${allowDuplicate
+                                        ? 'border-emerald-200 bg-emerald-50 text-emerald-900 shadow-[0_2px_10px_-3px_rgba(16,185,129,0.15)]'
+                                        : 'border-gray-200 bg-white text-gray-600 hover:border-gray-300 hover:bg-gray-50 hover:shadow-sm'
+                                    }`}
                             >
                                 <div className="flex items-center justify-between gap-2">
                                     <span className="text-sm font-bold">중복 당첨 허용</span>
@@ -107,11 +106,10 @@ export default function DrawItemSettingsModal({
                             <button
                                 type="button"
                                 onClick={() => onRealtimePublicChange(!isRealtimePublic)}
-                                className={`${optionCardClass} w-full ${
-                                    isRealtimePublic
-                                        ? 'border-blue-200 bg-blue-50 text-blue-800'
-                                        : 'border-gray-200 bg-white text-gray-600 hover:bg-gray-50'
-                                }`}
+                                className={`${optionCardClass} w-full rounded-xl ${isRealtimePublic
+                                        ? 'border-blue-200 bg-blue-50 text-blue-900 shadow-[0_2px_10px_-3px_rgba(59,130,246,0.15)]'
+                                        : 'border-gray-200 bg-white text-gray-600 hover:border-gray-300 hover:bg-gray-50 hover:shadow-sm'
+                                    }`}
                             >
                                 <div className="flex items-center justify-between gap-2">
                                     <span className="text-sm font-bold">실시간 당첨자 공개</span>
@@ -125,11 +123,10 @@ export default function DrawItemSettingsModal({
                             <button
                                 type="button"
                                 onClick={() => onRecentPublicChange(!isRecentPublic)}
-                                className={`${optionCardClass} w-full ${
-                                    isRecentPublic
-                                        ? 'border-indigo-200 bg-indigo-50 text-indigo-800'
-                                        : 'border-gray-200 bg-white text-gray-600 hover:bg-gray-50'
-                                }`}
+                                className={`${optionCardClass} w-full rounded-xl ${isRecentPublic
+                                        ? 'border-indigo-200 bg-indigo-50 text-indigo-900 shadow-[0_2px_10px_-3px_rgba(99,102,241,0.15)]'
+                                        : 'border-gray-200 bg-white text-gray-600 hover:border-gray-300 hover:bg-gray-50 hover:shadow-sm'
+                                    }`}
                             >
                                 <div className="flex items-center justify-between gap-2">
                                     <span className="text-sm font-bold">최근 당첨 결과 공개</span>
@@ -143,11 +140,11 @@ export default function DrawItemSettingsModal({
                     </div>
                 </div>
 
-                <div className="mt-6 flex justify-end gap-2">
+                <div className="mt-8 flex justify-end gap-3">
                     <button
                         type="button"
                         onClick={onClose}
-                        className="rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm font-bold text-gray-600 hover:bg-gray-50"
+                        className="rounded-xl border border-gray-200 bg-white px-5 py-2.5 text-sm font-bold text-gray-700 transition hover:bg-gray-50 hover:text-gray-900 focus:outline-none focus:ring-4 focus:ring-gray-100"
                     >
                         취소
                     </button>
@@ -155,7 +152,7 @@ export default function DrawItemSettingsModal({
                         type="button"
                         onClick={onSave}
                         disabled={disabled}
-                        className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-bold text-white hover:bg-blue-700 disabled:cursor-not-allowed disabled:bg-gray-300"
+                        className="rounded-xl bg-blue-600 px-6 py-2.5 text-sm font-bold text-white shadow-sm transition hover:bg-blue-700 focus:outline-none focus:ring-4 focus:ring-blue-500/20 disabled:cursor-not-allowed disabled:bg-gray-300"
                     >
                         저장
                     </button>

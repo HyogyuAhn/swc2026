@@ -26,12 +26,12 @@ export default function DrawLiveSettingsModal({
         <div className="fixed inset-0 z-[97] flex items-center justify-center px-4">
             <button
                 type="button"
-                className="absolute inset-0 bg-black/45"
+                className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm transition-opacity"
                 onClick={onClose}
                 aria-label="라이브 설정 닫기"
             />
 
-            <div className="relative w-full max-w-2xl rounded-2xl border border-gray-200 bg-white p-5 shadow-2xl">
+            <div className="relative w-full max-w-lg overflow-hidden rounded-[28px] border border-white/60 bg-white/95 p-8 shadow-[0_24px_60px_-15px_rgba(0,0,0,0.1)] backdrop-blur-xl transition-all">
                 <button
                     type="button"
                     onClick={onClose}
@@ -41,12 +41,12 @@ export default function DrawLiveSettingsModal({
                     <X size={18} />
                 </button>
 
-                <h3 className="mb-4 flex items-center gap-2 text-lg font-bold text-gray-900">
-                    <Settings2 size={18} />
+                <h3 className="mb-6 flex items-center gap-3 text-2xl font-extrabold tracking-tight text-gray-900">
+                    <Settings2 size={24} className="text-blue-500" />
                     라이브 설정
                 </h3>
 
-                <div className="space-y-3">
+                <div className="space-y-4">
                     <FormToggleSetting
                         checked={livePageEnabled}
                         title="라이브 페이지 공개"
@@ -62,11 +62,11 @@ export default function DrawLiveSettingsModal({
                     />
                 </div>
 
-                <div className="mt-4 flex justify-end">
+                <div className="mt-8 flex justify-end">
                     <button
                         type="button"
                         onClick={onClose}
-                        className="rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm font-bold text-gray-600 hover:bg-gray-50"
+                        className="rounded-xl border border-gray-200 bg-white px-5 py-2.5 text-sm font-bold text-gray-700 transition hover:bg-gray-50 hover:text-gray-900 focus:outline-none focus:ring-4 focus:ring-gray-100"
                     >
                         닫기
                     </button>

@@ -57,7 +57,7 @@ export default function useDrawLiveFeed() {
     const kickoffTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
     const queueRef = useRef<DrawLiveEventRecord[]>([]);
     const startNextQueuedEventRef = useRef<() => boolean>(() => false);
-    const runTimelineRef = useRef<() => void>(() => {});
+    const runTimelineRef = useRef<() => void>(() => { });
     const phaseRef = useRef<DrawAnimationPhase>('idle');
     const currentEventRef = useRef<DrawLiveEventRecord | null>(null);
 
@@ -153,7 +153,7 @@ export default function useDrawLiveFeed() {
 
             setPhase('idle');
             setCurrentEvent(null);
-        }, 11800));
+        }, 15000));
     }, [clearTimers, loadRecentWinners, settings.show_recent_winners]);
 
     const startNextQueuedEventWithTimeline = useCallback(() => {

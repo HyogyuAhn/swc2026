@@ -268,72 +268,72 @@ export default function DrawManagementSection({
         <div className="mx-auto max-w-6xl px-10 pb-10 pt-4">
             <div className="mb-6">
                 <div>
-                    <h2 className="text-3xl font-bold text-gray-800">추첨 관리</h2>
-                    <p className="mt-1 text-sm text-gray-500">활성 번호를 기준으로 항목별 추첨/수정/삭제를 관리합니다.</p>
+                    <h2 className="text-3xl font-extrabold tracking-tight text-gray-900">추첨 관리</h2>
+                    <p className="mt-2 text-sm font-medium text-gray-500">활성 번호를 기준으로 항목별 추첨/수정/삭제를 관리합니다.</p>
                 </div>
             </div>
 
-            <div className="mb-8 grid grid-cols-1 gap-3 md:grid-cols-3">
-                <div className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm">
-                    <div className="mb-3 flex items-center gap-2 text-gray-900">
-                        <div className="rounded-lg bg-blue-50 p-2 text-blue-700">
-                            <Plus size={16} />
+            <div className="mb-8 grid grid-cols-1 gap-4 md:grid-cols-3">
+                <div className="group relative flex flex-col justify-between overflow-hidden rounded-[24px] border border-gray-200 bg-white p-6 shadow-sm transition-all hover:-translate-y-1 hover:border-blue-300 hover:shadow-md">
+                    <div className="mb-5 flex items-start gap-3 text-gray-900">
+                        <div className="rounded-xl bg-blue-50 p-3 text-blue-600 transition-colors group-hover:bg-blue-100 group-hover:text-blue-700">
+                            <Plus size={20} />
                         </div>
                         <div>
-                            <p className="text-sm font-bold">추첨 항목 추가</p>
-                            <p className="text-xs text-gray-500">새 항목 이름/개수/공개 옵션을 설정합니다.</p>
+                            <p className="text-base font-extrabold tracking-tight">추첨 항목 추가</p>
+                            <p className="mt-1 text-xs font-medium text-gray-500">새 항목 이름/개수/공개 옵션을 설정합니다.</p>
                         </div>
                     </div>
                     <button
                         type="button"
                         onClick={() => setShowCreateModal(true)}
-                        className="inline-flex items-center justify-center rounded-xl bg-blue-600 px-4 py-2 text-sm font-bold text-white hover:bg-blue-700"
+                        className="inline-flex w-full items-center justify-center rounded-xl bg-gray-50 px-4 py-2.5 text-sm font-bold text-gray-700 transition-all group-hover:bg-blue-600 group-hover:text-white group-hover:shadow-sm"
                     >
                         항목 추가
                     </button>
                 </div>
 
-                <div className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm">
-                    <div className="mb-3 flex items-center gap-2 text-gray-900">
-                        <div className="rounded-lg bg-indigo-50 p-2 text-indigo-700">
-                            <Settings2 size={16} />
+                <div className="group relative flex flex-col justify-between overflow-hidden rounded-[24px] border border-gray-200 bg-white p-6 shadow-sm transition-all hover:-translate-y-1 hover:border-indigo-300 hover:shadow-md">
+                    <div className="mb-5 flex items-start gap-3 text-gray-900">
+                        <div className="rounded-xl bg-indigo-50 p-3 text-indigo-600 transition-colors group-hover:bg-indigo-100 group-hover:text-indigo-700">
+                            <Settings2 size={20} />
                         </div>
                         <div>
-                            <p className="text-sm font-bold">라이브 설정</p>
-                            <p className="text-xs text-gray-500">페이지 공개 및 최근 결과 노출 범위를 관리합니다.</p>
+                            <p className="text-base font-extrabold tracking-tight">라이브 설정</p>
+                            <p className="mt-1 text-xs font-medium text-gray-500">페이지 공개 및 최근 결과 노출 범위를 관리합니다.</p>
                         </div>
                     </div>
-                    <div className="mb-3 flex flex-wrap items-center gap-2 text-[11px] font-bold">
-                        <span className={`rounded-full px-2 py-1 ${settings.live_page_enabled ? 'bg-emerald-100 text-emerald-700' : 'bg-gray-100 text-gray-600'}`}>
-                            라이브 페이지 {settings.live_page_enabled ? 'ON' : 'OFF'}
+                    <div className="mb-4 flex flex-wrap items-center gap-2 text-[11px] font-bold">
+                        <span className={`rounded-full px-2.5 py-1 ${settings.live_page_enabled ? 'bg-emerald-100 text-emerald-800' : 'bg-gray-100 text-gray-600'}`}>
+                            라이브 {settings.live_page_enabled ? 'ON' : 'OFF'}
                         </span>
-                        <span className={`rounded-full px-2 py-1 ${settings.show_recent_winners ? 'bg-blue-100 text-blue-700' : 'bg-gray-100 text-gray-600'}`}>
+                        <span className={`rounded-full px-2.5 py-1 ${settings.show_recent_winners ? 'bg-indigo-100 text-indigo-800' : 'bg-gray-100 text-gray-600'}`}>
                             최근 결과 {settings.show_recent_winners ? 'ON' : 'OFF'}
                         </span>
                     </div>
                     <button
                         type="button"
                         onClick={() => setShowLiveSettingsModal(true)}
-                        className="inline-flex items-center justify-center rounded-xl border border-gray-200 bg-white px-3 py-1.5 text-xs font-bold text-gray-700 hover:bg-gray-50"
+                        className="inline-flex w-full items-center justify-center rounded-xl bg-gray-50 px-4 py-2.5 text-sm font-bold text-gray-700 transition-all hover:bg-gray-100 group-hover:bg-indigo-50 group-hover:text-indigo-700"
                     >
                         설정 열기
                     </button>
                 </div>
 
-                <div className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm">
-                    <div className="mb-3 flex items-center gap-2 text-gray-900">
-                        <div className="rounded-lg bg-violet-50 p-2 text-violet-700">
-                            <Settings2 size={16} />
+                <div className="group relative flex flex-col justify-between overflow-hidden rounded-[24px] border border-violet-100 bg-violet-50/30 p-6 shadow-sm transition-all hover:-translate-y-1 hover:border-violet-300 hover:bg-violet-50 hover:shadow-md">
+                    <div className="mb-5 flex items-start gap-3 text-gray-900">
+                        <div className="rounded-xl bg-violet-100 p-3 text-violet-600 transition-colors group-hover:bg-violet-200 group-hover:text-violet-700">
+                            <Settings2 size={20} />
                         </div>
                         <div>
-                            <p className="text-sm font-bold">연속 뽑기</p>
-                            <p className="text-xs text-gray-500">여러 항목을 원하는 순서로 연속 추첨합니다.</p>
+                            <p className="text-base font-extrabold tracking-tight">연속 뽑기</p>
+                            <p className="mt-1 text-xs font-medium text-gray-500">여러 항목을 원하는 순서로 연속 추첨합니다.</p>
                         </div>
                     </div>
                     <button
                         type="button"
                         onClick={openSequenceModal}
-                        className="inline-flex items-center justify-center rounded-xl border border-violet-200 bg-violet-50 px-3 py-1.5 text-xs font-bold text-violet-700 hover:bg-violet-100"
+                        className="inline-flex w-full items-center justify-center rounded-xl bg-violet-100 px-4 py-2.5 text-sm font-bold text-violet-700 transition-all hover:bg-violet-200 group-hover:bg-violet-600 group-hover:text-white group-hover:shadow-sm"
                     >
                         연속 뽑기 설정
                     </button>

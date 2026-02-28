@@ -41,7 +41,7 @@ export default function DrawLivePageClient() {
                             soundEnabled={soundEnabled}
                             onToggleSound={toggleSoundEnabled}
                         />
-                        {settings.show_recent_winners && (
+                        {settings.show_recent_winners && phase === 'idle' && (
                             <DrawRecentWinners
                                 winners={recentWinners}
                                 studentNumberById={studentNumberById}
