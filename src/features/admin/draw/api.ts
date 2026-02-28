@@ -21,6 +21,7 @@ const parseRpcResult = (raw: any): DrawPickResult => {
             ok: false,
             message: 'RPC 응답 형식이 올바르지 않습니다.',
             winner_student_id: null,
+            remaining_after: null,
             forced: false
         };
     }
