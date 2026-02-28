@@ -37,6 +37,14 @@ export async function fetchStudentVotes(studentId: string) {
         .eq('student_id', studentId);
 }
 
+export async function deleteStudentVote(voteId: string, studentId: string) {
+    return supabase
+        .from('vote_records')
+        .delete()
+        .eq('vote_id', voteId)
+        .eq('student_id', studentId);
+}
+
 type UpsertVoteRecordParams = {
     voteId: string;
     studentId: string;

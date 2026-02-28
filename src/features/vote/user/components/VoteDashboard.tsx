@@ -18,6 +18,8 @@ type VoteDashboardProps = {
     toast: ToastState;
     handleLogout: () => void;
     handleVote: (vote: any) => void;
+    handleCancelVote: (vote: any) => void;
+    getVoteEditCooldownRemaining: (voteId: string) => number;
     setSelectedOptionForVote: (voteId: string, optionId: string) => void;
     getVoteStatus: (vote: any) => VoteStatus;
     getRemainingTime: (endDate: string | Date) => string | null;
@@ -36,6 +38,8 @@ export default function VoteDashboard({
     toast,
     handleLogout,
     handleVote,
+    handleCancelVote,
+    getVoteEditCooldownRemaining,
     setSelectedOptionForVote,
     getVoteStatus,
     getRemainingTime
@@ -66,6 +70,8 @@ export default function VoteDashboard({
                                 totalStudents={totalStudents}
                                 onSelectOption={setSelectedOptionForVote}
                                 onVote={handleVote}
+                                onCancelVote={handleCancelVote}
+                                cooldownRemainingSeconds={getVoteEditCooldownRemaining(vote.id)}
                                 getVoteStatus={getVoteStatus}
                                 getRemainingTime={getRemainingTime}
                             />

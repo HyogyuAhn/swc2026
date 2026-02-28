@@ -217,6 +217,19 @@ export default function VoteEditorSection({
                         />
 
                         <FormToggleSetting
+                            checked={formData.allowVoteChangeWhileActive}
+                            title="진행 중 투표 항목 수정 허용"
+                            description={
+                                <>
+                                    체크 시 참여자가 진행 중인 투표에서 기존 선택을 다른 항목으로 수정할 수 있습니다.
+                                    {!canEditAllowVoteChangeWhileActive && ' (시작 전/진행 중 상태에서만 변경 가능)'}
+                                </>
+                            }
+                            onChange={checked => setFormData({ ...formData, allowVoteChangeWhileActive: checked })}
+                            disabled={!canEditAllowVoteChangeWhileActive}
+                        />
+
+                        <FormToggleSetting
                             checked={formData.showBeforeStartOptions}
                             title="투표 시작전 항목 공개"
                             description={
@@ -228,19 +241,6 @@ export default function VoteEditorSection({
                             }
                             onChange={checked => setFormData({ ...formData, showBeforeStartOptions: checked })}
                             disabled={!canEditShowBeforeStartOptions}
-                        />
-
-                        <FormToggleSetting
-                            checked={formData.allowVoteChangeWhileActive}
-                            title="진행 중 투표 항목 수정 허용"
-                            description={
-                                <>
-                                    체크 시 참여자가 진행 중인 투표에서 기존 선택을 다른 항목으로 수정할 수 있습니다.
-                                    {!canEditAllowVoteChangeWhileActive && ' (시작 전/진행 중 상태에서만 변경 가능)'}
-                                </>
-                            }
-                            onChange={checked => setFormData({ ...formData, allowVoteChangeWhileActive: checked })}
-                            disabled={!canEditAllowVoteChangeWhileActive}
                         />
 
                         <FormToggleSetting

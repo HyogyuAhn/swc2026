@@ -19,11 +19,12 @@ export default function VoteCardHeader({
     remainingTime
 }: VoteCardHeaderProps) {
     const characterConfig = STATUS_CHARACTER_CONFIG[status];
+
     const characterVisualClass = status === 'ACTIVE'
-        ? 'scale-[1.24] -translate-y-[2px] sm:scale-[1.28]'
+        ? 'scale-[1.16] sm:scale-[1.22]'
         : status === 'UPCOMING'
-            ? 'scale-[1.36] -translate-y-[1px] sm:scale-[1.42]'
-            : 'scale-[1.42] -translate-y-[8px] sm:scale-[1.5] sm:-translate-y-[10px]';
+            ? 'scale-[1.34] sm:scale-[1.4]'
+            : 'scale-[1.3] sm:scale-[1.36]';
 
     const statusBadgeClass = status === 'ACTIVE'
         ? 'bg-green-100 text-green-700'
@@ -63,19 +64,39 @@ export default function VoteCardHeader({
         </div>
     );
 
-    const character = (
-        <div
-            className={`relative overflow-hidden ${
-                status === 'ACTIVE'
-                    ? 'h-[92px] w-[124px] sm:h-[126px] sm:w-[176px]'
-                    : 'h-[92px] w-[124px] sm:h-[124px] sm:w-[168px]'
-            }`}
-        >
+    const activeCharacterMobile = (
+        <div className="relative h-[96px] w-[132px] overflow-visible">
             <Image
                 src={characterConfig.src}
                 alt={characterConfig.alt}
                 fill
-                sizes={status === 'ACTIVE' ? '(max-width: 640px) 124px, 176px' : '(max-width: 640px) 124px, 168px'}
+                sizes="132px"
+                className={`object-contain select-none ${characterVisualClass}`}
+                style={{ objectPosition: characterConfig.objectPosition }}
+            />
+        </div>
+    );
+
+    const activeCharacterDesktop = (
+        <div className="relative h-[122px] w-[176px] overflow-visible">
+            <Image
+                src={characterConfig.src}
+                alt={characterConfig.alt}
+                fill
+                sizes="176px"
+                className={`object-contain select-none ${characterVisualClass}`}
+                style={{ objectPosition: characterConfig.objectPosition }}
+            />
+        </div>
+    );
+
+    const inactiveCharacter = (
+        <div className="relative h-[108px] w-[142px] sm:h-[146px] sm:w-[194px] overflow-visible">
+            <Image
+                src={characterConfig.src}
+                alt={characterConfig.alt}
+                fill
+                sizes="(max-width: 640px) 142px, 194px"
                 className={`object-contain select-none ${characterVisualClass}`}
                 style={{ objectPosition: characterConfig.objectPosition }}
             />
@@ -85,34 +106,56 @@ export default function VoteCardHeader({
     return (
         <div className="p-5 sm:p-6 border-b border-gray-100">
             {status === 'ACTIVE' ? (
-                <div className="grid grid-cols-[minmax(0,1fr)_124px_auto] items-start gap-2 sm:grid-cols-[minmax(0,1fr)_176px_auto] sm:gap-4">
-                    <div className="min-w-0">
-                        {badges}
-                        <h2 className="text-2xl font-bold text-gray-900 leading-tight">{vote.title}</h2>
-                    </div>
-
-                    {remainingTime && (
-                        <div className="text-right shrink-0 justify-self-end">
-                            <div className="text-xs text-blue-600 font-bold mb-1">남은 시간</div>
-                            <div className="text-lg font-mono font-bold text-blue-900 bg-blue-50 px-3 py-1 rounded-lg">
-                                {remainingTime}
+                <>
+                    <div className="sm:hidden">
+                        <div className="flex items-start justify-between gap-3">
+                            <div className="min-w-0">
+                                {badges}
+                                <h2 className="text-2xl font-bold text-gray-900 leading-tight">{vote.title}</h2>
                             </div>
+                            {remainingTime && (
+                                <div className="text-right shrink-0">
+                                    <div className="text-xs text-blue-600 font-bold mb-1">남은 시간</div>
+                                    <div className="text-lg font-mono font-bold text-blue-900 bg-blue-50 px-3 py-1 rounded-lg">
+                                        {remainingTime}
+                                    </div>
+                                </div>
+                            )}
                         </div>
-                    )}
-
-                    <div className="col-start-2 row-start-1 flex justify-center self-start">
-                        {character}
+                        <div className="mt-2 flex justify-center">
+                            {activeCharacterMobile}
+                        </div>
                     </div>
-                </div>
+
+                    <div className="hidden sm:grid grid-cols-[minmax(0,1fr)_176px_auto] items-start gap-4">
+                        <div className="min-w-0">
+                            {badges}
+                            <h2 className="text-2xl font-bold text-gray-900 leading-tight">{vote.title}</h2>
+                        </div>
+
+                        <div className="flex justify-center self-start">
+                            {activeCharacterDesktop}
+                        </div>
+
+                        {remainingTime && (
+                            <div className="text-right shrink-0 justify-self-end">
+                                <div className="text-xs text-blue-600 font-bold mb-1">남은 시간</div>
+                                <div className="text-lg font-mono font-bold text-blue-900 bg-blue-50 px-3 py-1 rounded-lg">
+                                    {remainingTime}
+                                </div>
+                            </div>
+                        )}
+                    </div>
+                </>
             ) : (
-                <div className="grid grid-cols-[minmax(0,1fr)_auto] items-start gap-3 sm:gap-4">
+                <div className="flex items-start justify-between gap-3 sm:gap-5">
                     <div className="min-w-0">
                         {badges}
                         <h2 className="text-2xl font-bold text-gray-900 leading-tight">{vote.title}</h2>
                     </div>
 
-                    <div className="justify-self-end self-start">
-                        {character}
+                    <div className="shrink-0">
+                        {inactiveCharacter}
                     </div>
                 </div>
             )}

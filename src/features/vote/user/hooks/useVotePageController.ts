@@ -4,12 +4,40 @@ import { useCallback, useEffect, useMemo, useRef, useState, type FormEvent } fro
 import { ToastState } from '@/features/vote/common/types';
 import { supabase } from '@/lib/supabase';
 import {
+    deleteStudentVote,
     fetchStudentStatus,
     fetchStudentVotes,
     fetchVoteSnapshot,
     upsertVoteRecord
 } from '@/features/vote/user/api';
 import { getRemainingTime, getVisibleVotesByFilter, getVoteStatus } from '@/features/vote/user/utils';
+
+const EDIT_COOLDOWN_SECONDS = 30;
+const getCooldownStorageKey = (studentId: string) => `swc_vote_edit_cooldowns_${studentId}`;
+
+const parseCooldownMap = (rawValue: string | null, now = Date.now()) => {
+    if (!rawValue) {
+        return {};
+    }
+
+    try {
+        const parsed = JSON.parse(rawValue);
+        if (!parsed || typeof parsed !== 'object') {
+            return {};
+        }
+
+        const next = {};
+        Object.entries(parsed).forEach(([voteId, expiresAt]) => {
+            const expiry = Number(expiresAt);
+            if (Number.isFinite(expiry) && expiry > now) {
+                next[voteId] = expiry;
+            }
+        });
+        return next;
+    } catch {
+        return {};
+    }
+};
 
 const buildVoteCounts = (records: any[]) => {
     const counts = {};
@@ -41,6 +69,7 @@ export default function useVotePageController() {
 
     const [filter, setFilter] = useState('ALL');
     const [selectedOptions, setSelectedOptions] = useState<Record<string, string>>({});
+    const [voteEditCooldowns, setVoteEditCooldowns] = useState<Record<string, number>>({});
     const [loading, setLoading] = useState(true);
     const [currentTime, setCurrentTime] = useState(new Date());
     const [toast, setToast] = useState<ToastState>(null);
@@ -68,6 +97,7 @@ export default function useVotePageController() {
         setIsLoggedIn(false);
         setUserVotes(new Set<string>());
         setSelectedOptions({});
+        setVoteEditCooldowns({});
     }, []);
 
     const fetchVotesData = useCallback(async (currentId?: string | null) => {
@@ -180,6 +210,65 @@ export default function useVotePageController() {
         };
     }, [fetchVotesData, scheduleVotesRefresh]);
 
+    useEffect(() => {
+        if (!studentId) {
+            setVoteEditCooldowns({});
+            return;
+        }
+
+        const cooldowns = parseCooldownMap(localStorage.getItem(getCooldownStorageKey(studentId)));
+        setVoteEditCooldowns(cooldowns);
+    }, [studentId]);
+
+    useEffect(() => {
+        if (!studentId) {
+            return;
+        }
+
+        const hasCooldown = Object.keys(voteEditCooldowns).length > 0;
+        if (!hasCooldown) {
+            localStorage.removeItem(getCooldownStorageKey(studentId));
+            return;
+        }
+
+        localStorage.setItem(getCooldownStorageKey(studentId), JSON.stringify(voteEditCooldowns));
+    }, [studentId, voteEditCooldowns]);
+
+    useEffect(() => {
+        if (!studentId) {
+            return;
+        }
+
+        setVoteEditCooldowns(prev => {
+            const now = currentTime.getTime();
+            let changed = false;
+            const next = {};
+
+            Object.entries(prev).forEach(([voteId, expiresAt]) => {
+                if (expiresAt > now) {
+                    next[voteId] = expiresAt;
+                } else {
+                    changed = true;
+                }
+            });
+
+            if (!changed) {
+                return prev;
+            }
+
+            return next;
+        });
+    }, [currentTime, studentId]);
+
+    const getVoteEditCooldownRemaining = useCallback((voteId: string) => {
+        const expiresAt = voteEditCooldowns[voteId];
+        if (!expiresAt) {
+            return 0;
+        }
+
+        return Math.max(0, Math.ceil((expiresAt - currentTime.getTime()) / 1000));
+    }, [currentTime, voteEditCooldowns]);
+
     const filteredVotes = useMemo(() => {
         return getVisibleVotesByFilter(votes, filter, currentTime);
     }, [votes, filter, currentTime]);
@@ -226,6 +315,7 @@ export default function useVotePageController() {
         const selectedOption = selectedOptions[voteId];
         const canChangeVoteWhileActive = getVoteStatus(vote) === 'ACTIVE' && (vote.allow_vote_change_while_active ?? false);
         const alreadyVoted = userVotes.has(voteId);
+        const cooldownRemaining = getVoteEditCooldownRemaining(voteId);
 
         if (!selectedOption) {
             alert('투표 항목을 선택해주세요.');
@@ -234,6 +324,11 @@ export default function useVotePageController() {
 
         if (alreadyVoted && !canChangeVoteWhileActive) {
             alert('이미 참여한 투표입니다.');
+            return;
+        }
+
+        if (alreadyVoted && canChangeVoteWhileActive && cooldownRemaining > 0) {
+            alert(`${cooldownRemaining}초 뒤에 다시 수정할 수 있습니다.`);
             return;
         }
 
@@ -260,10 +355,62 @@ export default function useVotePageController() {
             return next;
         });
 
+        if (alreadyVoted && canChangeVoteWhileActive) {
+            setVoteEditCooldowns(prev => ({
+                ...prev,
+                [voteId]: Date.now() + (EDIT_COOLDOWN_SECONDS * 1000)
+            }));
+        }
+
         alert(alreadyVoted && canChangeVoteWhileActive ? '투표가 수정되었습니다!' : '투표완료!');
         await fetchVotesData(studentId || localStorage.getItem('swc_vote_student_id'));
         scheduleVotesRefresh(0);
-    }, [fetchVotesData, scheduleVotesRefresh, selectedOptions, studentId, userVotes]);
+    }, [fetchVotesData, getVoteEditCooldownRemaining, scheduleVotesRefresh, selectedOptions, studentId, userVotes]);
+
+    const handleCancelVote = useCallback(async (vote: any) => {
+        const voteId = vote.id;
+        const idToUse = studentId || localStorage.getItem('swc_vote_student_id');
+        const canChangeVoteWhileActive = getVoteStatus(vote) === 'ACTIVE' && (vote.allow_vote_change_while_active ?? false);
+
+        if (!idToUse || !userVotes.has(voteId) || !canChangeVoteWhileActive) {
+            return;
+        }
+
+        if (!confirm('선택한 투표를 취소하시겠습니까?')) {
+            return;
+        }
+
+        const { error } = await deleteStudentVote(voteId, idToUse);
+        if (error) {
+            alert(`투표 취소 실패: ${error.message}`);
+            return;
+        }
+
+        setUserVotes(prev => {
+            const next = new Set(prev);
+            next.delete(voteId);
+            return next;
+        });
+
+        setSelectedOptions(prev => {
+            const next = { ...prev };
+            delete next[voteId];
+            return next;
+        });
+
+        setVoteEditCooldowns(prev => {
+            if (!prev[voteId]) {
+                return prev;
+            }
+            const next = { ...prev };
+            delete next[voteId];
+            return next;
+        });
+
+        alert('투표가 취소되었습니다.');
+        await fetchVotesData(idToUse);
+        scheduleVotesRefresh(0);
+    }, [fetchVotesData, scheduleVotesRefresh, studentId, userVotes]);
 
     return {
         studentId,
@@ -284,6 +431,8 @@ export default function useVotePageController() {
         handleLogin,
         handleLogout,
         handleVote,
+        handleCancelVote,
+        getVoteEditCooldownRemaining,
         getVoteStatus,
         getRemainingTime
     };

@@ -12,6 +12,8 @@ type VoteCardProps = {
     totalStudents: number;
     onSelectOption: (voteId: string, optionId: string) => void;
     onVote: (vote: any) => void;
+    onCancelVote: (vote: any) => void;
+    cooldownRemainingSeconds: number;
     getVoteStatus: (vote: any) => VoteStatus;
     getRemainingTime: (endDate: string | Date) => string | null;
 };
@@ -24,6 +26,8 @@ export default function VoteCard({
     totalStudents,
     onSelectOption,
     onVote,
+    onCancelVote,
+    cooldownRemainingSeconds,
     getVoteStatus,
     getRemainingTime
 }: VoteCardProps) {
@@ -32,7 +36,8 @@ export default function VoteCard({
 
     const showOptionsBeforeStart = vote.show_before_start_options ?? true;
     const canChangeVoteWhileActive = status === 'ACTIVE' && (vote.allow_vote_change_while_active ?? false);
-    const canSubmitVote = status === 'ACTIVE' && (!isVoted || canChangeVoteWhileActive);
+    const isCooldownActive = isVoted && canChangeVoteWhileActive && cooldownRemainingSeconds > 0;
+    const canSubmitVote = status === 'ACTIVE' && (!isVoted || (canChangeVoteWhileActive && !isCooldownActive));
 
     const visibleResults =
         (status === 'ACTIVE' && vote.show_live_results) ||
@@ -87,12 +92,16 @@ export default function VoteCard({
 
                         <VoteCardVotingSection
                             vote={vote}
+                            status={status}
                             isVoted={isVoted}
                             canChangeVoteWhileActive={canChangeVoteWhileActive}
                             canSubmitVote={canSubmitVote}
+                            isCooldownActive={isCooldownActive}
+                            cooldownRemainingSeconds={cooldownRemainingSeconds}
                             selectedOption={selectedOption}
                             onSelectOption={onSelectOption}
                             onVote={onVote}
+                            onCancelVote={onCancelVote}
                         />
                     </div>
                 )}

@@ -24,6 +24,8 @@ export default function VotePageClient() {
         handleLogin,
         handleLogout,
         handleVote,
+        handleCancelVote,
+        getVoteEditCooldownRemaining,
         getVoteStatus,
         getRemainingTime
     } = useVotePageController();
@@ -55,6 +57,8 @@ export default function VotePageClient() {
             toast={toast}
             handleLogout={handleLogout}
             handleVote={handleVote}
+            handleCancelVote={handleCancelVote}
+            getVoteEditCooldownRemaining={getVoteEditCooldownRemaining}
             setSelectedOptionForVote={setSelectedOptionForVote}
             getVoteStatus={getVoteStatus}
             getRemainingTime={getRemainingTime}
