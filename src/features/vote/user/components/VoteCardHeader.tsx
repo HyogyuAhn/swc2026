@@ -39,41 +39,38 @@ export default function VoteCardHeader({
             : '종료됨';
 
     const badges = (
-        <div className="mb-2 space-y-1">
-            <div className="flex items-center gap-2 flex-wrap">
+        <div className="mb-2">
+            <div className="flex flex-nowrap items-center gap-2 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
                 {!!vote.is_pinned && (
-                    <span className="flex items-center gap-1 whitespace-nowrap text-xs font-bold text-indigo-700 bg-indigo-100 px-2.5 py-0.5 rounded-full ring-1 ring-indigo-200">
+                    <span className="flex shrink-0 items-center gap-1 whitespace-nowrap rounded-full bg-indigo-100 px-2.5 py-0.5 text-xs font-bold text-indigo-700 ring-1 ring-indigo-200">
                         <Pin size={14} className="fill-current" /> 고정됨
                     </span>
                 )}
-                <span className={`whitespace-nowrap px-2.5 py-0.5 rounded-full text-xs font-bold ${statusBadgeClass}`}>
+                <span className={`shrink-0 whitespace-nowrap rounded-full px-2.5 py-0.5 text-xs font-bold ${statusBadgeClass}`}>
                     {statusLabel}
                 </span>
                 {status === 'ENDED' && !isVoted && (
-                    <span className="flex items-center gap-1 whitespace-nowrap text-xs font-bold text-red-500 bg-red-50 px-2 py-0.5 rounded-full">
+                    <span className="flex shrink-0 items-center gap-1 whitespace-nowrap rounded-full bg-red-50 px-2 py-0.5 text-xs font-bold text-red-500">
                         <X size={10} /> 미참여
                     </span>
                 )}
-            </div>
-
-            {isVoted && (
-                <div className="flex items-center gap-2 flex-wrap">
-                    <span className="flex items-center gap-1 whitespace-nowrap text-xs font-bold text-blue-600 bg-blue-50 px-2 py-0.5 rounded-full">
+                {isVoted && (
+                    <span className="flex shrink-0 items-center gap-1 whitespace-nowrap rounded-full bg-blue-50 px-2 py-0.5 text-xs font-bold text-blue-600">
                         <CheckCircle size={10} /> 참여완료
                     </span>
-                    {status === 'ACTIVE' && (
-                        <span
-                            className={`whitespace-nowrap text-xs font-bold px-2 py-0.5 rounded-full ${
-                                canChangeVoteWhileActive
-                                    ? 'text-emerald-700 bg-emerald-50'
-                                    : 'text-gray-600 bg-gray-100'
-                            }`}
-                        >
-                            {canChangeVoteWhileActive ? '수정 가능' : '수정 불가'}
-                        </span>
-                    )}
-                </div>
-            )}
+                )}
+                {status === 'ACTIVE' && isVoted && (
+                    <span
+                        className={`shrink-0 whitespace-nowrap rounded-full px-2 py-0.5 text-xs font-bold ${
+                            canChangeVoteWhileActive
+                                ? 'bg-emerald-50 text-emerald-700'
+                                : 'bg-gray-100 text-gray-600'
+                        }`}
+                    >
+                        {canChangeVoteWhileActive ? '수정 가능' : '수정 불가'}
+                    </span>
+                )}
+            </div>
         </div>
     );
 

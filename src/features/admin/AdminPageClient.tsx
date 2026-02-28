@@ -12,9 +12,11 @@ import StudentDeleteModal from '@/features/admin/components/StudentDeleteModal';
 import StudentHistoryModal from '@/features/admin/components/StudentHistoryModal';
 import VoteEditorSection from '@/features/admin/components/VoteEditorSection';
 import VoteDetailsModal from '@/features/admin/components/VoteDetailsModal';
+import DrawManagementSection from '@/features/admin/draw/components/DrawManagementSection';
 import useAdminAuth from '@/features/admin/hooks/useAdminAuth';
 import useStudentManagement from '@/features/admin/hooks/useStudentManagement';
 import useVoteManagement from '@/features/admin/hooks/useVoteManagement';
+import useDrawManagement from '@/features/admin/draw/hooks/useDrawManagement';
 
 export default function AdminPageClient() {
     const {
@@ -27,11 +29,11 @@ export default function AdminPageClient() {
         handleLogin,
         handleLogout: baseHandleLogout
     } = useAdminAuth();
-    const [view, setView] = useState('DASHBOARD');
+    const [view, setView] = useState<'DASHBOARD' | 'STUDENTS' | 'DRAW' | 'CREATE' | 'EDIT'>('DASHBOARD');
     const [toast, setToast] = useState<ToastState>(null);
     const toastTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-    const showToast = useCallback((message: string, kind: 'error' | 'info' = 'error') => {
+    const showToast = useCallback((message: string, kind: 'error' | 'info' | 'success' = 'error') => {
         setToast({ message, kind });
 
         if (toastTimerRef.current) {
@@ -159,6 +161,8 @@ export default function AdminPageClient() {
         });
     }, [detailsVote, fetchVoteDetails, handleForceAddVote, showDetailsModal]);
 
+    const drawManagement = useDrawManagement(showToast, isAuthenticated);
+
     if (!isAuthenticated) {
         return (
             <AdminLoginScreen
@@ -249,6 +253,47 @@ export default function AdminPageClient() {
                             handleStudentDetails={handleStudentDetails}
                         />
                     </>
+                )}
+
+                {view === 'DRAW' && (
+                    <DrawManagementSection
+                        loading={drawManagement.loading}
+                        submitting={drawManagement.submitting}
+                        drawInProgressItemId={drawManagement.drawInProgressItemId}
+                        settings={drawManagement.settings}
+                        items={drawManagement.items}
+                        activeStudentIds={drawManagement.activeStudentIds}
+                        newItemName={drawManagement.newItemName}
+                        newItemQuota={drawManagement.newItemQuota}
+                        newItemAllowDuplicate={drawManagement.newItemAllowDuplicate}
+                        newItemPublic={drawManagement.newItemPublic}
+                        drawModeByItem={drawManagement.drawModeByItem}
+                        manualStudentByItem={drawManagement.manualStudentByItem}
+                        forceStudentByItem={drawManagement.forceStudentByItem}
+                        editingWinnerById={drawManagement.editingWinnerById}
+                        editingStudentByWinnerId={drawManagement.editingStudentByWinnerId}
+                        pendingAction={drawManagement.pendingAction}
+                        setNewItemName={drawManagement.setNewItemName}
+                        setNewItemQuota={drawManagement.setNewItemQuota}
+                        setNewItemAllowDuplicate={drawManagement.setNewItemAllowDuplicate}
+                        setNewItemPublic={drawManagement.setNewItemPublic}
+                        handleCreateItem={drawManagement.handleCreateItem}
+                        toggleDrawLiveEnabled={drawManagement.toggleDrawLiveEnabled}
+                        setModeForItem={drawManagement.setModeForItem}
+                        setManualStudentForItem={drawManagement.setManualStudentForItem}
+                        setForceStudentForItem={drawManagement.setForceStudentForItem}
+                        handleStartDraw={drawManagement.handleStartDraw}
+                        handleForceAdd={drawManagement.handleForceAdd}
+                        toggleItemPublic={drawManagement.toggleItemPublic}
+                        toggleItemAllowDuplicate={drawManagement.toggleItemAllowDuplicate}
+                        startEditWinner={drawManagement.startEditWinner}
+                        cancelEditWinner={drawManagement.cancelEditWinner}
+                        changeEditWinnerStudent={drawManagement.changeEditWinnerStudent}
+                        handleUpdateWinner={drawManagement.handleUpdateWinner}
+                        handleDeleteWinner={drawManagement.handleDeleteWinner}
+                        confirmPendingAction={drawManagement.confirmPendingAction}
+                        cancelPendingAction={drawManagement.cancelPendingAction}
+                    />
                 )}
 
                 <VoteEditorSection

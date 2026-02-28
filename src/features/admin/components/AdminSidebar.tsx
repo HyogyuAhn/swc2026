@@ -1,8 +1,8 @@
-import { LogOut, Plus, LayoutDashboard, Users } from 'lucide-react';
+import { LogOut, Plus, LayoutDashboard, Users, Trophy } from 'lucide-react';
 
 type AdminSidebarProps = {
-    view: string;
-    setView: (view: string) => void;
+    view: 'DASHBOARD' | 'STUDENTS' | 'DRAW' | 'CREATE' | 'EDIT';
+    setView: (view: 'DASHBOARD' | 'STUDENTS' | 'DRAW' | 'CREATE' | 'EDIT') => void;
     fetchStudents: () => void;
     startCreate: () => void;
     votes: any[];
@@ -44,6 +44,13 @@ export default function AdminSidebar({
                         ${view === 'STUDENTS' ? 'bg-blue-600 text-white shadow-md' : 'bg-gray-50 text-gray-600 hover:bg-gray-100'}`}
                 >
                     <Users size={18} /> 학번 관리
+                </button>
+                <button
+                    onClick={() => setView('DRAW')}
+                    className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl font-bold transition-all text-sm
+                        ${view === 'DRAW' ? 'bg-blue-600 text-white shadow-md' : 'bg-gray-50 text-gray-600 hover:bg-gray-100'}`}
+                >
+                    <Trophy size={18} /> 추첨 관리
                 </button>
             </div>
 
