@@ -60,10 +60,22 @@ export default function useDrawLiveFeed() {
     const runTimelineRef = useRef<() => void>(() => { });
     const phaseRef = useRef<DrawAnimationPhase>('idle');
     const currentEventRef = useRef<DrawLiveEventRecord | null>(null);
+    const recentRefreshTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+    const settingsRef = useRef<DrawLiveSettings>({
+        live_page_enabled: true,
+        show_recent_winners: true
+    });
 
     const clearTimers = useCallback(() => {
         timersRef.current.forEach(timerId => clearTimeout(timerId));
         timersRef.current = [];
+    }, []);
+
+    const clearRecentRefreshTimer = useCallback(() => {
+        if (recentRefreshTimerRef.current) {
+            clearTimeout(recentRefreshTimerRef.current);
+            recentRefreshTimerRef.current = null;
+        }
     }, []);
 
     const clearPreStartTimer = useCallback(() => {
@@ -93,6 +105,10 @@ export default function useDrawLiveFeed() {
     useEffect(() => {
         currentEventRef.current = currentEvent;
     }, [currentEvent]);
+
+    useEffect(() => {
+        settingsRef.current = settings;
+    }, [settings]);
 
     const startNextQueuedEvent = useCallback(() => {
         const currentQueue = queueRef.current;
@@ -196,10 +212,12 @@ export default function useDrawLiveFeed() {
 
         const settingsResult = await fetchDrawSettings();
         if (!settingsResult.error) {
-            setSettings({
+            const nextSettings = {
                 live_page_enabled: settingsResult.data?.live_page_enabled ?? true,
                 show_recent_winners: settingsResult.data?.show_recent_winners ?? true
-            });
+            };
+            setSettings(nextSettings);
+            settingsRef.current = nextSettings;
         }
 
         await loadStudentNumbers();
@@ -226,7 +244,7 @@ export default function useDrawLiveFeed() {
             }, payload => {
                 const event = payload.new as DrawLiveEventRecord;
 
-                if (settings.live_page_enabled && event?.is_public) {
+                if (settingsRef.current.live_page_enabled && event?.is_public) {
                     setQueue(prev => {
                         const next = [...prev, event];
                         queueRef.current = next;
@@ -255,16 +273,48 @@ export default function useDrawLiveFeed() {
             }, payload => {
                 const next = payload.new as any;
                 if (next && typeof next.live_page_enabled === 'boolean') {
-                    setSettings({
+                    const nextSettings: DrawLiveSettings = {
                         live_page_enabled: next.live_page_enabled,
                         show_recent_winners: typeof next.show_recent_winners === 'boolean' ? next.show_recent_winners : true
-                    });
-                    if (next.show_recent_winners === false) {
+                    };
+                    settingsRef.current = nextSettings;
+                    setSettings(nextSettings);
+                    if (nextSettings.show_recent_winners === false) {
                         setRecentWinners([]);
                     } else {
                         loadRecentWinners();
                     }
                 }
+            })
+            .on('postgres_changes', {
+                event: '*',
+                schema: 'public',
+                table: 'draw_winners'
+            }, () => {
+                clearRecentRefreshTimer();
+                recentRefreshTimerRef.current = setTimeout(() => {
+                    if (settingsRef.current.show_recent_winners) {
+                        loadRecentWinners();
+                    } else {
+                        setRecentWinners([]);
+                    }
+                    recentRefreshTimerRef.current = null;
+                }, 120);
+            })
+            .on('postgres_changes', {
+                event: '*',
+                schema: 'public',
+                table: 'draw_items'
+            }, () => {
+                clearRecentRefreshTimer();
+                recentRefreshTimerRef.current = setTimeout(() => {
+                    if (settingsRef.current.show_recent_winners) {
+                        loadRecentWinners();
+                    } else {
+                        setRecentWinners([]);
+                    }
+                    recentRefreshTimerRef.current = null;
+                }, 120);
             })
             .subscribe();
 
@@ -287,6 +337,7 @@ export default function useDrawLiveFeed() {
         return () => {
             clearTimers();
             clearPreStartTimer();
+            clearRecentRefreshTimer();
             if (kickoffTimerRef.current) {
                 clearTimeout(kickoffTimerRef.current);
                 kickoffTimerRef.current = null;
@@ -294,7 +345,42 @@ export default function useDrawLiveFeed() {
             supabase.removeChannel(dbChannel);
             supabase.removeChannel(controlChannel);
         };
-    }, [activatePreStart, clearPreStartTimer, clearTimers, loadRecentWinners, loadStudentNumbers, settings.live_page_enabled, settings.show_recent_winners, startNextQueuedEventWithTimeline]);
+    }, [activatePreStart, clearPreStartTimer, clearRecentRefreshTimer, clearTimers, loadRecentWinners, loadStudentNumbers, startNextQueuedEventWithTimeline]);
+
+    useEffect(() => {
+        const poller = setInterval(async () => {
+            const result = await fetchDrawSettings();
+            if (result.error || !result.data) {
+                return;
+            }
+
+            const nextSettings: DrawLiveSettings = {
+                live_page_enabled: result.data.live_page_enabled ?? true,
+                show_recent_winners: result.data.show_recent_winners ?? true
+            };
+
+            const prevSettings = settingsRef.current;
+            const changed = prevSettings.live_page_enabled !== nextSettings.live_page_enabled
+                || prevSettings.show_recent_winners !== nextSettings.show_recent_winners;
+
+            if (!changed) {
+                return;
+            }
+
+            settingsRef.current = nextSettings;
+            setSettings(nextSettings);
+
+            if (nextSettings.show_recent_winners) {
+                await loadRecentWinners();
+            } else {
+                setRecentWinners([]);
+            }
+        }, 6000);
+
+        return () => {
+            clearInterval(poller);
+        };
+    }, [loadRecentWinners]);
 
     const isAnimating = phase !== 'idle' && Boolean(currentEvent);
 
