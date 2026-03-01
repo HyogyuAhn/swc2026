@@ -67,6 +67,11 @@ const normalizeHeaderKey = (value: unknown) => (
         .toLowerCase()
 );
 
+const isOneOfNormalized = (value: string, candidates: string[]) => {
+    const normalized = normalizeHeaderKey(value);
+    return candidates.map(normalizeHeaderKey).includes(normalized);
+};
+
 const getRowValue = (row: Record<string, unknown>, aliases: string[]) => {
     const aliasSet = new Set(aliases.map(normalizeHeaderKey));
     for (const [key, value] of Object.entries(row)) {
@@ -125,6 +130,13 @@ const normalizeDepartmentValue = (value: string): StudentDepartment | null => {
     return null;
 };
 
+const normalizeImportedName = (value: string) => {
+    return value
+        .replace(/\s*[\(\[（]\s*(?:조장|부\s*조장|부조장)\s*[\)\]）]\s*/g, ' ')
+        .replace(/\s+/g, ' ')
+        .trim();
+};
+
 const parseStudentRowsFromFile = async (file: File, role: ImportTargetRole) => {
     const XLSX = await import('xlsx');
     const buffer = await file.arrayBuffer();
@@ -140,42 +152,65 @@ const parseStudentRowsFromFile = async (file: File, role: ImportTargetRole) => {
     }
 
     const worksheet = workbook.Sheets[firstSheetName];
-    const rawRows = XLSX.utils.sheet_to_json<Record<string, unknown>>(worksheet, {
-        defval: '',
-        range: 1
-    });
     const drawAliases = role === '재학생'
         ? ['Column 19', 'Column19', '19', '추첨번호', '추첨 번호', 'draw number', 'drawnumber']
         : ['Column 17', 'Column17', '17', '추첨번호', '추첨 번호', 'draw number', 'drawnumber'];
 
-    const rows: StudentCreatePayload[] = [];
-    let skippedInvalid = 0;
+    const convertRows = (rawRows: Record<string, unknown>[]) => {
+        const rows: StudentCreatePayload[] = [];
+        let skippedInvalid = 0;
 
-    rawRows.forEach(rawRow => {
-        const name = getRowValue(rawRow, ['이름', 'name']);
-        const gender = normalizeGenderValue(getRowValue(rawRow, ['성별', 'gender']));
-        const department = normalizeDepartmentValue(getRowValue(rawRow, ['소속 학과', '소속학과', '학과', 'department']));
-        const drawNumberRaw = getRowValue(rawRow, drawAliases).replace(/\D/g, '').slice(0, 3);
+        rawRows.forEach(rawRow => {
+            const rawName = getRowValue(rawRow, ['이름', 'name']);
+            const rawGender = getRowValue(rawRow, ['성별', 'gender']);
+            const rawDepartment = getRowValue(rawRow, ['소속 학과', '소속학과', '학과', 'department']);
+            const rawDrawNumberCell = getRowValue(rawRow, drawAliases);
 
-        if (!name || !gender || !department || !drawNumberRaw) {
-            skippedInvalid += 1;
-            return;
-        }
+            if (!rawName && !rawGender && !rawDepartment && !rawDrawNumberCell) {
+                return;
+            }
 
-        rows.push({
-            name,
-            gender,
-            department,
-            studentRole: role,
-            drawNumber: drawNumberRaw
+            const headerLike = isOneOfNormalized(rawName, ['이름', 'name'])
+                && isOneOfNormalized(rawGender, ['성별', 'gender'])
+                && isOneOfNormalized(rawDepartment, ['소속 학과', '소속학과', '학과', 'department'])
+                && isOneOfNormalized(rawDrawNumberCell, drawAliases);
+
+            if (headerLike) {
+                return;
+            }
+
+            const name = normalizeImportedName(rawName);
+            const gender = normalizeGenderValue(rawGender);
+            const department = normalizeDepartmentValue(rawDepartment);
+            const drawNumberRaw = rawDrawNumberCell.replace(/\D/g, '').slice(0, 3);
+
+            if (!name || !gender || !department || !drawNumberRaw) {
+                skippedInvalid += 1;
+                return;
+            }
+
+            rows.push({
+                name,
+                gender,
+                department,
+                studentRole: role,
+                drawNumber: drawNumberRaw
+            });
         });
-    });
 
-    return {
-        rows,
-        totalRows: rawRows.length,
-        skippedInvalid
+        return {
+            rows,
+            totalRows: rawRows.length,
+            skippedInvalid
+        };
     };
+
+    return convertRows(
+        XLSX.utils.sheet_to_json<Record<string, unknown>>(worksheet, {
+            defval: '',
+            range: 1
+        })
+    );
 };
 
 export default function AdminStudentsSection({
@@ -197,6 +232,7 @@ export default function AdminStudentsSection({
     const [page, setPage] = useState(1);
     const [showCreateModal, setShowCreateModal] = useState(false);
     const [showImportModal, setShowImportModal] = useState(false);
+    const [showBulkDeleteModal, setShowBulkDeleteModal] = useState(false);
     const [importingRole, setImportingRole] = useState<ImportTargetRole | null>(null);
     const [importSummary, setImportSummary] = useState<ImportSummary | null>(null);
     const [creating, setCreating] = useState(false);
@@ -211,6 +247,9 @@ export default function AdminStudentsSection({
         studentId: '',
         drawNumber: ''
     });
+    const [bulkDeleteGenderFilter, setBulkDeleteGenderFilter] = useState('ALL');
+    const [bulkDeleteRoleFilter, setBulkDeleteRoleFilter] = useState('ALL');
+    const [bulkDeleteDepartmentFilter, setBulkDeleteDepartmentFilter] = useState('ALL');
 
     const filteredStudentsByCategory = useMemo(() => {
         return students
@@ -267,6 +306,24 @@ export default function AdminStudentsSection({
                 return String(a.student_id || '').localeCompare(String(b.student_id || ''));
             });
     }, [filteredStudentsByCategory, studentSearch]);
+
+    const bulkDeleteTargets = useMemo(() => {
+        return students.filter(student => {
+            if (bulkDeleteGenderFilter !== 'ALL' && String(student.gender || '') !== bulkDeleteGenderFilter) {
+                return false;
+            }
+
+            if (bulkDeleteRoleFilter !== 'ALL' && String(student.student_role || '') !== bulkDeleteRoleFilter) {
+                return false;
+            }
+
+            if (bulkDeleteDepartmentFilter !== 'ALL' && String(student.department || '') !== bulkDeleteDepartmentFilter) {
+                return false;
+            }
+
+            return true;
+        });
+    }, [bulkDeleteDepartmentFilter, bulkDeleteGenderFilter, bulkDeleteRoleFilter, students]);
 
     const totalPages = Math.max(1, Math.ceil(filteredStudents.length / PAGE_SIZE));
     const safePage = Math.min(page, totalPages);
@@ -360,24 +417,31 @@ export default function AdminStudentsSection({
         }
     };
 
+    const openBulkDeleteModal = () => {
+        setBulkDeleteGenderFilter(studentGenderFilter);
+        setBulkDeleteRoleFilter(studentRoleFilter);
+        setBulkDeleteDepartmentFilter(studentDepartmentFilter);
+        setShowBulkDeleteModal(true);
+    };
+
     const handleDeleteFilteredStudents = async () => {
         if (deletingBulk) {
             return;
         }
 
-        const targetStudentIds = filteredStudentsByCategory
+        const targetStudentIds = bulkDeleteTargets
             .map(student => String(student.student_id || '').trim())
             .filter(Boolean);
 
         if (targetStudentIds.length === 0) {
-            alert('현재 필터 조건에 해당하는 학생이 없습니다.');
+            alert('선택한 필터 조건에 해당하는 학생이 없습니다.');
             return;
         }
 
         const filterSummary = [
-            `성별: ${studentGenderFilter === 'ALL' ? '전체' : studentGenderFilter}`,
-            `학과: ${studentDepartmentFilter === 'ALL' ? '전체' : studentDepartmentFilter}`,
-            `역할: ${studentRoleFilter === 'ALL' ? '전체' : studentRoleFilter}`
+            `성별: ${bulkDeleteGenderFilter === 'ALL' ? '전체' : bulkDeleteGenderFilter}`,
+            `학과: ${bulkDeleteDepartmentFilter === 'ALL' ? '전체' : bulkDeleteDepartmentFilter}`,
+            `역할: ${bulkDeleteRoleFilter === 'ALL' ? '전체' : bulkDeleteRoleFilter}`
         ].join(', ');
 
         const confirmed = confirm(
@@ -398,10 +462,12 @@ export default function AdminStudentsSection({
 
         if (result.failed > 0) {
             alert(`전체 삭제 완료: ${result.deleted}명 삭제, ${result.failed}명 실패`);
+            setShowBulkDeleteModal(false);
             return;
         }
 
         alert(`전체 삭제 완료: ${result.deleted}명 삭제`);
+        setShowBulkDeleteModal(false);
     };
 
     return (
@@ -483,11 +549,11 @@ export default function AdminStudentsSection({
                         </button>
                         <button
                             type="button"
-                            onClick={handleDeleteFilteredStudents}
+                            onClick={openBulkDeleteModal}
                             disabled={deletingBulk}
                             className="rounded-xl border border-red-300 bg-red-50 px-4 py-2 text-sm font-bold text-red-700 hover:bg-red-100 disabled:cursor-not-allowed disabled:opacity-50"
                         >
-                            {deletingBulk ? '삭제 중...' : '필터 전체 삭제'}
+                            필터 전체 삭제
                         </button>
                     </div>
                 </div>
@@ -809,6 +875,99 @@ export default function AdminStudentsSection({
                                     </table>
                                 </div>
                             )}
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {showBulkDeleteModal && (
+                <div className="fixed inset-0 z-[86] flex items-center justify-center bg-black/50 p-4">
+                    <div className="w-full max-w-2xl rounded-2xl border border-gray-300 bg-white shadow-2xl">
+                        <div className="flex items-center justify-between border-b border-gray-300 px-6 py-4">
+                            <h3 className="text-xl font-bold text-gray-900">필터 전체 삭제</h3>
+                            <button
+                                type="button"
+                                onClick={() => setShowBulkDeleteModal(false)}
+                                disabled={deletingBulk}
+                                className="rounded-md px-2 py-1 text-sm font-semibold text-gray-500 hover:bg-gray-100 disabled:cursor-not-allowed disabled:opacity-40"
+                            >
+                                닫기
+                            </button>
+                        </div>
+
+                        <div className="space-y-4 px-6 py-5">
+                            <p className="text-sm text-gray-600">삭제할 대상 필터를 선택하세요.</p>
+                            <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
+                                <label className="block">
+                                    <span className="mb-1 block text-xs font-bold text-gray-600">성별</span>
+                                    <select
+                                        className="w-full rounded-xl border border-gray-300 bg-gray-50 px-3 py-2.5 text-sm font-medium text-gray-700"
+                                        value={bulkDeleteGenderFilter}
+                                        onChange={event => setBulkDeleteGenderFilter(event.target.value)}
+                                    >
+                                        <option value="ALL">성별 전체</option>
+                                        {STUDENT_GENDER_OPTIONS.map(gender => (
+                                            <option key={gender} value={gender}>{gender}</option>
+                                        ))}
+                                    </select>
+                                </label>
+
+                                <label className="block">
+                                    <span className="mb-1 block text-xs font-bold text-gray-600">학과</span>
+                                    <select
+                                        className="w-full rounded-xl border border-gray-300 bg-gray-50 px-3 py-2.5 text-sm font-medium text-gray-700"
+                                        value={bulkDeleteDepartmentFilter}
+                                        onChange={event => setBulkDeleteDepartmentFilter(event.target.value)}
+                                    >
+                                        <option value="ALL">학과 전체</option>
+                                        {STUDENT_DEPARTMENT_OPTIONS.map(department => (
+                                            <option key={department} value={department}>{department}</option>
+                                        ))}
+                                    </select>
+                                </label>
+
+                                <label className="block">
+                                    <span className="mb-1 block text-xs font-bold text-gray-600">역할</span>
+                                    <select
+                                        className="w-full rounded-xl border border-gray-300 bg-gray-50 px-3 py-2.5 text-sm font-medium text-gray-700"
+                                        value={bulkDeleteRoleFilter}
+                                        onChange={event => setBulkDeleteRoleFilter(event.target.value)}
+                                    >
+                                        <option value="ALL">역할 전체</option>
+                                        {STUDENT_ROLE_OPTIONS.map(role => (
+                                            <option key={role} value={role}>{role}</option>
+                                        ))}
+                                    </select>
+                                </label>
+                            </div>
+
+                            <div className="rounded-xl border border-red-200 bg-red-50 p-4">
+                                <p className="text-sm font-bold text-red-700">
+                                    현재 삭제 대상: {bulkDeleteTargets.length}명
+                                </p>
+                                <p className="mt-1 text-xs text-red-600">
+                                    학생 정보, 투표 기록, 추첨 기록이 모두 삭제되며 복구할 수 없습니다.
+                                </p>
+                            </div>
+                        </div>
+
+                        <div className="flex items-center justify-end gap-2 border-t border-gray-300 px-6 py-4">
+                            <button
+                                type="button"
+                                onClick={() => setShowBulkDeleteModal(false)}
+                                disabled={deletingBulk}
+                                className="rounded-lg border px-4 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50"
+                            >
+                                취소
+                            </button>
+                            <button
+                                type="button"
+                                onClick={handleDeleteFilteredStudents}
+                                disabled={deletingBulk || bulkDeleteTargets.length === 0}
+                                className="rounded-lg bg-red-600 px-4 py-2 text-sm font-semibold text-white hover:bg-red-700 disabled:cursor-not-allowed disabled:bg-gray-300"
+                            >
+                                {deletingBulk ? '삭제 중...' : '삭제 실행'}
+                            </button>
                         </div>
                     </div>
                 </div>
