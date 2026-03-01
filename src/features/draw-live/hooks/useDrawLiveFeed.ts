@@ -87,6 +87,7 @@ export default function useDrawLiveFeed() {
         batchRevealStyle: DrawBatchRevealStyle;
     } | null>(null);
     const pendingTimelineProfileByItemIdRef = useRef<Record<string, 'NORMAL' | 'FAST'>>({});
+    const sequenceEndPendingRef = useRef(false);
     const startNextQueuedEventRef = useRef<() => boolean>(() => false);
     const runTimelineRef = useRef<() => void>(() => { });
     const phaseRef = useRef<DrawAnimationPhase>('idle');
@@ -128,6 +129,20 @@ export default function useDrawLiveFeed() {
             preStartTimerRef.current = null;
         }, PRE_START_TIMEOUT_MS);
     }, [clearPreStartTimer]);
+
+    const finalizeSequenceStatus = useCallback(() => {
+        if (!sequenceEndPendingRef.current) {
+            return;
+        }
+
+        sequenceEndPendingRef.current = false;
+        setSequenceStatus(prev => ({
+            ...prev,
+            active: false,
+            itemNames: [],
+            currentIndex: -1
+        }));
+    }, []);
 
     useEffect(() => {
         queueRef.current = queue;
@@ -231,10 +246,11 @@ export default function useDrawLiveFeed() {
             }
 
             setBatchRevealEvents(null);
+            finalizeSequenceStatus();
             setPhase('idle');
             setCurrentEvent(null);
         }, timeline.endAt));
-    }, [clearTimers, loadRecentWinners, settings.show_recent_winners]);
+    }, [clearTimers, finalizeSequenceStatus, loadRecentWinners, settings.show_recent_winners]);
 
     const startNextQueuedEventWithTimeline = useCallback(() => {
         const started = startNextQueuedEvent();
@@ -245,6 +261,52 @@ export default function useDrawLiveFeed() {
         scheduleCurrentAnimation();
         return true;
     }, [scheduleCurrentAnimation, startNextQueuedEvent]);
+
+    const ensureQueuePlayback = useCallback(() => {
+        if (kickoffTimerRef.current || phaseRef.current !== 'idle' || currentEventRef.current) {
+            return;
+        }
+
+        kickoffTimerRef.current = setTimeout(() => {
+            kickoffTimerRef.current = null;
+            startNextQueuedEventWithTimeline();
+        }, 24);
+    }, [startNextQueuedEventWithTimeline]);
+
+    const enqueueLiveEvent = useCallback((event: DrawLiveEventRecord) => {
+        setQueue(prev => {
+            const next = [...prev, event];
+            queueRef.current = next;
+            return next;
+        });
+        ensureQueuePlayback();
+    }, [ensureQueuePlayback]);
+
+    const flushBatchCaptureIfReady = useCallback((capture: {
+        expectedCount: number;
+        collected: DrawLiveEventRecord[];
+        label: string;
+        batchRevealStyle: DrawBatchRevealStyle;
+    }) => {
+        if (capture.collected.length < capture.expectedCount) {
+            return false;
+        }
+
+        const collected = capture.collected.slice(0, capture.expectedCount);
+        const syntheticBatchEvent: DrawLiveEventRecord = {
+            ...collected[collected.length - 1],
+            id: `batch-seq-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+            draw_item_name: capture.label || `연속 뽑기 (${collected.length}개)`,
+            batch_reveal_style: capture.batchRevealStyle,
+            batch_total_count: collected.length,
+            timeline_profile: 'NORMAL'
+        };
+
+        clearBatchCapture();
+        setBatchRevealEvents(collected);
+        enqueueLiveEvent(syntheticBatchEvent);
+        return true;
+    }, [clearBatchCapture, enqueueLiveEvent]);
 
     useEffect(() => {
         startNextQueuedEventRef.current = startNextQueuedEvent;
@@ -322,48 +384,12 @@ export default function useDrawLiveFeed() {
 
                 const activeBatchCapture = batchCaptureRef.current;
                 if (activeBatchCapture && activeBatchCapture.expectedCount > 0) {
-                    const nextCollected = [...activeBatchCapture.collected, event];
-                    activeBatchCapture.collected = nextCollected;
-
-                    if (nextCollected.length >= activeBatchCapture.expectedCount) {
-                        const syntheticBatchEvent: DrawLiveEventRecord = {
-                            ...nextCollected[nextCollected.length - 1],
-                            id: `batch-seq-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
-                            draw_item_name: activeBatchCapture.label || `연속 뽑기 (${nextCollected.length}개)`,
-                            batch_reveal_style: activeBatchCapture.batchRevealStyle,
-                            batch_total_count: nextCollected.length,
-                            timeline_profile: 'NORMAL'
-                        };
-                        clearBatchCapture();
-                        setBatchRevealEvents(nextCollected);
-                        setQueue(prev => {
-                            const next = [...prev, syntheticBatchEvent];
-                            queueRef.current = next;
-                            return next;
-                        });
-
-                        if (!kickoffTimerRef.current && phaseRef.current === 'idle' && !currentEventRef.current) {
-                            kickoffTimerRef.current = setTimeout(() => {
-                                kickoffTimerRef.current = null;
-                                startNextQueuedEventWithTimeline();
-                            }, 24);
-                        }
-                    }
+                    activeBatchCapture.collected = [...activeBatchCapture.collected, event];
+                    flushBatchCaptureIfReady(activeBatchCapture);
                     return;
                 }
 
-                setQueue(prev => {
-                    const next = [...prev, event];
-                    queueRef.current = next;
-                    return next;
-                });
-
-                if (!kickoffTimerRef.current && phaseRef.current === 'idle' && !currentEventRef.current) {
-                    kickoffTimerRef.current = setTimeout(() => {
-                        kickoffTimerRef.current = null;
-                        startNextQueuedEventWithTimeline();
-                    }, 24);
-                }
+                enqueueLiveEvent(event);
             })
             .on('postgres_changes', {
                 event: '*',
@@ -456,6 +482,7 @@ export default function useDrawLiveFeed() {
                     itemNames,
                     currentIndex: -1
                 });
+                sequenceEndPendingRef.current = false;
 
                 if (revealMode !== 'BATCH') {
                     clearBatchCapture();
@@ -471,14 +498,32 @@ export default function useDrawLiveFeed() {
                 }
 
                 const label = String(payload?.payload?.label || `연속 뽑기 (${expectedPublicCount}개)`);
-                batchCaptureRef.current = {
+                const capture = {
                     expectedCount: expectedPublicCount,
                     collected: [],
                     label,
                     batchRevealStyle: nextBatchStyle
                 };
+                batchCaptureRef.current = capture;
+
+                // draw-sequence-start 브로드캐스트보다 INSERT가 먼저 도착하는 경우를 흡수
+                if (phaseRef.current === 'idle' && !currentEventRef.current && queueRef.current.length > 0) {
+                    const queuedBeforeStart = [...queueRef.current];
+                    const queuedCandidates = queuedBeforeStart.filter(event => (
+                        event.is_public
+                        && !event.id.startsWith('batch-seq-')
+                        && (itemNames.length === 0 || itemNames.includes(event.draw_item_name))
+                    ));
+                    if (queuedCandidates.length > 0) {
+                        capture.collected = queuedCandidates.slice(0, expectedPublicCount);
+                    }
+                    queueRef.current = [];
+                    setQueue([]);
+                }
+
                 setBatchRevealEvents(null);
                 activatePreStart(`${label} 준비 중`);
+                flushBatchCaptureIfReady(capture);
             })
             .on('broadcast', { event: 'draw-sequence-progress' }, payload => {
                 const currentIndex = Number(payload?.payload?.currentIndex ?? -1);
@@ -491,6 +536,14 @@ export default function useDrawLiveFeed() {
                         return prev;
                     }
 
+                    if (prev.revealMode === 'BATCH') {
+                        return prev;
+                    }
+
+                    if (phaseRef.current !== 'idle' || currentEventRef.current) {
+                        return prev;
+                    }
+
                     return {
                         ...prev,
                         currentIndex
@@ -498,17 +551,16 @@ export default function useDrawLiveFeed() {
                 });
             })
             .on('broadcast', { event: 'draw-sequence-end' }, () => {
-                setSequenceStatus(prev => ({
-                    ...prev,
-                    active: false,
-                    itemNames: [],
-                    currentIndex: -1
-                }));
+                sequenceEndPendingRef.current = true;
                 clearBatchCapture();
                 clearPreStartTimer();
                 setPreStartItemName(null);
+                if (phaseRef.current === 'idle' && !currentEventRef.current && queueRef.current.length === 0) {
+                    finalizeSequenceStatus();
+                }
             })
             .on('broadcast', { event: 'draw-sequence-cancel' }, () => {
+                sequenceEndPendingRef.current = false;
                 clearBatchCapture();
                 setBatchRevealEvents(null);
                 setSequenceStatus(prev => ({
@@ -531,6 +583,7 @@ export default function useDrawLiveFeed() {
             clearPreStartTimer();
             clearRecentRefreshTimer();
             clearBatchCapture();
+            sequenceEndPendingRef.current = false;
             pendingTimelineProfileByItemIdRef.current = {};
             if (kickoffTimerRef.current) {
                 clearTimeout(kickoffTimerRef.current);
@@ -539,7 +592,7 @@ export default function useDrawLiveFeed() {
             supabase.removeChannel(dbChannel);
             supabase.removeChannel(controlChannel);
         };
-    }, [activatePreStart, clearBatchCapture, clearPreStartTimer, clearRecentRefreshTimer, clearTimers, loadRecentWinners, loadStudentNumbers, startNextQueuedEventWithTimeline]);
+    }, [activatePreStart, clearBatchCapture, clearPreStartTimer, clearRecentRefreshTimer, clearTimers, enqueueLiveEvent, flushBatchCaptureIfReady, loadRecentWinners, loadStudentNumbers]);
 
     useEffect(() => {
         const poller = setInterval(async () => {

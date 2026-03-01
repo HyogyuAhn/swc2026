@@ -62,28 +62,31 @@ export default function DrawSequenceModal({
     const remainingTotal = selectableItems.reduce((sum, item) => sum + item.remainingCount, 0);
 
     return (
-        <div className="fixed inset-0 z-[98] flex items-center justify-center px-4">
+        <div className="fixed inset-0 z-[98] overflow-y-auto">
             <button
                 type="button"
-                className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm transition-opacity"
+                className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm transition-opacity"
                 onClick={onClose}
                 aria-label="연속 뽑기 설정 닫기"
             />
 
-            <div className="relative w-full max-w-4xl overflow-hidden rounded-[28px] border border-slate-200 bg-white p-7 shadow-[0_30px_90px_-30px_rgba(15,23,42,0.35)] transition-all sm:p-8">
-                <button
-                    type="button"
-                    onClick={onClose}
-                    className="absolute right-3 top-3 rounded-md p-1 text-gray-400 hover:bg-gray-100 hover:text-gray-600"
-                    aria-label="닫기"
-                >
-                    <X size={18} />
-                </button>
+            <div className="relative z-10 flex min-h-full items-start justify-center px-4 py-6 sm:py-8">
+                <div className="relative flex max-h-[92vh] w-full max-w-4xl flex-col overflow-hidden rounded-[28px] border border-slate-200 bg-white p-7 shadow-[0_30px_90px_-30px_rgba(15,23,42,0.35)] transition-all sm:p-8">
+                    <button
+                        type="button"
+                        onClick={onClose}
+                        className="absolute right-3 top-3 rounded-md p-1 text-gray-400 hover:bg-gray-100 hover:text-gray-600"
+                        aria-label="닫기"
+                    >
+                        <X size={18} />
+                    </button>
 
-                <h3 className="mb-1 text-2xl font-extrabold tracking-tight text-gray-900">연속 뽑기</h3>
-                <p className="mb-6 text-sm font-medium text-gray-500">순서를 조합해 한 번에 여러 항목을 연속 추첨합니다.</p>
+                <div className="mb-6 border-b border-slate-200 pb-4 pr-8">
+                    <h3 className="text-2xl font-extrabold tracking-tight text-gray-900">연속 뽑기</h3>
+                    <p className="mt-1 text-sm font-medium text-gray-500">순서를 조합해 한 번에 여러 항목을 연속 추첨합니다.</p>
+                </div>
 
-                <div className="mb-5 rounded-2xl border-2 border-slate-200 bg-slate-50 p-3">
+                <div className="mb-5 rounded-2xl border-2 border-slate-300 bg-slate-50 p-3.5">
                     <p className="mb-2 text-xs font-bold uppercase tracking-wider text-gray-500">공개 방식</p>
                     <div className="grid gap-2 md:grid-cols-2">
                         <button
@@ -141,27 +144,30 @@ export default function DrawSequenceModal({
                     )}
                 </div>
 
-                <div className="mb-5 flex flex-wrap items-center gap-2">
-                    <span className="rounded-xl border border-blue-200 bg-blue-50 px-3 py-1 text-xs font-bold text-blue-700">
-                        총 순서: {steps.length}
-                    </span>
-                    <span className="rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-1 text-xs font-bold text-emerald-700">
-                        전체 남은 개수: {remainingTotal}
-                    </span>
-                    <span className="rounded-xl border border-gray-300 bg-gray-50 px-3 py-1 text-xs font-bold text-gray-600">
-                        최소 2개 순서 유지
-                    </span>
-                    <span className="rounded-xl border border-indigo-200 bg-indigo-50 px-3 py-1 text-xs font-bold text-indigo-700">
-                        공개 방식: {revealMode === 'STEP' ? '순차 공개' : '일괄 공개'}
-                    </span>
-                    {revealMode === 'BATCH' && (
-                        <span className="rounded-xl border border-violet-200 bg-violet-50 px-3 py-1 text-xs font-bold text-violet-700">
-                            일괄 상세: {batchRevealStyle === 'ONE_BY_ONE' ? '차례대로 공개' : '한 번에 공개'}
+                <div className="mb-5 rounded-2xl border-2 border-slate-300 bg-white p-3.5">
+                    <div className="flex flex-wrap items-center gap-2">
+                        <span className="rounded-xl border border-blue-200 bg-blue-50 px-3 py-1 text-xs font-bold text-blue-700">
+                            총 순서: {steps.length}
                         </span>
-                    )}
+                        <span className="rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-1 text-xs font-bold text-emerald-700">
+                            전체 남은 개수: {remainingTotal}
+                        </span>
+                        <span className="rounded-xl border border-gray-300 bg-gray-50 px-3 py-1 text-xs font-bold text-gray-600">
+                            최소 2개 순서 유지
+                        </span>
+                        <span className="rounded-xl border border-indigo-200 bg-indigo-50 px-3 py-1 text-xs font-bold text-indigo-700">
+                            공개 방식: {revealMode === 'STEP' ? '순차 공개' : '일괄 공개'}
+                        </span>
+                        {revealMode === 'BATCH' && (
+                            <span className="rounded-xl border border-violet-200 bg-violet-50 px-3 py-1 text-xs font-bold text-violet-700">
+                                일괄 상세: {batchRevealStyle === 'ONE_BY_ONE' ? '차례대로 공개' : '한 번에 공개'}
+                            </span>
+                        )}
+                    </div>
                 </div>
 
-                <div className="max-h-[58vh] space-y-4 overflow-y-auto pr-1 sm:pr-2">
+                <div className="min-h-0 flex-1 overflow-y-auto pr-1 sm:pr-2">
+                    <div className="space-y-3 rounded-2xl border-2 border-slate-300 bg-slate-50/70 p-3">
                     {steps.map((step, index) => {
                         const stepRandomFilter = step.randomFilter || {
                             gender: 'ALL' as DrawRandomFilterGender,
@@ -170,8 +176,8 @@ export default function DrawSequenceModal({
                         };
 
                         return (
-                        <div key={step.id} className="rounded-2xl border-2 border-slate-200 bg-white p-4 shadow-sm">
-                            <div className="mb-3 flex items-center justify-between gap-2">
+                        <div key={step.id} className="rounded-xl border-2 border-slate-300 bg-white p-4 shadow-sm">
+                            <div className="mb-3 flex items-center justify-between gap-2 border-b border-slate-200 pb-3">
                                 <div className="flex items-center gap-2">
                                     <span className="inline-flex h-7 min-w-[1.75rem] items-center justify-center rounded-full bg-blue-600 px-2 text-xs font-extrabold text-white">
                                         {index + 1}
@@ -255,97 +261,98 @@ export default function DrawSequenceModal({
                             </div>
 
                             {step.mode === 'RANDOM' && (
-                                <div className="mt-3 rounded-xl border border-slate-200 bg-slate-50 p-3">
-                                    <p className="mb-2 text-[11px] font-bold uppercase tracking-wider text-slate-500">랜덤 필터 설정</p>
-
-                                    <div className="mb-3">
-                                        <p className="mb-1 text-[11px] font-bold text-slate-600">성별</p>
-                                        <div className="flex gap-1.5">
-                                            {(['ALL', '남', '여'] as DrawRandomFilterGender[]).map(gender => (
-                                                <button
-                                                    key={`${step.id}-gender-${gender}`}
-                                                    type="button"
-                                                    onClick={() => onChangeStep(step.id, {
-                                                        randomFilter: {
-                                                            ...stepRandomFilter,
-                                                            gender
-                                                        }
-                                                    })}
-                                                    className={`rounded-lg px-2.5 py-1.5 text-[11px] font-extrabold transition ${
-                                                        stepRandomFilter.gender === gender
-                                                            ? 'bg-blue-600 text-white'
-                                                            : 'border border-slate-200 bg-white text-slate-700 hover:bg-slate-50'
-                                                    }`}
-                                                >
-                                                    {gender === 'ALL' ? '모두' : gender}
-                                                </button>
-                                            ))}
-                                        </div>
-                                    </div>
-
-                                    <div className="mb-3">
-                                        <p className="mb-1 text-[11px] font-bold text-slate-600">학과 (최소 1개)</p>
-                                        <div className="flex flex-wrap gap-1.5">
-                                            {STUDENT_DEPARTMENT_OPTIONS.map(department => {
-                                                const selected = stepRandomFilter.departments.includes(department);
-                                                return (
+                                <div className="mt-4 rounded-xl border-2 border-slate-200 bg-slate-50 p-3.5">
+                                    <p className="mb-3 text-[11px] font-bold uppercase tracking-wider text-slate-500">랜덤 필터 설정</p>
+                                    <div className="grid gap-3 xl:grid-cols-3">
+                                        <div className="rounded-lg border border-slate-200 bg-white p-2.5">
+                                            <p className="mb-1 text-[11px] font-bold text-slate-600">성별</p>
+                                            <div className="flex gap-1.5">
+                                                {(['ALL', '남', '여'] as DrawRandomFilterGender[]).map(gender => (
                                                     <button
-                                                        key={`${step.id}-dept-${department}`}
+                                                        key={`${step.id}-gender-${gender}`}
                                                         type="button"
-                                                        onClick={() => {
-                                                            const nextDepartments = selected
-                                                                ? stepRandomFilter.departments.filter(value => value !== department)
-                                                                : [...stepRandomFilter.departments, department];
-                                                            onChangeStep(step.id, {
-                                                                randomFilter: {
-                                                                    ...stepRandomFilter,
-                                                                    departments: nextDepartments
-                                                                }
-                                                            });
-                                                        }}
+                                                        onClick={() => onChangeStep(step.id, {
+                                                            randomFilter: {
+                                                                ...stepRandomFilter,
+                                                                gender
+                                                            }
+                                                        })}
                                                         className={`rounded-lg px-2.5 py-1.5 text-[11px] font-extrabold transition ${
-                                                            selected
-                                                                ? 'bg-indigo-600 text-white'
+                                                            stepRandomFilter.gender === gender
+                                                                ? 'bg-blue-600 text-white'
                                                                 : 'border border-slate-200 bg-white text-slate-700 hover:bg-slate-50'
                                                         }`}
                                                     >
-                                                        {department}
+                                                        {gender === 'ALL' ? '모두' : gender}
                                                     </button>
-                                                );
-                                            })}
+                                                ))}
+                                            </div>
                                         </div>
-                                    </div>
 
-                                    <div>
-                                        <p className="mb-1 text-[11px] font-bold text-slate-600">역할 (최소 1개)</p>
-                                        <div className="flex flex-wrap gap-1.5">
-                                            {STUDENT_ROLE_OPTIONS.map(role => {
-                                                const selected = stepRandomFilter.roles.includes(role);
-                                                return (
-                                                    <button
-                                                        key={`${step.id}-role-${role}`}
-                                                        type="button"
-                                                        onClick={() => {
-                                                            const nextRoles = selected
-                                                                ? stepRandomFilter.roles.filter(value => value !== role)
-                                                                : [...stepRandomFilter.roles, role];
-                                                            onChangeStep(step.id, {
-                                                                randomFilter: {
-                                                                    ...stepRandomFilter,
-                                                                    roles: nextRoles
-                                                                }
-                                                            });
-                                                        }}
-                                                        className={`rounded-lg px-2.5 py-1.5 text-[11px] font-extrabold transition ${
-                                                            selected
-                                                                ? 'bg-emerald-600 text-white'
-                                                                : 'border border-slate-200 bg-white text-slate-700 hover:bg-slate-50'
-                                                        }`}
-                                                    >
-                                                        {role}
-                                                    </button>
-                                                );
-                                            })}
+                                        <div className="rounded-lg border border-slate-200 bg-white p-2.5">
+                                            <p className="mb-1 text-[11px] font-bold text-slate-600">학과 (최소 1개)</p>
+                                            <div className="flex flex-wrap gap-1.5">
+                                                {STUDENT_DEPARTMENT_OPTIONS.map(department => {
+                                                    const selected = stepRandomFilter.departments.includes(department);
+                                                    return (
+                                                        <button
+                                                            key={`${step.id}-dept-${department}`}
+                                                            type="button"
+                                                            onClick={() => {
+                                                                const nextDepartments = selected
+                                                                    ? stepRandomFilter.departments.filter(value => value !== department)
+                                                                    : [...stepRandomFilter.departments, department];
+                                                                onChangeStep(step.id, {
+                                                                    randomFilter: {
+                                                                        ...stepRandomFilter,
+                                                                        departments: nextDepartments
+                                                                    }
+                                                                });
+                                                            }}
+                                                            className={`rounded-lg px-2.5 py-1.5 text-[11px] font-extrabold transition ${
+                                                                selected
+                                                                    ? 'bg-indigo-600 text-white'
+                                                                    : 'border border-slate-200 bg-white text-slate-700 hover:bg-slate-50'
+                                                            }`}
+                                                        >
+                                                            {department}
+                                                        </button>
+                                                    );
+                                                })}
+                                            </div>
+                                        </div>
+
+                                        <div className="rounded-lg border border-slate-200 bg-white p-2.5">
+                                            <p className="mb-1 text-[11px] font-bold text-slate-600">역할 (최소 1개)</p>
+                                            <div className="flex flex-wrap gap-1.5">
+                                                {STUDENT_ROLE_OPTIONS.map(role => {
+                                                    const selected = stepRandomFilter.roles.includes(role);
+                                                    return (
+                                                        <button
+                                                            key={`${step.id}-role-${role}`}
+                                                            type="button"
+                                                            onClick={() => {
+                                                                const nextRoles = selected
+                                                                    ? stepRandomFilter.roles.filter(value => value !== role)
+                                                                    : [...stepRandomFilter.roles, role];
+                                                                onChangeStep(step.id, {
+                                                                    randomFilter: {
+                                                                        ...stepRandomFilter,
+                                                                        roles: nextRoles
+                                                                    }
+                                                                });
+                                                            }}
+                                                            className={`rounded-lg px-2.5 py-1.5 text-[11px] font-extrabold transition ${
+                                                                selected
+                                                                    ? 'bg-emerald-600 text-white'
+                                                                    : 'border border-slate-200 bg-white text-slate-700 hover:bg-slate-50'
+                                                            }`}
+                                                        >
+                                                            {role}
+                                                        </button>
+                                                    );
+                                                })}
+                                            </div>
                                         </div>
                                     </div>
                                 </div>
@@ -353,10 +360,11 @@ export default function DrawSequenceModal({
                         </div>
                         );
                     })}
+                    </div>
                 </div>
 
-                <div className="mt-7 rounded-2xl border border-slate-200 bg-slate-50 p-4">
-                    <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
+                <div className="mt-7 rounded-2xl border-2 border-slate-300 bg-slate-50 p-4">
+                    <div className="mb-4 flex flex-wrap items-center justify-between gap-2 border-b border-slate-200 pb-4">
                         <button
                             type="button"
                             onClick={onAddStep}
@@ -387,6 +395,7 @@ export default function DrawSequenceModal({
                             연속 뽑기 시작
                         </button>
                     </div>
+                </div>
                 </div>
             </div>
         </div>

@@ -6,6 +6,11 @@ import { DrawAnimationPhase } from '@/features/draw-live/types';
 const LIVE_SOUND_STORAGE_KEY = 'draw_live_tension_sound_enabled';
 const TRACK_TOTAL_MS = 15000;
 const TRACK_TOTAL_FAST_MS = 9800;
+const LIVE_DRAW_DISPLAY_LENGTH = 3;
+const SINGLE_REVEAL_TICK_SEC_NORMAL = 0.96;
+const SINGLE_REVEAL_TICK_SEC_FAST = 0.76;
+const BATCH_REVEAL_TICK_SEC_ONE_BY_ONE = 0.54;
+const BATCH_REVEAL_TICK_SEC_AT_ONCE = 0.74;
 
 type UseDrawLiveSoundParams = {
     phase: DrawAnimationPhase;
@@ -443,21 +448,23 @@ export default function useDrawLiveSound({
             release: 0.5
         }); 
 
-        const digitRevealStart = silenceEnd + (fast ? 0.38 : 1.0);
+        const singleRevealGap = fast ? SINGLE_REVEAL_TICK_SEC_FAST : SINGLE_REVEAL_TICK_SEC_NORMAL;
+        const batchRevealTick = options.batchRevealStyle === 'AT_ONCE'
+            ? BATCH_REVEAL_TICK_SEC_AT_ONCE
+            : BATCH_REVEAL_TICK_SEC_ONE_BY_ONE;
         const normalizedBatchCount = Math.max(1, Math.min(24, Number(options.batchTotalCount || 1)));
+        const digitRevealStart = silenceEnd + (normalizedBatchCount > 1 ? batchRevealTick : singleRevealGap);
         if (normalizedBatchCount > 1 && options.batchRevealStyle === 'ONE_BY_ONE') {
-            const hitGap = fast ? 0.36 : 0.72;
+            const hitGap = batchRevealTick * (LIVE_DRAW_DISPLAY_LENGTH + 1);
             for (let i = 0; i < normalizedBatchCount; i += 1) {
                 scheduleImpact(engine, digitRevealStart + i * hitGap, 0.98 + i * 0.03, 1.02 + Math.min(i * 0.05, 0.5));
             }
         } else if (normalizedBatchCount > 1 && options.batchRevealStyle === 'AT_ONCE') {
-            const simultaneousHits = Math.min(normalizedBatchCount, 6);
-            const burstGap = fast ? 0.1 : 0.18;
-            for (let i = 0; i < simultaneousHits; i += 1) {
-                scheduleImpact(engine, digitRevealStart + i * burstGap, 1.0 + i * 0.03, 1.05 + i * 0.04);
+            for (let i = 0; i < LIVE_DRAW_DISPLAY_LENGTH; i += 1) {
+                scheduleImpact(engine, digitRevealStart + i * batchRevealTick, 1.0 + i * 0.03, 1.05 + i * 0.06);
             }
         } else {
-            const impactGap = fast ? 0.45 : 1.0;
+            const impactGap = singleRevealGap;
             scheduleImpact(engine, digitRevealStart, 0.98, 1.12);
             scheduleImpact(engine, digitRevealStart + impactGap, 1.08, 1.18);
             scheduleImpact(engine, digitRevealStart + impactGap * 2, 1.18, 1.24);

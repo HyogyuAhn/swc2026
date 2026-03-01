@@ -52,6 +52,7 @@ const DRAW_SEQUENCE_STEP_GAP_MS = 220;
 const DRAW_SEQUENCE_PRE_DELAY_MS = 80;
 const DRAW_SEQUENCE_BATCH_STEP_GAP_MS = 90;
 const DRAW_SEQUENCE_BATCH_PRE_DELAY_MS = 20;
+const DRAW_SEQUENCE_BATCH_SYNC_DELAY_MS = 180;
 const wait = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
 const normalizeDrawNumberInput = (value: string) => value.replace(/\D/g, '').slice(0, 3);
@@ -944,6 +945,9 @@ export default function useDrawManagement(showToast: ShowToast, enabled = true) 
             label: `연속 뽑기 (${steps.length}개)`,
             itemNames: sequenceItemNames
         });
+        if (isBatchReveal) {
+            await wait(DRAW_SEQUENCE_BATCH_SYNC_DELAY_MS);
+        }
 
         for (let index = 0; index < steps.length; index += 1) {
             const step = steps[index];

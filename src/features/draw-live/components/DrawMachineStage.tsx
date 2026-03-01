@@ -53,6 +53,10 @@ const statusTextByPhase: Record<DrawAnimationPhase, string> = {
     reveal: '당첨자 공개'
 };
 const LIVE_DRAW_DISPLAY_LENGTH = 3;
+const SINGLE_REVEAL_TICK_MS_NORMAL = 960;
+const SINGLE_REVEAL_TICK_MS_FAST = 760;
+const BATCH_REVEAL_TICK_MS_ONE_BY_ONE = 540;
+const BATCH_REVEAL_TICK_MS_AT_ONCE = 740;
 const normalizeLiveDrawNumber = (value: string) => {
     const digits = value.replace(/\D/g, '');
     if (!digits) {
@@ -88,6 +92,7 @@ export default function DrawMachineStage({
         && batchEvents.length > 1
     );
     const batchRevealStyle = currentEvent?.batch_reveal_style || sequenceStatus.batchRevealStyle || 'ONE_BY_ONE';
+    const isFastTimeline = currentEvent?.timeline_profile === 'FAST';
     const currentItemName = isBatchReveal
         ? `연속 결과 ${batchEvents?.length || 0}개 공개`
         : (currentEvent?.draw_item_name || preStartItemName);
@@ -114,6 +119,7 @@ export default function DrawMachineStage({
 
         setRevealedDigitCount(0);
         const fullLength = winnerDisplayNumberPadded.length;
+        const tickInterval = isFastTimeline ? SINGLE_REVEAL_TICK_MS_FAST : SINGLE_REVEAL_TICK_MS_NORMAL;
         const timer = setInterval(() => {
             setRevealedDigitCount(prev => {
                 if (prev >= fullLength) {
@@ -122,12 +128,12 @@ export default function DrawMachineStage({
 
                 return prev + 1;
             });
-        }, 1000);
+        }, tickInterval);
 
         return () => {
             clearInterval(timer);
         };
-    }, [currentEvent, phase, winnerDisplayNumberPadded]);
+    }, [currentEvent, isFastTimeline, phase, winnerDisplayNumberPadded]);
 
     useEffect(() => {
         if (!isBatchReveal || phase !== 'reveal' || !batchEvents || batchEvents.length === 0) {
@@ -136,7 +142,9 @@ export default function DrawMachineStage({
         }
 
         setBatchRevealTick(0);
-        const tickInterval = batchRevealStyle === 'AT_ONCE' ? 860 : 620;
+        const tickInterval = batchRevealStyle === 'AT_ONCE'
+            ? BATCH_REVEAL_TICK_MS_AT_ONCE
+            : BATCH_REVEAL_TICK_MS_ONE_BY_ONE;
         const maxTick = batchRevealStyle === 'AT_ONCE'
             ? LIVE_DRAW_DISPLAY_LENGTH
             : (batchEvents.length * (LIVE_DRAW_DISPLAY_LENGTH + 1));
