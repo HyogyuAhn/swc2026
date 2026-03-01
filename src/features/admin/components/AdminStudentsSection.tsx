@@ -205,6 +205,16 @@ const parseStudentRowsFromFile = async (file: File, role: ImportTargetRole) => {
         };
     };
 
+    const parsedDefaultHeader = convertRows(
+        XLSX.utils.sheet_to_json<Record<string, unknown>>(worksheet, {
+            defval: ''
+        })
+    );
+
+    if (parsedDefaultHeader.rows.length > 0 || parsedDefaultHeader.skippedInvalid > 0) {
+        return parsedDefaultHeader;
+    }
+
     return convertRows(
         XLSX.utils.sheet_to_json<Record<string, unknown>>(worksheet, {
             defval: '',
