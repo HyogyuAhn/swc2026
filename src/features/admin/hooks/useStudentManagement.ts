@@ -41,6 +41,7 @@ type StudentUpdatePayload = {
     gender: StudentGender;
     department: StudentDepartment;
     studentRole: StudentRole;
+    studentId: string;
     drawNumber?: string;
 };
 
@@ -356,30 +357,120 @@ export default function useStudentManagement({ onVotesChanged }: UseStudentManag
             alert('추첨 번호는 1~4자리 숫자여야 합니다.');
             return false;
         }
+        const currentStudentId = String(student.student_id || '');
+        const nextStudentId = (payload.studentId || '').trim();
+        if (!nextStudentId) {
+            alert('학번을 입력해주세요.');
+            return false;
+        }
 
-        const { error } = await supabase
-            .from('students')
-            .update({
+        if (nextStudentId !== currentStudentId && !/^\d{8}$/.test(nextStudentId)) {
+            alert('학번 변경 시 8자리 숫자로 입력해주세요.');
+            return false;
+        }
+
+        if (nextStudentId === currentStudentId) {
+            const { error } = await supabase
+                .from('students')
+                .update({
+                    name: normalizedName,
+                    gender: payload.gender,
+                    department: payload.department,
+                    student_role: payload.studentRole,
+                    draw_number: normalizedDrawNumber || null
+                })
+                .eq('student_id', currentStudentId);
+
+            if (error) {
+                if (error.code === '23505') {
+                    alert('이미 사용 중인 추첨 번호입니다.');
+                } else {
+                    alert('학생 정보 수정 실패: ' + error.message);
+                }
+                return false;
+            }
+
+            await fetchStudents();
+            await handleStudentDetails({
+                ...student,
                 name: normalizedName,
                 gender: payload.gender,
                 department: payload.department,
                 student_role: payload.studentRole,
                 draw_number: normalizedDrawNumber || null
-            })
-            .eq('student_id', student.student_id);
+            });
+            return true;
+        }
 
-        if (error) {
-            if (error.code === '23505') {
-                alert('이미 사용 중인 추첨 번호입니다.');
+        const insertPayload: any = {
+            student_id: nextStudentId,
+            name: normalizedName,
+            gender: payload.gender,
+            department: payload.department,
+            student_role: payload.studentRole,
+            draw_number: normalizedDrawNumber || null,
+            is_suspended: Boolean(student.is_suspended)
+        };
+
+        if (student.created_at) {
+            insertPayload.created_at = student.created_at;
+        }
+
+        const { error: insertError } = await supabase
+            .from('students')
+            .insert(insertPayload);
+
+        if (insertError) {
+            if (insertError.code === '23505') {
+                const lowerMessage = (insertError.message || '').toLowerCase();
+                if (lowerMessage.includes('student_id')) {
+                    alert('이미 사용 중인 학번입니다.');
+                } else if (lowerMessage.includes('draw_number')) {
+                    alert('이미 사용 중인 추첨 번호입니다.');
+                } else {
+                    alert('중복된 값이 있습니다.');
+                }
             } else {
-                alert('학생 정보 수정 실패: ' + error.message);
+                alert('학번 변경 준비 실패: ' + insertError.message);
             }
             return false;
         }
 
+        const { error: drawWinnerMoveError } = await supabase
+            .from('draw_winners')
+            .update({ student_id: nextStudentId })
+            .eq('student_id', currentStudentId);
+
+        if (drawWinnerMoveError && drawWinnerMoveError.code !== '42P01') {
+            await supabase.from('students').delete().eq('student_id', nextStudentId);
+            alert('학번 변경 실패(추첨 기록 이동): ' + drawWinnerMoveError.message);
+            return false;
+        }
+
+        const { error: deleteOldError } = await supabase
+            .from('students')
+            .delete()
+            .eq('student_id', currentStudentId);
+
+        if (deleteOldError) {
+            alert('기존 학번 제거 실패: ' + deleteOldError.message);
+            return false;
+        }
+
+        await supabase
+            .from('vote_records')
+            .update({ student_id: nextStudentId })
+            .eq('student_id', currentStudentId);
+
+        await supabase
+            .from('draw_live_events')
+            .update({ winner_student_id: nextStudentId })
+            .eq('winner_student_id', currentStudentId);
+
         await fetchStudents();
         await handleStudentDetails({
             ...student,
+            student_id: nextStudentId,
             name: normalizedName,
             gender: payload.gender,
             department: payload.department,

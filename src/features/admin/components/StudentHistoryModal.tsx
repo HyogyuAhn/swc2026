@@ -28,6 +28,7 @@ type StudentHistoryModalProps = {
         gender: StudentGender;
         department: StudentDepartment;
         studentRole: StudentRole;
+        studentId: string;
         drawNumber?: string;
     }) => Promise<boolean>;
     handleResetStudentVotes: (student: any) => void | Promise<void>;
@@ -60,6 +61,7 @@ export default function StudentHistoryModal({
     const [savingInfo, setSavingInfo] = useState(false);
     const [infoForm, setInfoForm] = useState({
         name: '',
+        studentId: '',
         gender: STUDENT_GENDER_OPTIONS[0] as StudentGender,
         department: STUDENT_DEPARTMENT_OPTIONS[0] as StudentDepartment,
         studentRole: STUDENT_ROLE_OPTIONS[0] as StudentRole,
@@ -74,6 +76,7 @@ export default function StudentHistoryModal({
         setActiveTab('INFO');
         setInfoForm({
             name: String(selectedStudent.name || ''),
+            studentId: String(selectedStudent.student_id || ''),
             gender: (selectedStudent.gender || STUDENT_GENDER_OPTIONS[0]) as StudentGender,
             department: (selectedStudent.department || STUDENT_DEPARTMENT_OPTIONS[0]) as StudentDepartment,
             studentRole: (selectedStudent.student_role || STUDENT_ROLE_OPTIONS[0]) as StudentRole,
@@ -107,6 +110,7 @@ export default function StudentHistoryModal({
         setSavingInfo(true);
         const ok = await handleUpdateStudentInfo(selectedStudent, {
             name: infoForm.name,
+            studentId: infoForm.studentId,
             gender: infoForm.gender,
             department: infoForm.department,
             studentRole: infoForm.studentRole,
@@ -231,12 +235,13 @@ export default function StudentHistoryModal({
                                     />
                                 </label>
                                 <label className="block">
-                                    <span className="mb-1 block text-sm font-semibold text-gray-700">학번</span>
+                                    <span className="mb-1 block text-sm font-semibold text-gray-700">학번 (수정 가능)</span>
                                     <input
                                         type="text"
-                                        className="w-full rounded-lg border border-gray-300 bg-gray-50 px-3 py-2 text-sm text-gray-700"
-                                        value={selectedStudent.student_id}
-                                        disabled
+                                        className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-700"
+                                        value={infoForm.studentId}
+                                        onChange={event => setInfoForm(prev => ({ ...prev, studentId: event.target.value.replace(/[^0-9A-Za-z-]/g, '').slice(0, 24) }))}
+                                        placeholder="예: 12243672"
                                     />
                                 </label>
                             </div>

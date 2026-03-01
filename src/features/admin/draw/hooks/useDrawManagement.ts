@@ -463,9 +463,7 @@ export default function useDrawManagement(showToast: ShowToast, enabled = true) 
             .map(department => normalizeDepartment(department))
             .filter(Boolean);
         const departmentSet = new Set(normalizedFilterDepartments);
-        const hasAllDepartments = departmentSet.size === STUDENT_DEPARTMENT_OPTIONS.length;
         const roleSet = new Set((nextFilter.roles || []).map(role => normalizeStudentRole(role)).filter(Boolean));
-        const hasAllRoles = roleSet.size === STUDENT_ROLE_OPTIONS.length;
         const targetGender = normalizeGender(nextFilter.gender);
 
         const afterSameItem = pool.activeIds.filter(studentId => !itemWinnerSet.has(studentId));
@@ -497,11 +495,7 @@ export default function useDrawManagement(showToast: ShowToast, enabled = true) 
             }
 
             const studentDepartment = normalizeDepartment(student.department);
-            if (departmentSet.size > 0 && studentDepartment) {
-                if (!departmentSet.has(studentDepartment)) {
-                    return false;
-                }
-            } else if (departmentSet.size > 0 && !studentDepartment && !hasAllDepartments) {
+            if (departmentSet.size > 0 && !departmentSet.has(studentDepartment)) {
                 return false;
             }
 
@@ -515,11 +509,7 @@ export default function useDrawManagement(showToast: ShowToast, enabled = true) 
             }
 
             const roleValue = normalizeStudentRole(student.student_role || '재학생');
-            if (roleSet.size > 0 && roleValue) {
-                if (!roleSet.has(roleValue)) {
-                    return false;
-                }
-            } else if (roleSet.size > 0 && !roleValue && !hasAllRoles) {
+            if (roleSet.size > 0 && !roleSet.has(roleValue)) {
                 return false;
             }
 
