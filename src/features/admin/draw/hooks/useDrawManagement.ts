@@ -199,6 +199,7 @@ export default function useDrawManagement(showToast: ShowToast, enabled = true) 
 
     const [pendingAction, setPendingAction] = useState<DrawPendingAction>(null);
     const [drawInProgressItemId, setDrawInProgressItemId] = useState<string | null>(null);
+    const [sequenceRunning, setSequenceRunning] = useState(false);
 
     const drawBusyTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
     const liveControlChannelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
@@ -878,6 +879,11 @@ export default function useDrawManagement(showToast: ShowToast, enabled = true) 
         item: DrawItemWithComputed,
         options?: { mode: DrawMode; targetStudentId?: string; randomFilter?: DrawRandomFilter }
     ) => {
+        if (sequenceRunning) {
+            showToast('연속 뽑기 진행 중에는 개별 추첨을 시작할 수 없습니다.');
+            return false;
+        }
+
         if (drawInProgressItemId) {
             showToast('현재 다른 항목 추첨이 진행 중입니다.');
             return false;
@@ -896,13 +902,18 @@ export default function useDrawManagement(showToast: ShowToast, enabled = true) 
         }
 
         return await executeManualDraw(item, targetStudentId, false);
-    }, [drawInProgressItemId, drawModeByItem, executeManualDraw, executeRandomDraw, manualStudentByItem, showToast]);
+    }, [drawInProgressItemId, drawModeByItem, executeManualDraw, executeRandomDraw, manualStudentByItem, sequenceRunning, showToast]);
 
     const handleStartSequence = useCallback(async (
         steps: DrawSequenceStep[],
         revealMode: DrawSequenceRevealMode = 'STEP',
         batchRevealStyle: DrawSequenceBatchRevealStyle = 'ONE_BY_ONE'
     ) => {
+        if (sequenceRunning) {
+            showToast('이미 연속 뽑기가 진행 중입니다.');
+            return false;
+        }
+
         if (!steps.length) {
             showToast('연속 뽑기 순서를 1개 이상 설정해주세요.');
             return false;
@@ -913,115 +924,120 @@ export default function useDrawManagement(showToast: ShowToast, enabled = true) 
             return false;
         }
 
-        const sequenceItems = steps.map((step, index) => {
-            const foundItem = items.find(item => item.id === step.itemId);
-            return {
-                index,
-                step,
-                item: foundItem
-            };
-        });
-
-        const hasUnknownItem = sequenceItems.some(entry => !entry.item);
-        if (hasUnknownItem) {
-            showToast('연속 뽑기 항목 중 유효하지 않은 항목이 있습니다.');
-            return false;
-        }
-
-        const sequenceItemNames = sequenceItems.map(entry => entry.item!.name);
-        const expectedPublicCount = steps.length;
-
-        const isBatchReveal = revealMode === 'BATCH';
-        await announceSequenceStart({
-            revealMode,
-            batchRevealStyle,
-            expectedPublicCount,
-            label: `연속 뽑기 (${steps.length}개)`,
-            itemNames: sequenceItemNames
-        });
-        if (isBatchReveal) {
-            await wait(DRAW_SEQUENCE_BATCH_SYNC_DELAY_MS);
-        }
-
-        for (let index = 0; index < steps.length; index += 1) {
-            const step = steps[index];
-            const stepItem = items.find(item => item.id === step.itemId);
-            if (!stepItem) {
-                await announceSequenceCancel('연속 뽑기 항목 조회 실패');
-                showToast(`${index + 1}번 순서의 항목을 찾을 수 없습니다.`);
-                return false;
-            }
-
-            await announceSequenceProgress({
-                currentIndex: index,
-                itemName: stepItem.name
+        setSequenceRunning(true);
+        try {
+            const sequenceItems = steps.map((step, index) => {
+                const foundItem = items.find(item => item.id === step.itemId);
+                return {
+                    index,
+                    step,
+                    item: foundItem
+                };
             });
 
-            if (stepItem.remainingCount <= 0) {
-                await announceSequenceCancel('연속 뽑기 남은 수량 없음');
-                showToast(`${index + 1}번 순서(${stepItem.name})의 남은 수량이 없습니다.`);
+            const hasUnknownItem = sequenceItems.some(entry => !entry.item);
+            if (hasUnknownItem) {
+                showToast('연속 뽑기 항목 중 유효하지 않은 항목이 있습니다.');
                 return false;
             }
 
-            let ok = false;
+            const sequenceItemNames = sequenceItems.map(entry => entry.item!.name);
+            const expectedPublicCount = steps.length;
 
-            if (step.mode === 'RANDOM') {
-                const randomFilter = step.randomFilter || getDefaultRandomFilter();
-                if ((randomFilter.departments || []).length === 0) {
-                    await announceSequenceCancel('연속 뽑기 학과 필터 미선택');
-                    showToast(`${index + 1}번 순서의 랜덤 필터 학과를 1개 이상 선택해주세요.`);
-                    return false;
-                }
-                if ((randomFilter.roles || []).length === 0) {
-                    await announceSequenceCancel('연속 뽑기 역할 필터 미선택');
-                    showToast(`${index + 1}번 순서의 랜덤 필터 역할을 1개 이상 선택해주세요.`);
-                    return false;
-                }
+            const isBatchReveal = revealMode === 'BATCH';
+            await announceSequenceStart({
+                revealMode,
+                batchRevealStyle,
+                expectedPublicCount,
+                label: `연속 뽑기 (${steps.length}개)`,
+                itemNames: sequenceItemNames
+            });
+            if (isBatchReveal) {
+                await wait(DRAW_SEQUENCE_BATCH_SYNC_DELAY_MS);
+            }
 
-                ok = await executeRandomDraw(stepItem, {
-                    preDelayMs: isBatchReveal ? DRAW_SEQUENCE_BATCH_PRE_DELAY_MS : DRAW_SEQUENCE_PRE_DELAY_MS,
-                    releaseBusyImmediately: true,
-                    suppressSuccessToast: true,
-                    suppressStartBroadcast: isBatchReveal,
-                    timelineProfile: isBatchReveal ? 'NORMAL' : 'FAST'
-                }, randomFilter);
-            } else {
-                const targetDrawNumber = (step.targetDrawNumber || '').trim();
-                if (!targetDrawNumber) {
-                    await announceSequenceCancel('연속 뽑기 번호 미입력');
-                    showToast(`${index + 1}번 순서의 대상 번호를 입력해주세요.`);
+            for (let index = 0; index < steps.length; index += 1) {
+                const step = steps[index];
+                const stepItem = items.find(item => item.id === step.itemId);
+                if (!stepItem) {
+                    await announceSequenceCancel('연속 뽑기 항목 조회 실패');
+                    showToast(`${index + 1}번 순서의 항목을 찾을 수 없습니다.`);
                     return false;
                 }
 
-                ok = await executeManualDraw(stepItem, targetDrawNumber, false, {
-                    preDelayMs: isBatchReveal ? DRAW_SEQUENCE_BATCH_PRE_DELAY_MS : DRAW_SEQUENCE_PRE_DELAY_MS,
-                    releaseBusyImmediately: true,
-                    suppressSuccessToast: true,
-                    suppressStartBroadcast: isBatchReveal,
-                    timelineProfile: isBatchReveal ? 'NORMAL' : 'FAST'
+                await announceSequenceProgress({
+                    currentIndex: index,
+                    itemName: stepItem.name
                 });
+
+                if (stepItem.remainingCount <= 0) {
+                    await announceSequenceCancel('연속 뽑기 남은 수량 없음');
+                    showToast(`${index + 1}번 순서(${stepItem.name})의 남은 수량이 없습니다.`);
+                    return false;
+                }
+
+                let ok = false;
+
+                if (step.mode === 'RANDOM') {
+                    const randomFilter = step.randomFilter || getDefaultRandomFilter();
+                    if ((randomFilter.departments || []).length === 0) {
+                        await announceSequenceCancel('연속 뽑기 학과 필터 미선택');
+                        showToast(`${index + 1}번 순서의 랜덤 필터 학과를 1개 이상 선택해주세요.`);
+                        return false;
+                    }
+                    if ((randomFilter.roles || []).length === 0) {
+                        await announceSequenceCancel('연속 뽑기 역할 필터 미선택');
+                        showToast(`${index + 1}번 순서의 랜덤 필터 역할을 1개 이상 선택해주세요.`);
+                        return false;
+                    }
+
+                    ok = await executeRandomDraw(stepItem, {
+                        preDelayMs: isBatchReveal ? DRAW_SEQUENCE_BATCH_PRE_DELAY_MS : DRAW_SEQUENCE_PRE_DELAY_MS,
+                        releaseBusyImmediately: true,
+                        suppressSuccessToast: true,
+                        suppressStartBroadcast: isBatchReveal,
+                        timelineProfile: isBatchReveal ? 'NORMAL' : 'FAST'
+                    }, randomFilter);
+                } else {
+                    const targetDrawNumber = (step.targetDrawNumber || '').trim();
+                    if (!targetDrawNumber) {
+                        await announceSequenceCancel('연속 뽑기 번호 미입력');
+                        showToast(`${index + 1}번 순서의 대상 번호를 입력해주세요.`);
+                        return false;
+                    }
+
+                    ok = await executeManualDraw(stepItem, targetDrawNumber, false, {
+                        preDelayMs: isBatchReveal ? DRAW_SEQUENCE_BATCH_PRE_DELAY_MS : DRAW_SEQUENCE_PRE_DELAY_MS,
+                        releaseBusyImmediately: true,
+                        suppressSuccessToast: true,
+                        suppressStartBroadcast: isBatchReveal,
+                        timelineProfile: isBatchReveal ? 'NORMAL' : 'FAST'
+                    });
+                }
+
+                if (!ok) {
+                    await announceSequenceCancel(`${index + 1}번 순서 실패`);
+                    showToast(`${index + 1}번 순서에서 연속 뽑기를 중단했습니다.`);
+                    return false;
+                }
+
+                if (index < steps.length - 1) {
+                    await wait(isBatchReveal ? DRAW_SEQUENCE_BATCH_STEP_GAP_MS : DRAW_SEQUENCE_STEP_GAP_MS);
+                }
             }
 
-            if (!ok) {
-                await announceSequenceCancel(`${index + 1}번 순서 실패`);
-                showToast(`${index + 1}번 순서에서 연속 뽑기를 중단했습니다.`);
-                return false;
+            await refresh();
+            await announceSequenceEnd();
+            if (isBatchReveal) {
+                showToast('연속 뽑기 일괄 공개 실행이 완료되었습니다.', 'success');
+            } else {
+                showToast('연속 뽑기가 완료되었습니다.', 'success');
             }
-
-            if (index < steps.length - 1) {
-                await wait(isBatchReveal ? DRAW_SEQUENCE_BATCH_STEP_GAP_MS : DRAW_SEQUENCE_STEP_GAP_MS);
-            }
+            return true;
+        } finally {
+            setSequenceRunning(false);
         }
-
-        await refresh();
-        await announceSequenceEnd();
-        if (isBatchReveal) {
-            showToast('연속 뽑기 일괄 공개 실행이 완료되었습니다.', 'success');
-        } else {
-            showToast('연속 뽑기가 완료되었습니다.', 'success');
-        }
-        return true;
-    }, [announceSequenceCancel, announceSequenceEnd, announceSequenceProgress, announceSequenceStart, drawInProgressItemId, executeManualDraw, executeRandomDraw, items, refresh, showToast]);
+    }, [announceSequenceCancel, announceSequenceEnd, announceSequenceProgress, announceSequenceStart, drawInProgressItemId, executeManualDraw, executeRandomDraw, items, refresh, sequenceRunning, showToast]);
 
     const handleForceAdd = useCallback(async (item: DrawItemWithComputed) => {
         const targetDrawNumber = normalizeDrawNumberInput((forceStudentByItem[item.id] || '').trim());
@@ -1543,6 +1559,7 @@ export default function useDrawManagement(showToast: ShowToast, enabled = true) 
         loading,
         submitting,
         drawInProgressItemId,
+        sequenceRunning,
         settings,
         items,
         activeStudentIds: pool.activeDrawNumbers,

@@ -20,7 +20,14 @@ import {
 const MAX_RECENT_WINNERS = 30;
 const PRE_START_TIMEOUT_MS = 6000;
 const DRAW_CHAIN_GAP_MS = 260;
+const DRAW_RECENT_VISIBILITY_HOLD_MS = 16000;
 const DRAW_LIVE_CONTROL_CHANNEL = 'draw-live-control';
+const LIVE_DRAW_DISPLAY_LENGTH = 3;
+const SINGLE_REVEAL_TICK_MS_NORMAL = 960;
+const SINGLE_REVEAL_TICK_MS_FAST = 760;
+const BATCH_REVEAL_TICK_MS_ONE_BY_ONE = 540;
+const BATCH_REVEAL_TICK_MS_AT_ONCE = 740;
+const REVEAL_FINISH_BUFFER_MS = 2400;
 const FAST_TIMELINE = {
     mixingAt: 760,
     ballAt: 2600,
@@ -34,6 +41,28 @@ const NORMAL_TIMELINE = {
     paperAt: 6700,
     revealAt: 8600,
     endAt: 15000
+};
+
+const getEventTimeline = (event: DrawLiveEventRecord | null) => {
+    const baseTimeline = event?.timeline_profile === 'FAST' ? FAST_TIMELINE : NORMAL_TIMELINE;
+    if (!event?.id?.startsWith('batch-seq-')) {
+        return baseTimeline;
+    }
+
+    const batchCount = Math.max(1, Math.min(36, Number(event.batch_total_count || 1)));
+    const revealStyle: DrawBatchRevealStyle = event.batch_reveal_style === 'AT_ONCE' ? 'AT_ONCE' : 'ONE_BY_ONE';
+    const revealTickMs = revealStyle === 'AT_ONCE'
+        ? BATCH_REVEAL_TICK_MS_AT_ONCE
+        : BATCH_REVEAL_TICK_MS_ONE_BY_ONE;
+    const revealTickCount = revealStyle === 'AT_ONCE'
+        ? LIVE_DRAW_DISPLAY_LENGTH
+        : LIVE_DRAW_DISPLAY_LENGTH * batchCount;
+
+    const batchEndAt = baseTimeline.revealAt + (revealTickMs * revealTickCount) + REVEAL_FINISH_BUFFER_MS;
+    return {
+        ...baseTimeline,
+        endAt: Math.max(baseTimeline.endAt, batchEndAt)
+    };
 };
 
 const toRecentWinner = (row: any): DrawRecentWinner | null => {
@@ -74,8 +103,10 @@ export default function useDrawLiveFeed() {
         itemNames: [],
         currentIndex: -1
     });
+    const [sequenceStepEvents, setSequenceStepEvents] = useState<(DrawLiveEventRecord | null)[]>([]);
     const [preStartItemName, setPreStartItemName] = useState<string | null>(null);
     const [phase, setPhase] = useState<DrawAnimationPhase>('idle');
+    const [recentVisibilityBlockedUntilMs, setRecentVisibilityBlockedUntilMs] = useState(0);
 
     const timersRef = useRef<ReturnType<typeof setTimeout>[]>([]);
     const preStartTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -91,15 +122,24 @@ export default function useDrawLiveFeed() {
     } | null>(null);
     const pendingTimelineProfileByItemIdRef = useRef<Record<string, 'NORMAL' | 'FAST'>>({});
     const sequenceEndPendingRef = useRef(false);
+    const pendingSequenceIndexRef = useRef<number | null>(null);
     const startNextQueuedEventRef = useRef<() => boolean>(() => false);
     const runTimelineRef = useRef<() => void>(() => { });
     const phaseRef = useRef<DrawAnimationPhase>('idle');
     const currentEventRef = useRef<DrawLiveEventRecord | null>(null);
+    const sequenceStatusRef = useRef<DrawSequenceStatus>({
+        active: false,
+        revealMode: 'STEP',
+        batchRevealStyle: 'ONE_BY_ONE',
+        itemNames: [],
+        currentIndex: -1
+    });
     const recentRefreshTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
     const settingsRef = useRef<DrawLiveSettings>({
         live_page_enabled: true,
         show_recent_winners: true
     });
+    const recentVisibilityTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
     const clearTimers = useCallback(() => {
         timersRef.current.forEach(timerId => clearTimeout(timerId));
@@ -113,6 +153,13 @@ export default function useDrawLiveFeed() {
         }
     }, []);
 
+    const clearRecentVisibilityTimer = useCallback(() => {
+        if (recentVisibilityTimerRef.current) {
+            clearTimeout(recentVisibilityTimerRef.current);
+            recentVisibilityTimerRef.current = null;
+        }
+    }, []);
+
     const clearPreStartTimer = useCallback(() => {
         if (preStartTimerRef.current) {
             clearTimeout(preStartTimerRef.current);
@@ -122,6 +169,16 @@ export default function useDrawLiveFeed() {
 
     const clearBatchCapture = useCallback(() => {
         batchCaptureRef.current = null;
+    }, []);
+
+    const blockRecentWinnersPreview = useCallback((sourceTime?: string | null, holdMs = DRAW_RECENT_VISIBILITY_HOLD_MS) => {
+        const sourceMs = sourceTime ? Date.parse(sourceTime) : Number.NaN;
+        const baseMs = Number.isFinite(sourceMs) ? sourceMs : Date.now();
+        const blockedUntil = baseMs + holdMs;
+        if (blockedUntil <= Date.now()) {
+            return;
+        }
+        setRecentVisibilityBlockedUntilMs(prev => Math.max(prev, blockedUntil));
     }, []);
 
     const activatePreStart = useCallback((itemName: string) => {
@@ -145,7 +202,25 @@ export default function useDrawLiveFeed() {
             itemNames: [],
             currentIndex: -1
         }));
+        pendingSequenceIndexRef.current = null;
     }, []);
+
+    useEffect(() => {
+        clearRecentVisibilityTimer();
+        const remaining = recentVisibilityBlockedUntilMs - Date.now();
+        if (remaining <= 0) {
+            return;
+        }
+
+        recentVisibilityTimerRef.current = setTimeout(() => {
+            setRecentVisibilityBlockedUntilMs(current => (current <= Date.now() ? 0 : current));
+            recentVisibilityTimerRef.current = null;
+        }, remaining + 20);
+
+        return () => {
+            clearRecentVisibilityTimer();
+        };
+    }, [clearRecentVisibilityTimer, recentVisibilityBlockedUntilMs]);
 
     useEffect(() => {
         queueRef.current = queue;
@@ -158,6 +233,10 @@ export default function useDrawLiveFeed() {
     useEffect(() => {
         currentEventRef.current = currentEvent;
     }, [currentEvent]);
+
+    useEffect(() => {
+        sequenceStatusRef.current = sequenceStatus;
+    }, [sequenceStatus]);
 
     useEffect(() => {
         settingsRef.current = settings;
@@ -190,6 +269,19 @@ export default function useDrawLiveFeed() {
             }
 
             const matchedIndex = prev.itemNames.findIndex(name => name === next.draw_item_name);
+            const pendingIndex = pendingSequenceIndexRef.current;
+            if (
+                Number.isFinite(pendingIndex)
+                && pendingIndex != null
+                && pendingIndex >= 0
+                && pendingIndex < prev.itemNames.length
+            ) {
+                pendingSequenceIndexRef.current = null;
+                return {
+                    ...prev,
+                    currentIndex: pendingIndex
+                };
+            }
             if (matchedIndex < 0) {
                 return prev;
             }
@@ -219,8 +311,7 @@ export default function useDrawLiveFeed() {
 
     const scheduleCurrentAnimation = useCallback(() => {
         clearTimers();
-        const timelineProfile = currentEventRef.current?.timeline_profile || 'NORMAL';
-        const timeline = timelineProfile === 'FAST' ? FAST_TIMELINE : NORMAL_TIMELINE;
+        const timeline = getEventTimeline(currentEventRef.current);
 
         timersRef.current.push(setTimeout(() => setPhase('mixing'), timeline.mixingAt));
         timersRef.current.push(setTimeout(() => setPhase('ball'), timeline.ballAt));
@@ -239,6 +330,7 @@ export default function useDrawLiveFeed() {
                     const started = startNextQueuedEventRef.current();
                     if (!started) {
                         setBatchRevealEvents(null);
+                        setSequenceStepEvents([]);
                         setPhase('idle');
                         return;
                     }
@@ -249,6 +341,7 @@ export default function useDrawLiveFeed() {
             }
 
             setBatchRevealEvents(null);
+            setSequenceStepEvents([]);
             finalizeSequenceStatus();
             setPhase('idle');
             setCurrentEvent(null);
@@ -409,13 +502,19 @@ export default function useDrawLiveFeed() {
 
         await loadStudentNumbers();
 
+        const latestEventResult = await fetchRecentLiveEvents(1);
+        if (!latestEventResult.error && (latestEventResult.data || []).length > 0) {
+            const latestEvent = (latestEventResult.data || [])[0] as DrawLiveEventRecord;
+            blockRecentWinnersPreview(latestEvent.created_at);
+        }
+
         if ((settingsResult.data?.show_recent_winners ?? true) === true) {
             await loadRecentWinners();
         } else {
             setRecentWinners([]);
         }
         setLoading(false);
-    }, [loadRecentWinners, loadStudentNumbers]);
+    }, [blockRecentWinnersPreview, loadRecentWinners, loadStudentNumbers]);
 
     useEffect(() => {
         loadInitial();
@@ -441,6 +540,40 @@ export default function useDrawLiveFeed() {
 
                 if (!settingsRef.current.live_page_enabled) {
                     return;
+                }
+                blockRecentWinnersPreview(event.created_at);
+
+                const activeSequence = sequenceStatusRef.current;
+                if (event?.is_public && activeSequence.active && activeSequence.revealMode === 'STEP' && activeSequence.itemNames.length > 0) {
+                    const pendingIndex = pendingSequenceIndexRef.current;
+                    const currentIndex = activeSequence.currentIndex;
+                    let targetIndex = -1;
+
+                    if (
+                        Number.isFinite(pendingIndex)
+                        && pendingIndex != null
+                        && pendingIndex >= 0
+                        && pendingIndex < activeSequence.itemNames.length
+                    ) {
+                        targetIndex = pendingIndex;
+                    } else if (Number.isFinite(currentIndex) && currentIndex >= 0 && currentIndex < activeSequence.itemNames.length) {
+                        targetIndex = currentIndex;
+                    } else {
+                        const fallbackIndex = activeSequence.itemNames.findIndex(name => name === event.draw_item_name);
+                        if (fallbackIndex >= 0) {
+                            targetIndex = fallbackIndex;
+                        }
+                    }
+
+                    if (targetIndex >= 0) {
+                        setSequenceStepEvents(prev => {
+                            const next = prev.length === activeSequence.itemNames.length
+                                ? [...prev]
+                                : Array(activeSequence.itemNames.length).fill(null).map((_, idx) => prev[idx] || null);
+                            next[targetIndex] = event;
+                            return next;
+                        });
+                    }
                 }
 
                 const activeBatchCapture = batchCaptureRef.current;
@@ -521,6 +654,7 @@ export default function useDrawLiveFeed() {
                 const itemId = String(payload?.payload?.itemId || '');
                 const itemName = String(payload?.payload?.itemName || '');
                 const timelineProfile = String(payload?.payload?.timelineProfile || 'NORMAL').toUpperCase();
+                blockRecentWinnersPreview(String(payload?.payload?.startedAt || ''));
                 if (itemId) {
                     pendingTimelineProfileByItemIdRef.current[itemId] = timelineProfile === 'FAST' ? 'FAST' : 'NORMAL';
                 }
@@ -539,6 +673,7 @@ export default function useDrawLiveFeed() {
                     ? itemNamesRaw.map((value: unknown) => String(value || '').trim()).filter(Boolean)
                     : [];
                 const nextBatchStyle: DrawBatchRevealStyle = batchRevealStyle === 'AT_ONCE' ? 'AT_ONCE' : 'ONE_BY_ONE';
+                blockRecentWinnersPreview(String(payload?.payload?.startedAt || ''));
 
                 setSequenceStatus({
                     active: true,
@@ -547,7 +682,13 @@ export default function useDrawLiveFeed() {
                     itemNames,
                     currentIndex: -1
                 });
+                setSequenceStepEvents(
+                    revealMode === 'BATCH'
+                        ? []
+                        : itemNames.map(() => null)
+                );
                 sequenceEndPendingRef.current = false;
+                pendingSequenceIndexRef.current = null;
 
                 if (revealMode !== 'BATCH') {
                     clearBatchCapture();
@@ -591,8 +732,12 @@ export default function useDrawLiveFeed() {
                 activatePreStart(`${label} 준비 중`);
                 flushBatchCaptureIfReady(capture);
             })
-            .on('broadcast', { event: 'draw-sequence-progress' }, () => {
-                // 순서 강조는 실제 재생 중 이벤트 기준으로 반영 (startNextQueuedEvent)
+            .on('broadcast', { event: 'draw-sequence-progress' }, payload => {
+                const currentIndex = Number(payload?.payload?.currentIndex ?? -1);
+                if (!Number.isFinite(currentIndex) || currentIndex < 0) {
+                    return;
+                }
+                pendingSequenceIndexRef.current = currentIndex;
             })
             .on('broadcast', { event: 'draw-sequence-end' }, () => {
                 sequenceEndPendingRef.current = true;
@@ -635,6 +780,8 @@ export default function useDrawLiveFeed() {
                     itemNames: [],
                     currentIndex: -1
                 }));
+                setSequenceStepEvents([]);
+                pendingSequenceIndexRef.current = null;
                 clearPreStartTimer();
                 setPreStartItemName(null);
             })
@@ -648,8 +795,10 @@ export default function useDrawLiveFeed() {
             clearTimers();
             clearPreStartTimer();
             clearRecentRefreshTimer();
+            clearRecentVisibilityTimer();
             clearBatchCapture();
             sequenceEndPendingRef.current = false;
+            pendingSequenceIndexRef.current = null;
             pendingTimelineProfileByItemIdRef.current = {};
             if (kickoffTimerRef.current) {
                 clearTimeout(kickoffTimerRef.current);
@@ -658,7 +807,7 @@ export default function useDrawLiveFeed() {
             supabase.removeChannel(dbChannel);
             supabase.removeChannel(controlChannel);
         };
-    }, [activatePreStart, clearBatchCapture, clearPreStartTimer, clearRecentRefreshTimer, clearTimers, enqueueLiveEvent, finalizeSequenceStatus, flushBatchCaptureIfReady, loadRecentWinners, loadStudentNumbers, recoverBatchCaptureEvents]);
+    }, [activatePreStart, blockRecentWinnersPreview, clearBatchCapture, clearPreStartTimer, clearRecentRefreshTimer, clearRecentVisibilityTimer, clearTimers, enqueueLiveEvent, finalizeSequenceStatus, flushBatchCaptureIfReady, loadRecentWinners, loadStudentNumbers, recoverBatchCaptureEvents]);
 
     useEffect(() => {
         const poller = setInterval(async () => {
@@ -696,6 +845,11 @@ export default function useDrawLiveFeed() {
     }, [loadRecentWinners]);
 
     const isAnimating = phase !== 'idle' && Boolean(currentEvent);
+    const canShowRecentWinners = (
+        phase === 'idle'
+        && !sequenceStatus.active
+        && Date.now() >= recentVisibilityBlockedUntilMs
+    );
 
     const latestWinner = useMemo(() => {
         if (phase === 'reveal' && currentEvent) {
@@ -712,10 +866,12 @@ export default function useDrawLiveFeed() {
         studentNumberById,
         currentEvent,
         batchRevealEvents,
+        sequenceStepEvents,
         sequenceStatus,
         preStartItemName,
         phase,
         isAnimating,
-        latestWinner
+        latestWinner,
+        canShowRecentWinners
     };
 }

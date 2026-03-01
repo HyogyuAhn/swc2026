@@ -24,6 +24,7 @@ type DrawManagementSectionProps = {
     loading: boolean;
     submitting: boolean;
     drawInProgressItemId: string | null;
+    sequenceRunning: boolean;
     settings: { live_page_enabled: boolean; show_recent_winners: boolean };
     items: DrawItemWithComputed[];
     activeStudentIds: string[];
@@ -117,6 +118,7 @@ export default function DrawManagementSection({
     loading,
     submitting,
     drawInProgressItemId,
+    sequenceRunning,
     settings,
     items,
     activeStudentIds,
@@ -400,9 +402,10 @@ export default function DrawManagementSection({
                     <button
                         type="button"
                         onClick={openSequenceModal}
-                        className="inline-flex w-full items-center justify-center rounded-xl bg-violet-100 px-4 py-2.5 text-sm font-bold text-violet-700 transition-all hover:bg-violet-200 group-hover:bg-violet-600 group-hover:text-white group-hover:shadow-sm"
+                        disabled={submitting || sequenceRunning || Boolean(drawInProgressItemId)}
+                        className="inline-flex w-full items-center justify-center rounded-xl bg-violet-100 px-4 py-2.5 text-sm font-bold text-violet-700 transition-all hover:bg-violet-200 group-hover:bg-violet-600 group-hover:text-white group-hover:shadow-sm disabled:cursor-not-allowed disabled:bg-gray-200 disabled:text-gray-500 disabled:hover:bg-gray-200"
                     >
-                        연속 뽑기 설정
+                        {sequenceRunning ? '연속 뽑기 진행중...' : '연속 뽑기 설정'}
                     </button>
                 </div>
             </div>
@@ -427,7 +430,7 @@ export default function DrawManagementSection({
                             studentInfoById={studentInfoById}
                             editingWinnerById={editingWinnerById}
                             editingStudentByWinnerId={editingStudentByWinnerId}
-                            disabled={submitting}
+                            disabled={submitting || sequenceRunning}
                             onOpenStartModal={() => openStartModal(item)}
                             onOpenSettingsModal={() => openItemSettings(item)}
                             onStartEditWinner={startEditWinner}

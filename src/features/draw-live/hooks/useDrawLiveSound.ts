@@ -4,17 +4,15 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { DrawAnimationPhase } from '@/features/draw-live/types';
 
 const LIVE_SOUND_STORAGE_KEY = 'draw_live_tension_sound_enabled';
-const TRACK_TOTAL_MS = 15000;
-const TRACK_TOTAL_FAST_MS = 9800;
 const LIVE_DRAW_DISPLAY_LENGTH = 3;
 const SINGLE_REVEAL_TICK_SEC_NORMAL = 0.96;
 const SINGLE_REVEAL_TICK_SEC_FAST = 0.76;
 const BATCH_REVEAL_TICK_SEC_ONE_BY_ONE = 0.54;
 const BATCH_REVEAL_TICK_SEC_AT_ONCE = 0.74;
-const SINGLE_REVEAL_SYNC_DELAY_SEC_NORMAL = 0.1;
-const SINGLE_REVEAL_SYNC_DELAY_SEC_FAST = 0.14;
-const BATCH_REVEAL_SYNC_DELAY_SEC_ONE_BY_ONE = 0.06;
-const BATCH_REVEAL_SYNC_DELAY_SEC_AT_ONCE = 0.04;
+const SINGLE_REVEAL_SYNC_DELAY_SEC_NORMAL = 0.04;
+const SINGLE_REVEAL_SYNC_DELAY_SEC_FAST = 0.05;
+const BATCH_REVEAL_SYNC_DELAY_SEC_ONE_BY_ONE = 0.03;
+const BATCH_REVEAL_SYNC_DELAY_SEC_AT_ONCE = 0.02;
 
 type UseDrawLiveSoundParams = {
     phase: DrawAnimationPhase;
@@ -331,8 +329,30 @@ export default function useDrawLiveSound({
         const mixingEnd = now + (fast ? 2.6 : 3.9);
         const extractionEnd = now + (fast ? 4.3 : 6.7);
         const silenceEnd = now + (fast ? 6.0 : 8.6);
-        const numbersEnd = now + (fast ? 7.6 : 12.6);
-        const finaleEnd = now + (fast ? 9.8 : 15.0);
+        const singleRevealGap = fast ? SINGLE_REVEAL_TICK_SEC_FAST : SINGLE_REVEAL_TICK_SEC_NORMAL;
+        const batchRevealTick = options.batchRevealStyle === 'AT_ONCE'
+            ? BATCH_REVEAL_TICK_SEC_AT_ONCE
+            : BATCH_REVEAL_TICK_SEC_ONE_BY_ONE;
+        const normalizedBatchCount = Math.max(1, Math.min(24, Number(options.batchTotalCount || 1)));
+        const isBatchReveal = normalizedBatchCount > 1;
+        const revealSyncDelay = isBatchReveal
+            ? (options.batchRevealStyle === 'AT_ONCE'
+                ? BATCH_REVEAL_SYNC_DELAY_SEC_AT_ONCE
+                : BATCH_REVEAL_SYNC_DELAY_SEC_ONE_BY_ONE)
+            : (fast ? SINGLE_REVEAL_SYNC_DELAY_SEC_FAST : SINGLE_REVEAL_SYNC_DELAY_SEC_NORMAL);
+        const digitRevealStart = silenceEnd + (isBatchReveal ? batchRevealTick : singleRevealGap) + revealSyncDelay;
+        const revealImpactSpan = isBatchReveal
+            ? (options.batchRevealStyle === 'AT_ONCE'
+                ? (batchRevealTick * LIVE_DRAW_DISPLAY_LENGTH)
+                : (batchRevealTick * LIVE_DRAW_DISPLAY_LENGTH * normalizedBatchCount))
+            : (singleRevealGap * LIVE_DRAW_DISPLAY_LENGTH);
+        const numbersEndBase = now + (fast ? 7.6 : 12.6);
+        const numbersEnd = Math.max(
+            numbersEndBase,
+            digitRevealStart + revealImpactSpan + (isBatchReveal ? 0.42 : 0.36)
+        );
+        const fanfareStart = numbersEnd;
+        const finaleEnd = fanfareStart + (fast ? 2.05 : 2.45);
 
         engine.musicBus.gain.setValueAtTime(0.0001, now);
         engine.musicBus.gain.exponentialRampToValueAtTime(0.22, introEnd - 0.08);
@@ -452,25 +472,32 @@ export default function useDrawLiveSound({
             release: 0.5
         }); 
 
-        const singleRevealGap = fast ? SINGLE_REVEAL_TICK_SEC_FAST : SINGLE_REVEAL_TICK_SEC_NORMAL;
-        const batchRevealTick = options.batchRevealStyle === 'AT_ONCE'
-            ? BATCH_REVEAL_TICK_SEC_AT_ONCE
-            : BATCH_REVEAL_TICK_SEC_ONE_BY_ONE;
-        const normalizedBatchCount = Math.max(1, Math.min(24, Number(options.batchTotalCount || 1)));
-        const revealSyncDelay = normalizedBatchCount > 1
-            ? (options.batchRevealStyle === 'AT_ONCE'
-                ? BATCH_REVEAL_SYNC_DELAY_SEC_AT_ONCE
-                : BATCH_REVEAL_SYNC_DELAY_SEC_ONE_BY_ONE)
-            : (fast ? SINGLE_REVEAL_SYNC_DELAY_SEC_FAST : SINGLE_REVEAL_SYNC_DELAY_SEC_NORMAL);
-        const digitRevealStart = silenceEnd + (normalizedBatchCount > 1 ? batchRevealTick : singleRevealGap) + revealSyncDelay;
-        if (normalizedBatchCount > 1 && options.batchRevealStyle === 'ONE_BY_ONE') {
-            const hitGap = batchRevealTick * (LIVE_DRAW_DISPLAY_LENGTH + 1);
-            for (let i = 0; i < normalizedBatchCount; i += 1) {
-                scheduleImpact(engine, digitRevealStart + i * hitGap, 0.98 + i * 0.03, 1.02 + Math.min(i * 0.05, 0.5));
+        if (isBatchReveal && options.batchRevealStyle === 'ONE_BY_ONE') {
+            const winnerRevealSpan = batchRevealTick * LIVE_DRAW_DISPLAY_LENGTH;
+            for (let winnerIndex = 0; winnerIndex < normalizedBatchCount; winnerIndex += 1) {
+                const winnerStart = digitRevealStart + winnerIndex * winnerRevealSpan;
+                for (let digitIndex = 0; digitIndex < LIVE_DRAW_DISPLAY_LENGTH; digitIndex += 1) {
+                    scheduleImpact(
+                        engine,
+                        winnerStart + (digitIndex * batchRevealTick),
+                        0.96 + (digitIndex * 0.08) + Math.min(winnerIndex * 0.015, 0.12),
+                        1.0 + (digitIndex * 0.08)
+                    );
+                }
             }
-        } else if (normalizedBatchCount > 1 && options.batchRevealStyle === 'AT_ONCE') {
-            for (let i = 0; i < LIVE_DRAW_DISPLAY_LENGTH; i += 1) {
-                scheduleImpact(engine, digitRevealStart + i * batchRevealTick, 1.0 + i * 0.03, 1.05 + i * 0.06);
+        } else if (isBatchReveal && options.batchRevealStyle === 'AT_ONCE') {
+            const layerCount = Math.max(1, Math.min(normalizedBatchCount, 4));
+            for (let digitIndex = 0; digitIndex < LIVE_DRAW_DISPLAY_LENGTH; digitIndex += 1) {
+                const impactAt = digitRevealStart + digitIndex * batchRevealTick;
+                scheduleImpact(engine, impactAt, 0.98 + digitIndex * 0.09, 1.02 + Math.min(normalizedBatchCount * 0.08, 0.45));
+                for (let layer = 1; layer < layerCount; layer += 1) {
+                    scheduleImpact(
+                        engine,
+                        impactAt + layer * 0.045,
+                        1.0 + (digitIndex * 0.07) + (layer * 0.02),
+                        0.46
+                    );
+                }
             }
         } else {
             const impactGap = singleRevealGap;
@@ -479,7 +506,7 @@ export default function useDrawLiveSound({
             scheduleImpact(engine, digitRevealStart + impactGap * 2, 1.18, 1.24);
         }
 
-        trackNoise(engine, engine.musicBus, digitRevealStart, numbersEnd - digitRevealStart, {
+        trackNoise(engine, engine.musicBus, digitRevealStart, Math.max(0.24, numbersEnd - digitRevealStart), {
             filterType: 'bandpass',
             freq: 170,
             freqSweepTo: 420,
@@ -490,7 +517,6 @@ export default function useDrawLiveSound({
             playbackRate: 0.76
         });
 
-        const fanfareStart = numbersEnd;
         const fanfareNotes: Array<{ freq: number; dur: number; at: number; gain: number }> = [
             { freq: 392, dur: 1.2, at: 0, gain: 0.09 },
             { freq: 494, dur: 1.2, at: 0, gain: 0.08 },
@@ -545,7 +571,7 @@ export default function useDrawLiveSound({
             if (playingEventIdRef.current === eventIdToPlay) {
                 stopCurrentTrack();
             }
-        }, (fast ? TRACK_TOTAL_FAST_MS : TRACK_TOTAL_MS) + 120);
+        }, Math.ceil((finaleEnd - now) * 1000) + 160);
         activeTimersRef.current.push(endTimer);
     }, [ensureEngine, scheduleImpact, stopCurrentTrack, trackNoise, trackOscillator]);
 

@@ -5,6 +5,7 @@ type DrawMachineStageProps = {
     phase: DrawAnimationPhase;
     currentEvent: DrawLiveEventRecord | null;
     batchEvents: DrawLiveEventRecord[] | null;
+    sequenceStepEvents: (DrawLiveEventRecord | null)[];
     sequenceStatus: DrawSequenceStatus;
     preStartItemName: string | null;
     studentNumberById: Record<string, string>;
@@ -70,6 +71,7 @@ export default function DrawMachineStage({
     phase,
     currentEvent,
     batchEvents,
+    sequenceStepEvents,
     sequenceStatus,
     preStartItemName,
     studentNumberById,
@@ -91,6 +93,12 @@ export default function DrawMachineStage({
         && batchEvents
         && batchEvents.length > 1
     );
+    const isSequenceStepBoard = Boolean(
+        sequenceStatus.revealMode === 'STEP'
+        && sequenceStatus.itemNames.length > 1
+        && (sequenceStatus.active || sequenceStepEvents.some(Boolean))
+    );
+    const isMultiRevealBoard = isBatchReveal || isSequenceStepBoard;
     const batchRevealStyle = currentEvent?.batch_reveal_style || sequenceStatus.batchRevealStyle || 'ONE_BY_ONE';
     const isFastTimeline = currentEvent?.timeline_profile === 'FAST';
     const currentItemName = isBatchReveal
@@ -230,8 +238,55 @@ export default function DrawMachineStage({
         });
     }, [batchEvents, batchRevealStyle, batchRevealTick, isBatchReveal, studentNumberById]);
 
+    const sequenceStepEntries = useMemo(() => {
+        if (!isSequenceStepBoard || sequenceStatus.itemNames.length === 0) {
+            return [];
+        }
+
+        const currentIndex = Number.isFinite(sequenceStatus.currentIndex) ? sequenceStatus.currentIndex : -1;
+        return sequenceStatus.itemNames.map((itemName, index) => {
+            const recordedEvent = sequenceStepEvents[index];
+            const rawRecordedNumber = recordedEvent
+                ? (studentNumberById[recordedEvent.winner_student_id] || '번호 미지정')
+                : '';
+            const normalizedRecordedNumber = rawRecordedNumber && rawRecordedNumber !== '번호 미지정'
+                ? normalizeLiveDrawNumber(rawRecordedNumber)
+                : rawRecordedNumber;
+
+            const isCurrentRevealing = (
+                phase === 'reveal'
+                && index === currentIndex
+                && !currentEvent?.id?.startsWith('batch-seq-')
+            );
+            const displayNumber = (() => {
+                if (isCurrentRevealing) {
+                    return stagedWinnerDisplay;
+                }
+
+                if (index < currentIndex && normalizedRecordedNumber) {
+                    return normalizedRecordedNumber;
+                }
+
+                if (!sequenceStatus.active && normalizedRecordedNumber) {
+                    return normalizedRecordedNumber;
+                }
+
+                return '-'.repeat(LIVE_DRAW_DISPLAY_LENGTH);
+            })();
+
+            return {
+                id: recordedEvent?.id || `sequence-step-${index}`,
+                draw_item_name: itemName,
+                displayNumber,
+                isCurrentRevealing
+            };
+        });
+    }, [currentEvent?.id, isSequenceStepBoard, phase, sequenceStatus.active, sequenceStatus.currentIndex, sequenceStatus.itemNames, sequenceStepEvents, stagedWinnerDisplay, studentNumberById]);
+
+    const multiWinnerEntries = isBatchReveal ? batchWinnerEntries : sequenceStepEntries;
+
     const batchPaperMaxWidth = useMemo(() => {
-        const count = batchWinnerEntries.length;
+        const count = multiWinnerEntries.length;
         if (count <= 2) {
             return 340;
         }
@@ -242,19 +297,36 @@ export default function DrawMachineStage({
             return 580;
         }
         return 700;
-    }, [batchWinnerEntries.length]);
+    }, [multiWinnerEntries.length]);
 
-    const batchGridClass = batchWinnerEntries.length <= 3
+    const batchGridClass = multiWinnerEntries.length <= 3
         ? 'grid-cols-1'
-        : batchWinnerEntries.length <= 8
+        : multiWinnerEntries.length <= 8
             ? 'grid-cols-1 sm:grid-cols-2'
             : 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-3';
+    const stageHeightClass = isMultiRevealBoard
+        ? (multiWinnerEntries.length <= 4
+            ? 'h-[470px]'
+            : multiWinnerEntries.length <= 8
+                ? 'h-[560px] sm:h-[600px]'
+                : 'h-[650px] sm:h-[700px]')
+        : 'h-[440px]';
+    const isBatchModeActive = sequenceStatus.revealMode === 'BATCH'
+        || Boolean(currentEvent?.id?.startsWith('batch-seq-'));
+    const batchItemNames = useMemo(() => {
+        if (isBatchReveal && batchEvents && batchEvents.length > 0) {
+            const names = Array.from(new Set(batchEvents.map(event => event.draw_item_name).filter(Boolean)));
+            if (names.length > 0) {
+                return names;
+            }
+        }
 
-    const batchMaxHeightClass = batchWinnerEntries.length <= 4
-        ? 'max-h-[200px]'
-        : batchWinnerEntries.length <= 8
-            ? 'max-h-[260px]'
-            : 'max-h-[320px]';
+        if (isSequenceStepBoard && sequenceStatus.itemNames.length > 0) {
+            return sequenceStatus.itemNames;
+        }
+
+        return sequenceStatus.itemNames;
+    }, [batchEvents, currentEvent?.id, isBatchReveal, isSequenceStepBoard, sequenceStatus.itemNames]);
 
     const statusText = phase === 'idle' && preStartItemName
         ? '추첨 시작 안내'
@@ -291,7 +363,12 @@ export default function DrawMachineStage({
                     <p className="text-sm font-medium text-gray-500">추첨 대기 중입니다.</p>
                 )}
 
-                {sequenceStatus.itemNames.length > 0 && (
+                {isBatchModeActive && batchItemNames.length > 0 ? (
+                    <div className="mt-3 flex flex-wrap items-center justify-center gap-2 text-xs font-bold text-blue-700/80">
+                        <span className="text-blue-600">일괄 항목:</span>
+                        <span className="font-extrabold text-blue-900">{batchItemNames.join(', ')}</span>
+                    </div>
+                ) : sequenceStatus.itemNames.length > 0 ? (
                     <div className="mt-3 flex flex-wrap items-center justify-center gap-1 text-xs font-bold text-blue-700/80">
                         <span className="mr-1 text-blue-600">순서:</span>
                         {sequenceStatus.itemNames.map((name, index) => {
@@ -306,10 +383,10 @@ export default function DrawMachineStage({
                             );
                         })}
                     </div>
-                )}
+                ) : null}
             </div>
 
-            <div className={`draw-machine-stage relative mx-auto h-[440px] w-full max-w-4xl overflow-hidden rounded-2xl border border-blue-100 ${isCinematic ? 'cinematic' : ''}`}>
+            <div className={`draw-machine-stage relative mx-auto w-full max-w-4xl overflow-hidden rounded-2xl border border-blue-100 ${stageHeightClass} ${isCinematic ? 'cinematic' : ''}`}>
                 <div className={`draw-lens-flare ${isCinematic ? 'show' : ''} ${isReveal ? 'reveal' : ''}`} />
                 <div className={`draw-stage-vignette ${isStageActive ? 'show' : ''}`} />
                 <div className={`draw-stage-spotlight ${isCinematic ? 'show' : ''}`} />
@@ -327,7 +404,7 @@ export default function DrawMachineStage({
                     />
                 ))}
 
-                <div className={`draw-machine-shell ${isMixing ? 'mixing' : ''} ${isCinematic ? 'cinematic' : ''}`}>
+                <div className={`draw-machine-shell ${isMixing ? 'mixing' : ''} ${isCinematic ? 'cinematic' : ''} ${isMultiRevealBoard ? 'batch' : ''}`}>
                     <div className={`draw-machine-rotor ${isMixing ? 'spinning' : ''}`} />
                     <div className={`draw-machine-light ${isStageActive ? 'show' : ''}`} />
                     {floatingBallConfigs.map((config, index) => (
@@ -358,25 +435,27 @@ export default function DrawMachineStage({
                     ))}
                 </div>
 
-                <div className={`draw-picked-ball ${isBallSequence ? 'active' : ''} ${isBallOpening ? 'opening' : ''}`}>
+                <div className={`draw-picked-ball ${isBallSequence ? 'active' : ''} ${isBallOpening ? 'opening' : ''} ${isMultiRevealBoard ? 'batch' : ''}`}>
                     <div className="draw-picked-ball-top" />
                     <div className="draw-picked-ball-bottom" />
                     <div className={`draw-picked-ball-core ${isBallOpening ? 'open' : ''}`} />
                     <div className={`draw-ticket-strip ${isPaperVisible ? 'show' : ''}`} />
                 </div>
 
-                <div className={`draw-paper-wrap ${isPaperVisible ? 'show' : ''} ${isReveal ? 'reveal' : ''}`}>
+                <div className={`draw-paper-wrap ${isPaperVisible ? 'show' : ''} ${isReveal ? 'reveal' : ''} ${isMultiRevealBoard ? 'batch' : ''}`}>
                     <div
-                        className={`draw-paper-card ${isBatchReveal ? 'batch' : ''}`}
-                        style={isBatchReveal ? ({ ['--batch-paper-max-width' as any]: `${batchPaperMaxWidth}px` }) : undefined}
+                        className={`draw-paper-card ${isMultiRevealBoard ? 'batch' : ''}`}
+                        style={isMultiRevealBoard ? ({ ['--batch-paper-max-width' as any]: `${batchPaperMaxWidth}px` }) : undefined}
                     >
-                        {isBatchReveal ? (
+                        {isMultiRevealBoard ? (
                             <>
                                 <p className="text-xs font-semibold text-gray-500">
-                                    연속 당첨 결과 ({batchRevealStyle === 'AT_ONCE' ? '한 번에 공개' : '차례대로 공개'})
+                                    당첨 결과 ({isBatchReveal
+                                        ? (batchRevealStyle === 'AT_ONCE' ? '한 번에 공개' : '차례대로 공개')
+                                        : '순차 공개'})
                                 </p>
-                                <div className={`mt-2 grid gap-2 overflow-y-auto pr-1 ${batchGridClass} ${batchMaxHeightClass}`}>
-                                    {batchWinnerEntries.map(entry => (
+                                <div className={`mt-2 grid gap-2 pr-1 ${batchGridClass}`}>
+                                    {multiWinnerEntries.map(entry => (
                                         <div
                                             key={entry.id}
                                             className={`rounded-xl border px-3 py-2 text-left transition ${
@@ -553,6 +632,11 @@ export default function DrawMachineStage({
                     z-index: 3;
                 }
 
+                .draw-machine-shell.batch {
+                    top: 45%;
+                    transform: translate(-50%, -50%) scale(0.86);
+                }
+
                 .draw-machine-shell.mixing {
                     animation: shellShake 420ms ease-in-out infinite;
                 }
@@ -645,6 +729,10 @@ export default function DrawMachineStage({
                     z-index: 10;
                 }
 
+                .draw-picked-ball.batch {
+                    top: 31%;
+                }
+
                 .draw-picked-ball.active {
                     opacity: 1;
                     animation: pickBall 1400ms cubic-bezier(0.22, 0.9, 0.3, 1) forwards;
@@ -731,6 +819,10 @@ export default function DrawMachineStage({
                     transform: translate(-50%, 58px) scale(0.92);
                     opacity: 0;
                     z-index: 12;
+                }
+
+                .draw-paper-wrap.batch {
+                    bottom: 14px;
                 }
 
                 .draw-paper-wrap.show {

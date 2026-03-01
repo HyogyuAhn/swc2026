@@ -13,9 +13,11 @@ export default function DrawLivePageClient() {
         studentNumberById,
         currentEvent,
         batchRevealEvents,
+        sequenceStepEvents,
         sequenceStatus,
         preStartItemName,
-        phase
+        phase,
+        canShowRecentWinners
     } = useDrawLiveFeed();
     const { soundEnabled, toggleSoundEnabled } = useDrawLiveSound({
         phase,
@@ -42,13 +44,14 @@ export default function DrawLivePageClient() {
                             phase={phase}
                             currentEvent={currentEvent}
                             batchEvents={batchRevealEvents}
+                            sequenceStepEvents={sequenceStepEvents}
                             sequenceStatus={sequenceStatus}
                             preStartItemName={preStartItemName}
                             studentNumberById={studentNumberById}
                             soundEnabled={soundEnabled}
                             onToggleSound={toggleSoundEnabled}
                         />
-                        {settings.show_recent_winners && phase === 'idle' && (
+                        {settings.show_recent_winners && canShowRecentWinners && (
                             <DrawRecentWinners
                                 winners={recentWinners}
                                 studentNumberById={studentNumberById}

@@ -266,6 +266,7 @@ export default function AdminPageClient() {
                         loading={drawManagement.loading}
                         submitting={drawManagement.submitting}
                         drawInProgressItemId={drawManagement.drawInProgressItemId}
+                        sequenceRunning={drawManagement.sequenceRunning}
                         settings={drawManagement.settings}
                         items={drawManagement.items}
                         activeStudentIds={drawManagement.activeStudentIds}
