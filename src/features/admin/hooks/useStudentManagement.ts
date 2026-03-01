@@ -63,6 +63,16 @@ const createTemporaryStudentId = () => {
     return `TMP-${stamp}${random}`;
 };
 
+const normalizeDrawNumber = (value?: string) => {
+    const digits = (value || '').trim().replace(/\D/g, '');
+    if (!digits) {
+        return '';
+    }
+
+    const withoutLeadingZeros = digits.replace(/^0+/, '');
+    return withoutLeadingZeros || '0';
+};
+
 export default function useStudentManagement({ onVotesChanged }: UseStudentManagementParams) {
     const [students, setStudents] = useState<any[]>([]);
     const [studentSearch, setStudentSearch] = useState('');
@@ -125,11 +135,12 @@ export default function useStudentManagement({ onVotesChanged }: UseStudentManag
             return false;
         }
 
-        const normalizedDrawNumber = (payload.drawNumber || '').trim().replace(/\D/g, '');
-        if (normalizedDrawNumber && !/^\d{1,4}$/.test(normalizedDrawNumber)) {
+        const rawDrawNumber = (payload.drawNumber || '').trim().replace(/\D/g, '');
+        if (rawDrawNumber && !/^\d{1,4}$/.test(rawDrawNumber)) {
             alert('추첨 번호는 1~4자리 숫자여야 합니다.');
             return false;
         }
+        const normalizedDrawNumber = normalizeDrawNumber(rawDrawNumber);
 
         const studentIdToUse = normalizedStudentId || createTemporaryStudentId();
 
@@ -165,11 +176,12 @@ export default function useStudentManagement({ onVotesChanged }: UseStudentManag
     }, [fetchStudents]);
 
     const handleUpdateStudentDrawNumber = useCallback(async (student: any, drawNumber: string) => {
-        const normalizedDrawNumber = drawNumber.trim().replace(/\D/g, '');
-        if (normalizedDrawNumber && !/^\d{1,4}$/.test(normalizedDrawNumber)) {
+        const rawDrawNumber = drawNumber.trim().replace(/\D/g, '');
+        if (rawDrawNumber && !/^\d{1,4}$/.test(rawDrawNumber)) {
             alert('추첨 번호는 1~4자리 숫자여야 합니다.');
             return false;
         }
+        const normalizedDrawNumber = normalizeDrawNumber(rawDrawNumber);
 
         const { error } = await supabase
             .from('students')
@@ -352,13 +364,15 @@ export default function useStudentManagement({ onVotesChanged }: UseStudentManag
             return false;
         }
 
-        const normalizedDrawNumber = (payload.drawNumber || '').trim().replace(/\D/g, '');
-        if (normalizedDrawNumber && !/^\d{1,4}$/.test(normalizedDrawNumber)) {
+        const rawDrawNumber = (payload.drawNumber || '').trim().replace(/\D/g, '');
+        if (rawDrawNumber && !/^\d{1,4}$/.test(rawDrawNumber)) {
             alert('추첨 번호는 1~4자리 숫자여야 합니다.');
             return false;
         }
+        const normalizedDrawNumber = normalizeDrawNumber(rawDrawNumber);
         const currentStudentId = String(student.student_id || '');
         const nextStudentId = (payload.studentId || '').trim();
+        const currentDrawNumber = normalizeDrawNumber(String(student.draw_number || ''));
         if (!nextStudentId) {
             alert('학번을 입력해주세요.');
             return false;
@@ -367,6 +381,25 @@ export default function useStudentManagement({ onVotesChanged }: UseStudentManag
         if (nextStudentId !== currentStudentId && !/^\d{8}$/.test(nextStudentId)) {
             alert('학번 변경 시 8자리 숫자로 입력해주세요.');
             return false;
+        }
+
+        if (nextStudentId !== currentStudentId && normalizedDrawNumber) {
+            const { data: drawNumberOwner, error: drawNumberOwnerError } = await supabase
+                .from('students')
+                .select('student_id')
+                .eq('draw_number', normalizedDrawNumber)
+                .neq('student_id', currentStudentId)
+                .maybeSingle();
+
+            if (drawNumberOwnerError) {
+                alert('추첨 번호 중복 확인 실패: ' + drawNumberOwnerError.message);
+                return false;
+            }
+
+            if (drawNumberOwner?.student_id) {
+                alert('이미 사용 중인 추첨 번호입니다.');
+                return false;
+            }
         }
 
         if (nextStudentId === currentStudentId) {
@@ -402,13 +435,15 @@ export default function useStudentManagement({ onVotesChanged }: UseStudentManag
             return true;
         }
 
+        const shouldDeferDrawNumber = Boolean(normalizedDrawNumber) && normalizedDrawNumber === currentDrawNumber;
+
         const insertPayload: any = {
             student_id: nextStudentId,
             name: normalizedName,
             gender: payload.gender,
             department: payload.department,
             student_role: payload.studentRole,
-            draw_number: normalizedDrawNumber || null,
+            draw_number: shouldDeferDrawNumber ? null : (normalizedDrawNumber || null),
             is_suspended: Boolean(student.is_suspended)
         };
 
@@ -466,6 +501,17 @@ export default function useStudentManagement({ onVotesChanged }: UseStudentManag
             .from('draw_live_events')
             .update({ winner_student_id: nextStudentId })
             .eq('winner_student_id', currentStudentId);
+
+        if (shouldDeferDrawNumber) {
+            const { error: restoreDrawNumberError } = await supabase
+                .from('students')
+                .update({ draw_number: normalizedDrawNumber })
+                .eq('student_id', nextStudentId);
+
+            if (restoreDrawNumberError) {
+                alert('학번 변경은 완료됐지만 추첨 번호 복원에 실패했습니다: ' + restoreDrawNumberError.message);
+            }
+        }
 
         await fetchStudents();
         await handleStudentDetails({
