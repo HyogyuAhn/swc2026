@@ -31,10 +31,10 @@ export default function AdminDashboardSection({
         <div className="mx-auto max-w-5xl px-10 pb-10 pt-4">
             <div className="flex justify-between items-center mb-8">
                 <h2 className="text-3xl font-bold text-gray-800">대시보드</h2>
-                <div className="flex items-center gap-3 bg-white p-3 rounded-xl border shadow-sm">
+                <div className="flex items-center gap-3 bg-white p-3 rounded-xl border border-gray-300 shadow-sm">
                     <span className="text-sm font-bold text-gray-500 flex items-center gap-1"><AlertCircle size={16} /> 메인 고정 (Pin)</span>
                     <select
-                        className="p-2 border rounded-lg text-sm min-w-[200px]"
+                        className="p-2 border border-gray-300 rounded-lg text-sm min-w-[200px]"
                         value={votes.find(v => v.is_pinned)?.id || 'NONE'}
                         onChange={(e) => handlePin(e.target.value)}
                     >
@@ -51,21 +51,21 @@ export default function AdminDashboardSection({
             </div>
 
             <div className="grid grid-cols-3 gap-6 mb-10">
-                <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 flex items-center justify-between">
+                <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-300 flex items-center justify-between">
                     <div>
                         <p className="text-sm font-medium text-gray-500 mb-1">진행 중</p>
                         <p className="text-4xl font-bold text-green-600">{counts.active}</p>
                     </div>
                     <div className="w-12 h-12 bg-green-50 rounded-full flex items-center justify-center text-green-600"><CheckCircle /></div>
                 </div>
-                <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 flex items-center justify-between">
+                <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-300 flex items-center justify-between">
                     <div>
                         <p className="text-sm font-medium text-gray-500 mb-1">시작 전</p>
                         <p className="text-4xl font-bold text-yellow-500">{counts.upcoming}</p>
                     </div>
                     <div className="w-12 h-12 bg-yellow-50 rounded-full flex items-center justify-center text-yellow-500"><Clock /></div>
                 </div>
-                <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 flex items-center justify-between">
+                <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-300 flex items-center justify-between">
                     <div>
                         <p className="text-sm font-medium text-gray-500 mb-1">종료됨</p>
                         <p className="text-4xl font-bold text-gray-500">{counts.ended}</p>
@@ -76,7 +76,7 @@ export default function AdminDashboardSection({
 
             <div className="flex justify-between items-end mb-4">
                 <h3 className="font-bold text-lg text-gray-700">투표 관리 및 현황</h3>
-                <div className="flex bg-white p-1 rounded-lg border shadow-sm">
+                <div className="flex bg-white p-1 rounded-lg border border-gray-300 shadow-sm">
                     {['ALL', 'ACTIVE', 'UPCOMING', 'ENDED'].map(cat => (
                         <button
                             key={cat}
@@ -92,7 +92,7 @@ export default function AdminDashboardSection({
                 </div>
             </div>
 
-            <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden mb-10">
+            <div className="bg-white rounded-xl shadow-sm border border-gray-300 overflow-hidden mb-10">
                 {votes.filter(v => {
                     if (dashboardFilter === 'ALL') return true;
                     return getStatus(v) === dashboardFilter;
@@ -108,7 +108,7 @@ export default function AdminDashboardSection({
                         const total = voteStats[vote.id]?.total || 0;
 
                         return (
-                            <div key={vote.id} className="p-6 border-b last:border-0 hover:bg-gray-50">
+                            <div key={vote.id} className="p-6 border-b border-gray-300 last:border-0 hover:bg-gray-50">
                                 <div className="flex items-center justify-between mb-4">
                                     <div>
                                         <h4 className="font-bold text-lg mb-1 flex items-center gap-2">
@@ -119,7 +119,7 @@ export default function AdminDashboardSection({
                                                 </span>
                                             )}
                                             {getStatus(vote) === 'ENDED' && (
-                                                <span className="text-sm font-bold bg-gray-100 text-gray-500 px-2 py-0.5 rounded border border-gray-200">
+                                                <span className="text-sm font-bold bg-gray-100 text-gray-500 px-2 py-0.5 rounded border border-gray-300">
                                                     종료됨
                                                 </span>
                                             )}
@@ -130,7 +130,7 @@ export default function AdminDashboardSection({
                                         <button onClick={() => fetchVoteDetails(vote)} className="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-bold hover:bg-blue-700 shadow-sm">
                                             상세 보기
                                         </button>
-                                        <button onClick={() => startEdit(vote)} className="px-4 py-2 bg-white border border-gray-200 rounded-lg text-sm font-medium hover:bg-gray-50">
+                                        <button onClick={() => startEdit(vote)} className="px-4 py-2 bg-white border border-gray-300 rounded-lg text-sm font-medium hover:bg-gray-50">
                                             설정
                                         </button>
                                         {getStatus(vote) === 'ACTIVE' && (

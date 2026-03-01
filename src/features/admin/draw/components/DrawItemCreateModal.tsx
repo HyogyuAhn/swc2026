@@ -66,7 +66,7 @@ export default function DrawItemCreateModal({
                         <span className="mb-2 block font-bold text-gray-700">당첨 항목 이름</span>
                         <input
                             type="text"
-                            className="w-full rounded-2xl border border-gray-200 bg-gray-50/50 px-4 py-3.5 text-base font-medium transition focus:border-blue-500 focus:bg-white focus:outline-none focus:ring-4 focus:ring-blue-500/10"
+                            className="w-full rounded-2xl border border-gray-300 bg-gray-50/50 px-4 py-3.5 text-base font-medium transition focus:border-blue-500 focus:bg-white focus:outline-none focus:ring-4 focus:ring-blue-500/10"
                             value={name}
                             onChange={event => onNameChange(event.target.value)}
                             placeholder="예: 기프티콘"
@@ -78,13 +78,13 @@ export default function DrawItemCreateModal({
                         <input
                             type="number"
                             min={1}
-                            className="w-full rounded-2xl border border-gray-200 bg-gray-50/50 px-4 py-3.5 text-base font-medium transition focus:border-blue-500 focus:bg-white focus:outline-none focus:ring-4 focus:ring-blue-500/10"
+                            className="w-full rounded-2xl border border-gray-300 bg-gray-50/50 px-4 py-3.5 text-base font-medium transition focus:border-blue-500 focus:bg-white focus:outline-none focus:ring-4 focus:ring-blue-500/10"
                             value={quota}
                             onChange={event => onQuotaChange(event.target.value)}
                         />
                     </label>
 
-                    <div className="rounded-2xl border border-gray-200 bg-gray-50/30 p-4">
+                    <div className="rounded-2xl border border-gray-300 bg-gray-50/30 p-4">
                         <p className="mb-3 text-xs font-bold uppercase tracking-wider text-gray-500">옵션 설정</p>
                         <div className="space-y-2.5">
                             <button
@@ -92,7 +92,7 @@ export default function DrawItemCreateModal({
                                 onClick={() => onAllowDuplicateChange(!allowDuplicate)}
                                 className={`${optionCardClass} w-full rounded-xl ${allowDuplicate
                                         ? 'border-emerald-200 bg-emerald-50 text-emerald-900 shadow-[0_2px_10px_-3px_rgba(16,185,129,0.15)]'
-                                        : 'border-gray-200 bg-white text-gray-600 hover:border-gray-300 hover:bg-gray-50 hover:shadow-sm'
+                                        : 'border-gray-300 bg-white text-gray-600 hover:border-gray-400 hover:bg-gray-50 hover:shadow-sm'
                                     }`}
                             >
                                 <div className="flex items-center justify-between gap-2">
@@ -109,7 +109,7 @@ export default function DrawItemCreateModal({
                                 onClick={() => onRealtimePublicChange(!isRealtimePublic)}
                                 className={`${optionCardClass} w-full rounded-xl ${isRealtimePublic
                                         ? 'border-blue-200 bg-blue-50 text-blue-900 shadow-[0_2px_10px_-3px_rgba(59,130,246,0.15)]'
-                                        : 'border-gray-200 bg-white text-gray-600 hover:border-gray-300 hover:bg-gray-50 hover:shadow-sm'
+                                        : 'border-gray-300 bg-white text-gray-600 hover:border-gray-400 hover:bg-gray-50 hover:shadow-sm'
                                     }`}
                             >
                                 <div className="flex items-center justify-between gap-2">
@@ -126,7 +126,7 @@ export default function DrawItemCreateModal({
                                 onClick={() => onRecentPublicChange(!isRecentPublic)}
                                 className={`${optionCardClass} w-full rounded-xl ${isRecentPublic
                                         ? 'border-indigo-200 bg-indigo-50 text-indigo-900 shadow-[0_2px_10px_-3px_rgba(99,102,241,0.15)]'
-                                        : 'border-gray-200 bg-white text-gray-600 hover:border-gray-300 hover:bg-gray-50 hover:shadow-sm'
+                                        : 'border-gray-300 bg-white text-gray-600 hover:border-gray-400 hover:bg-gray-50 hover:shadow-sm'
                                     }`}
                             >
                                 <div className="flex items-center justify-between gap-2">
@@ -145,7 +145,7 @@ export default function DrawItemCreateModal({
                     <button
                         type="button"
                         onClick={onClose}
-                        className="rounded-xl border border-gray-200 bg-white px-5 py-2.5 text-sm font-bold text-gray-700 transition hover:bg-gray-50 hover:text-gray-900 focus:outline-none focus:ring-4 focus:ring-gray-100"
+                        className="rounded-xl border border-gray-300 bg-white px-5 py-2.5 text-sm font-bold text-gray-700 transition hover:bg-gray-50 hover:text-gray-900 focus:outline-none focus:ring-4 focus:ring-gray-100"
                     >
                         취소
                     </button>

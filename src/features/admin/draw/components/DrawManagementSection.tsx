@@ -312,7 +312,7 @@ export default function DrawManagementSection({
             </div>
 
             <div className="mb-8 grid grid-cols-1 gap-4 md:grid-cols-3">
-                <div className="group relative flex flex-col justify-between overflow-hidden rounded-[24px] border border-gray-200 bg-white p-6 shadow-sm transition-all hover:-translate-y-1 hover:border-blue-300 hover:shadow-md">
+                <div className="group relative flex flex-col justify-between overflow-hidden rounded-[24px] border border-gray-300 bg-white p-6 shadow-sm transition-all hover:-translate-y-1 hover:border-blue-300 hover:shadow-md">
                     <div className="mb-5 flex items-start gap-3 text-gray-900">
                         <div className="rounded-xl bg-blue-50 p-3 text-blue-600 transition-colors group-hover:bg-blue-100 group-hover:text-blue-700">
                             <Plus size={20} />
@@ -331,7 +331,7 @@ export default function DrawManagementSection({
                     </button>
                 </div>
 
-                <div className="group relative flex flex-col justify-between overflow-hidden rounded-[24px] border border-gray-200 bg-white p-6 shadow-sm transition-all hover:-translate-y-1 hover:border-indigo-300 hover:shadow-md">
+                <div className="group relative flex flex-col justify-between overflow-hidden rounded-[24px] border border-gray-300 bg-white p-6 shadow-sm transition-all hover:-translate-y-1 hover:border-indigo-300 hover:shadow-md">
                     <div className="mb-5 flex items-start gap-3 text-gray-900">
                         <div className="rounded-xl bg-indigo-50 p-3 text-indigo-600 transition-colors group-hover:bg-indigo-100 group-hover:text-indigo-700">
                             <Settings2 size={20} />
@@ -358,7 +358,7 @@ export default function DrawManagementSection({
                     </button>
                 </div>
 
-                <div className="group relative flex flex-col justify-between overflow-hidden rounded-[24px] border border-violet-100 bg-violet-50/30 p-6 shadow-sm transition-all hover:-translate-y-1 hover:border-violet-300 hover:bg-violet-50 hover:shadow-md">
+                <div className="group relative flex flex-col justify-between overflow-hidden rounded-[24px] border border-violet-200 bg-violet-50/30 p-6 shadow-sm transition-all hover:-translate-y-1 hover:border-violet-300 hover:bg-violet-50 hover:shadow-md">
                     <div className="mb-5 flex items-start gap-3 text-gray-900">
                         <div className="rounded-xl bg-violet-100 p-3 text-violet-600 transition-colors group-hover:bg-violet-200 group-hover:text-violet-700">
                             <Settings2 size={20} />

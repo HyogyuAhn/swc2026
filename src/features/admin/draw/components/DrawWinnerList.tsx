@@ -60,7 +60,7 @@ export default function DrawWinnerList({
                 const canTogglePublic = item.is_public;
 
                 return (
-                    <div key={winner.id} className="rounded-lg border border-gray-200 bg-white p-3">
+                    <div key={winner.id} className="rounded-lg border border-gray-300 bg-white p-3">
                         <div className="flex flex-wrap items-center justify-between gap-2">
                             <div className="flex items-center gap-2">
                                 <span className="rounded-md bg-gray-100 px-2 py-0.5 text-xs font-bold text-gray-500">
@@ -90,8 +90,8 @@ export default function DrawWinnerList({
                                             canTogglePublic
                                                 ? winnerPublic
                                                     ? 'border border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-100'
-                                                    : 'border border-gray-200 bg-gray-100 text-gray-600 hover:bg-gray-200'
-                                                : 'border border-gray-200 bg-gray-100 text-gray-400'
+                                                    : 'border border-gray-300 bg-gray-100 text-gray-600 hover:bg-gray-200'
+                                                : 'border border-gray-300 bg-gray-100 text-gray-400'
                                         }`}
                                         title={canTogglePublic ? '라이브 최근 결과 공개/비공개' : '항목이 비공개라 전환할 수 없습니다.'}
                                     >
@@ -101,7 +101,7 @@ export default function DrawWinnerList({
                                         type="button"
                                         onClick={() => onStartEdit(winner)}
                                         disabled={disabled}
-                                        className="rounded-md border border-gray-200 bg-white px-2 py-1 text-xs font-bold text-gray-600 hover:bg-gray-50 disabled:cursor-not-allowed disabled:text-gray-300"
+                                        className="rounded-md border border-gray-300 bg-white px-2 py-1 text-xs font-bold text-gray-600 hover:bg-gray-50 disabled:cursor-not-allowed disabled:text-gray-300"
                                     >
                                         수정
                                     </button>
@@ -124,7 +124,7 @@ export default function DrawWinnerList({
                                     value={editingValue}
                                     onChange={event => onChangeEditStudent(winner.id, event.target.value.replace(/\D/g, '').slice(0, 4))}
                                     maxLength={4}
-                                    className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm"
+                                    className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm"
                                 />
                                 <datalist id={datalistId}>
                                     {activeStudentIds.map(studentId => (
@@ -141,7 +141,7 @@ export default function DrawWinnerList({
                                 <button
                                     type="button"
                                     onClick={() => onCancelEdit(winner)}
-                                    className="rounded-lg border border-gray-200 bg-white px-3 py-2 text-xs font-bold text-gray-600 hover:bg-gray-50"
+                                    className="rounded-lg border border-gray-300 bg-white px-3 py-2 text-xs font-bold text-gray-600 hover:bg-gray-50"
                                 >
                                     취소
                                 </button>

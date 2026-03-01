@@ -32,8 +32,8 @@ export default function FormToggleSetting({
                 disabled
                     ? 'bg-amber-50/70 border-amber-200 ring-1 ring-amber-100'
                     : checked
-                        ? 'bg-white border-gray-200 hover:border-gray-300'
-                        : 'bg-gray-50 border-gray-200'
+                        ? 'bg-white border-gray-300 hover:border-gray-400'
+                        : 'bg-gray-50 border-gray-300'
             }`}
         >
             <label className={`flex items-center group ${disabled ? 'cursor-not-allowed' : 'cursor-pointer'}`}>

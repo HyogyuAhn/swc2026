@@ -43,7 +43,7 @@ export default function DrawItemCard({
     const isThisDrawInProgress = drawInProgressItemId === item.id;
 
     return (
-        <article className="group relative overflow-hidden rounded-[24px] border border-gray-200 bg-white p-6 shadow-sm transition-all hover:border-gray-300 hover:shadow-md">
+        <article className="group relative overflow-hidden rounded-[24px] border border-gray-300 bg-white p-6 shadow-sm transition-all hover:border-gray-400 hover:shadow-md">
             <div className="mb-6 flex flex-wrap items-start justify-between gap-4">
                 <div>
                     <h4 className="text-2xl font-extrabold tracking-tight text-gray-900">{item.name}</h4>
@@ -64,7 +64,7 @@ export default function DrawItemCard({
                     <button
                         type="button"
                         onClick={onOpenSettingsModal}
-                        className="rounded-xl border border-gray-200 bg-white px-5 py-2.5 text-sm font-bold text-gray-700 transition hover:bg-gray-50 hover:text-gray-900 focus:outline-none focus:ring-4 focus:ring-gray-100"
+                        className="rounded-xl border border-gray-300 bg-white px-5 py-2.5 text-sm font-bold text-gray-700 transition hover:bg-gray-50 hover:text-gray-900 focus:outline-none focus:ring-4 focus:ring-gray-100"
                     >
                         항목 설정
                     </button>
@@ -85,7 +85,7 @@ export default function DrawItemCard({
                 </div>
             </div>
 
-            <div className="mt-6 border-t border-gray-100 pt-6">
+            <div className="mt-6 border-t border-gray-300 pt-6">
                 <h5 className="mb-4 text-base font-extrabold tracking-tight text-gray-900">당첨자 목록</h5>
                 <DrawWinnerList
                     item={item}

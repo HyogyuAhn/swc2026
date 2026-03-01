@@ -27,11 +27,7 @@ type AdminStudentsSectionProps = {
     studentDepartmentFilter: string;
     setStudentDepartmentFilter: (value: string) => void;
     handleAddStudent: (payload: StudentCreatePayload) => Promise<boolean>;
-    handleUpdateStudentDrawNumber: (student: any, drawNumber: string) => Promise<boolean>;
-    handleResetStudentVotes: (student: any) => void;
     handleStudentDetails: (student: any) => void;
-    handleToggleSuspend: (student: any) => void;
-    handleDeleteStudent: (student: any) => void;
 };
 
 const PAGE_SIZE = 50;
@@ -46,13 +42,8 @@ export default function AdminStudentsSection({
     studentDepartmentFilter,
     setStudentDepartmentFilter,
     handleAddStudent,
-    handleUpdateStudentDrawNumber,
-    handleResetStudentVotes,
-    handleStudentDetails,
-    handleToggleSuspend,
-    handleDeleteStudent
+    handleStudentDetails
 }: AdminStudentsSectionProps) {
-    const [numberDraftByStudentId, setNumberDraftByStudentId] = useState<Record<string, string>>({});
     const [page, setPage] = useState(1);
     const [showCreateModal, setShowCreateModal] = useState(false);
     const [creating, setCreating] = useState(false);
@@ -64,14 +55,6 @@ export default function AdminStudentsSection({
         studentId: '',
         drawNumber: ''
     });
-
-    useEffect(() => {
-        const next: Record<string, string> = {};
-        students.forEach(student => {
-            next[student.student_id] = String(student.draw_number || '');
-        });
-        setNumberDraftByStudentId(next);
-    }, [students]);
 
     const filteredStudents = useMemo(() => {
         const keyword = studentSearch.trim().toLowerCase();
@@ -263,32 +246,7 @@ export default function AdminStudentsSection({
                                     <td className="px-6 py-4 font-bold text-gray-800">{student.student_id}</td>
                                     <td className="px-6 py-4 text-gray-700">{student.student_role || '-'}</td>
                                     <td className="px-6 py-4 text-gray-700">{student.department || '-'}</td>
-                                    <td className="px-6 py-4">
-                                        <div className="flex items-center gap-2">
-                                            <input
-                                                type="text"
-                                                value={numberDraftByStudentId[student.student_id] ?? String(student.draw_number || '')}
-                                                maxLength={4}
-                                                onChange={event => setNumberDraftByStudentId(prev => ({
-                                                    ...prev,
-                                                    [student.student_id]: event.target.value.replace(/[^0-9]/g, '').slice(0, 4)
-                                                }))}
-                                                className="w-24 rounded-lg border border-gray-300 bg-white px-2 py-1.5 text-xs font-semibold text-gray-700"
-                                                placeholder="미지정"
-                                            />
-                                            <button
-                                                onClick={async () => {
-                                                    await handleUpdateStudentDrawNumber(
-                                                        student,
-                                                        numberDraftByStudentId[student.student_id] ?? ''
-                                                    );
-                                                }}
-                                                className="rounded-md border border-blue-200 bg-blue-50 px-2 py-1 text-xs font-bold text-blue-700 hover:bg-blue-100"
-                                            >
-                                                저장
-                                            </button>
-                                        </div>
-                                    </td>
+                                    <td className="px-6 py-4 font-mono text-sm font-semibold text-gray-700">{student.draw_number || '-'}</td>
                                     <td className="px-6 py-4">
                                         {student.is_suspended ? (
                                             <span className="rounded bg-red-100 px-2 py-1 text-xs font-bold text-red-600">정지됨</span>
@@ -297,35 +255,12 @@ export default function AdminStudentsSection({
                                         )}
                                     </td>
                                     <td className="px-6 py-4 text-gray-500">{new Date(student.created_at).toLocaleDateString()}</td>
-                                    <td className="flex justify-end space-x-2 px-6 py-4 text-right">
-                                        <button
-                                            onClick={() => handleResetStudentVotes(student)}
-                                            className="rounded border border-transparent px-3 py-1.5 font-medium text-gray-500 hover:border-gray-300 hover:bg-gray-100"
-                                            title="투표 기록 초기화"
-                                        >
-                                            초기화
-                                        </button>
+                                    <td className="px-6 py-4 text-right">
                                         <button
                                             onClick={() => handleStudentDetails(student)}
-                                            className="rounded border border-transparent px-3 py-1.5 font-medium text-blue-600 hover:border-blue-200 hover:bg-blue-50"
+                                            className="rounded-lg border border-blue-200 bg-blue-50 px-3 py-1.5 text-xs font-bold text-blue-700 hover:bg-blue-100"
                                         >
-                                            투표 상세
-                                        </button>
-                                        <button
-                                            onClick={() => handleToggleSuspend(student)}
-                                            className={`rounded border px-3 py-1.5 font-medium transition-colors ${
-                                                student.is_suspended
-                                                    ? 'border-green-200 text-green-600 hover:bg-green-50'
-                                                    : 'border-orange-200 text-orange-500 hover:bg-orange-50'
-                                            }`}
-                                        >
-                                            {student.is_suspended ? '정지 해제' : '정지'}
-                                        </button>
-                                        <button
-                                            onClick={() => handleDeleteStudent(student)}
-                                            className="rounded border border-transparent px-3 py-1.5 font-medium text-red-500 hover:border-red-200 hover:bg-red-50"
-                                        >
-                                            삭제
+                                            관리
                                         </button>
                                     </td>
                                 </tr>
@@ -370,8 +305,8 @@ export default function AdminStudentsSection({
 
             {showCreateModal && (
                 <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/50 p-4">
-                    <div className="w-full max-w-xl rounded-2xl bg-white shadow-2xl">
-                        <div className="flex items-center justify-between border-b px-6 py-4">
+                    <div className="w-full max-w-xl rounded-2xl border border-gray-300 bg-white shadow-2xl">
+                        <div className="flex items-center justify-between border-b border-gray-300 px-6 py-4">
                             <h3 className="text-xl font-bold text-gray-900">신규 학생 등록</h3>
                             <button
                                 type="button"
@@ -386,7 +321,7 @@ export default function AdminStudentsSection({
                                 <span className="mb-1 block text-sm font-semibold text-gray-700">이름</span>
                                 <input
                                     type="text"
-                                    className="w-full rounded-lg border px-3 py-2 text-sm"
+                                    className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm"
                                     value={createForm.name}
                                     onChange={event => setCreateForm(prev => ({ ...prev, name: event.target.value }))}
                                     placeholder="이름 입력"
@@ -396,7 +331,7 @@ export default function AdminStudentsSection({
                                 <label className="block">
                                     <span className="mb-1 block text-sm font-semibold text-gray-700">성별</span>
                                     <select
-                                        className="w-full rounded-lg border px-3 py-2 text-sm"
+                                        className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm"
                                         value={createForm.gender}
                                         onChange={event => setCreateForm(prev => ({ ...prev, gender: event.target.value as StudentGender }))}
                                     >
@@ -408,7 +343,7 @@ export default function AdminStudentsSection({
                                 <label className="block">
                                     <span className="mb-1 block text-sm font-semibold text-gray-700">역할</span>
                                     <select
-                                        className="w-full rounded-lg border px-3 py-2 text-sm"
+                                        className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm"
                                         value={createForm.studentRole}
                                         onChange={event => setCreateForm(prev => ({ ...prev, studentRole: event.target.value as StudentRole }))}
                                     >
@@ -421,7 +356,7 @@ export default function AdminStudentsSection({
                             <label className="block">
                                 <span className="mb-1 block text-sm font-semibold text-gray-700">학과</span>
                                 <select
-                                    className="w-full rounded-lg border px-3 py-2 text-sm"
+                                    className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm"
                                     value={createForm.department}
                                     onChange={event => setCreateForm(prev => ({ ...prev, department: event.target.value as StudentDepartment }))}
                                 >
@@ -436,7 +371,7 @@ export default function AdminStudentsSection({
                                     <input
                                         type="text"
                                         maxLength={8}
-                                        className="w-full rounded-lg border px-3 py-2 text-sm"
+                                        className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm"
                                         value={createForm.studentId}
                                         onChange={event => setCreateForm(prev => ({ ...prev, studentId: event.target.value.replace(/[^0-9]/g, '').slice(0, 8) }))}
                                         placeholder="8자리 숫자"
@@ -447,7 +382,7 @@ export default function AdminStudentsSection({
                                     <input
                                         type="text"
                                         maxLength={4}
-                                        className="w-full rounded-lg border px-3 py-2 text-sm"
+                                        className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm"
                                         value={createForm.drawNumber}
                                         onChange={event => setCreateForm(prev => ({ ...prev, drawNumber: event.target.value.replace(/[^0-9]/g, '').slice(0, 4) }))}
                                         placeholder="최대 4자리"
@@ -458,7 +393,7 @@ export default function AdminStudentsSection({
                                 학번을 비워두면 임시 번호(`TMP-...`)가 자동 생성되어 투표 로그인은 불가능합니다.
                             </p>
                         </div>
-                        <div className="flex items-center justify-end gap-2 border-t px-6 py-4">
+                        <div className="flex items-center justify-end gap-2 border-t border-gray-300 px-6 py-4">
                             <button
                                 type="button"
                                 onClick={closeCreateModal}

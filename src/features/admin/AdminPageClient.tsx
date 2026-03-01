@@ -82,6 +82,7 @@ export default function AdminPageClient() {
         setStudentDepartmentFilter,
         selectedStudent,
         studentHistory,
+        studentDrawWinners,
         showStudentModal,
         setShowStudentModal,
         showDeleteModal,
@@ -92,7 +93,6 @@ export default function AdminPageClient() {
         setForceVoteData,
         fetchStudents,
         handleAddStudent,
-        handleUpdateStudentDrawNumber,
         handleToggleSuspend,
         handleDeleteStudent,
         executeDeleteStudent,
@@ -100,6 +100,7 @@ export default function AdminPageClient() {
         handleDeleteRecord,
         handleForceAddVote,
         handleStudentDetails,
+        handleUpdateStudentInfo,
         patchStudentHistoryValidity
     } = useStudentManagement({ onVotesChanged: fetchVotes });
 
@@ -221,11 +222,7 @@ export default function AdminPageClient() {
                             studentDepartmentFilter={studentDepartmentFilter}
                             setStudentDepartmentFilter={setStudentDepartmentFilter}
                             handleAddStudent={handleAddStudent}
-                            handleUpdateStudentDrawNumber={handleUpdateStudentDrawNumber}
-                            handleResetStudentVotes={handleResetStudentVotes}
                             handleStudentDetails={handleStudentDetails}
-                            handleToggleSuspend={handleToggleSuspend}
-                            handleDeleteStudent={handleDeleteStudent}
                         />
                         <StudentDeleteModal
                             showDeleteModal={showDeleteModal}
@@ -238,6 +235,7 @@ export default function AdminPageClient() {
                             showStudentModal={showStudentModal}
                             selectedStudent={selectedStudent}
                             studentHistory={studentHistory}
+                            studentDrawWinners={studentDrawWinners}
                             setShowStudentModal={setShowStudentModal}
                             forceVoteData={forceVoteData}
                             setForceVoteData={setForceVoteData}
@@ -247,6 +245,10 @@ export default function AdminPageClient() {
                             toggleValidity={toggleValidity}
                             handleDeleteRecord={handleDeleteRecord}
                             handleStudentDetails={handleStudentDetails}
+                            handleUpdateStudentInfo={handleUpdateStudentInfo}
+                            handleResetStudentVotes={handleResetStudentVotes}
+                            handleToggleSuspend={handleToggleSuspend}
+                            handleDeleteStudent={handleDeleteStudent}
                         />
                     </>
                 )}

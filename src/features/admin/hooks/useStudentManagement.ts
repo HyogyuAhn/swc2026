@@ -36,6 +36,14 @@ type StudentCreatePayload = {
     drawNumber?: string;
 };
 
+type StudentUpdatePayload = {
+    name: string;
+    gender: StudentGender;
+    department: StudentDepartment;
+    studentRole: StudentRole;
+    drawNumber?: string;
+};
+
 const isGender = (value: string): value is StudentGender => (
     (STUDENT_GENDER_OPTIONS as readonly string[]).includes(value)
 );
@@ -61,6 +69,7 @@ export default function useStudentManagement({ onVotesChanged }: UseStudentManag
     const [studentDepartmentFilter, setStudentDepartmentFilter] = useState('ALL');
     const [selectedStudent, setSelectedStudent] = useState<any>(null);
     const [studentHistory, setStudentHistory] = useState<any[]>([]);
+    const [studentDrawWinners, setStudentDrawWinners] = useState<any[]>([]);
     const [showStudentModal, setShowStudentModal] = useState(false);
 
     const [showDeleteModal, setShowDeleteModal] = useState(false);
@@ -263,18 +272,93 @@ export default function useStudentManagement({ onVotesChanged }: UseStudentManag
         setSelectedStudent(student);
         setForceVoteData({ targetStudentId: student.student_id, targetVoteId: '', targetOptionId: '' });
 
-        const { data } = await supabase
-            .from('vote_records')
-            .select('*, votes(title, vote_options(id, name))')
-            .eq('student_id', student.student_id)
-            .order('created_at', { ascending: false });
+        const [{ data: voteData }, { data: drawData }] = await Promise.all([
+            supabase
+                .from('vote_records')
+                .select('*, votes(title, vote_options(id, name))')
+                .eq('student_id', student.student_id)
+                .order('created_at', { ascending: false }),
+            supabase
+                .from('draw_winners')
+                .select('id, draw_item_id, student_id, selected_mode, is_forced, is_public, created_at, draw_items(name)')
+                .eq('student_id', student.student_id)
+                .order('created_at', { ascending: false })
+        ]);
 
-        if (data) {
-            setStudentHistory(data);
+        if (voteData) {
+            setStudentHistory(voteData);
+        } else {
+            setStudentHistory([]);
+        }
+
+        if (drawData) {
+            setStudentDrawWinners(drawData);
+        } else {
+            setStudentDrawWinners([]);
         }
 
         setShowStudentModal(true);
     }, []);
+
+    const handleUpdateStudentInfo = useCallback(async (student: any, payload: StudentUpdatePayload) => {
+        const normalizedName = payload.name.trim();
+        if (!normalizedName) {
+            alert('이름을 입력해주세요.');
+            return false;
+        }
+
+        if (!isGender(payload.gender)) {
+            alert('성별을 선택해주세요.');
+            return false;
+        }
+
+        if (!isDepartment(payload.department)) {
+            alert('학과를 선택해주세요.');
+            return false;
+        }
+
+        if (!isRole(payload.studentRole)) {
+            alert('역할을 선택해주세요.');
+            return false;
+        }
+
+        const normalizedDrawNumber = (payload.drawNumber || '').trim().replace(/\D/g, '');
+        if (normalizedDrawNumber && !/^\d{1,4}$/.test(normalizedDrawNumber)) {
+            alert('추첨 번호는 1~4자리 숫자여야 합니다.');
+            return false;
+        }
+
+        const { error } = await supabase
+            .from('students')
+            .update({
+                name: normalizedName,
+                gender: payload.gender,
+                department: payload.department,
+                student_role: payload.studentRole,
+                draw_number: normalizedDrawNumber || null
+            })
+            .eq('student_id', student.student_id);
+
+        if (error) {
+            if (error.code === '23505') {
+                alert('이미 사용 중인 추첨 번호입니다.');
+            } else {
+                alert('학생 정보 수정 실패: ' + error.message);
+            }
+            return false;
+        }
+
+        await fetchStudents();
+        await handleStudentDetails({
+            ...student,
+            name: normalizedName,
+            gender: payload.gender,
+            department: payload.department,
+            student_role: payload.studentRole,
+            draw_number: normalizedDrawNumber || null
+        });
+        return true;
+    }, [fetchStudents, handleStudentDetails]);
 
     const handleDeleteRecord = useCallback(async (recordId: string, refreshCallback?: (() => void) | null) => {
         if (!confirm('정말 이 투표 기록을 삭제하시겠습니까?')) {
@@ -380,6 +464,7 @@ export default function useStudentManagement({ onVotesChanged }: UseStudentManag
         setStudentDepartmentFilter,
         selectedStudent,
         studentHistory,
+        studentDrawWinners,
         showStudentModal,
         setShowStudentModal,
         showDeleteModal,
@@ -398,6 +483,7 @@ export default function useStudentManagement({ onVotesChanged }: UseStudentManag
         handleDeleteRecord,
         handleForceAddVote,
         handleStudentDetails,
+        handleUpdateStudentInfo,
         patchStudentHistoryValidity
     };
 }
