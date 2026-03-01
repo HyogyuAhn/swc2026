@@ -170,22 +170,15 @@ export default function AdminStudentsSection({
 
     return (
         <div className="mx-auto max-w-7xl px-8 pb-10 pt-4">
-            <div className="mb-6 flex items-center justify-between">
+            <div className="mb-6">
                 <h2 className="text-3xl font-bold text-gray-800">학생 관리</h2>
-                <button
-                    type="button"
-                    onClick={() => setShowCreateModal(true)}
-                    className="rounded-xl bg-blue-600 px-5 py-2.5 text-sm font-bold text-white shadow-sm hover:bg-blue-700"
-                >
-                    신규 학생 등록
-                </button>
             </div>
 
-            <section className="mb-4 rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
+            <section className="mb-4 rounded-2xl border border-gray-300 bg-white p-5 shadow-sm">
                 <p className="mb-3 text-sm font-bold text-gray-600">필터링</p>
                 <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
                     <select
-                        className="rounded-xl border border-gray-200 bg-gray-50 px-3 py-2.5 text-sm font-medium text-gray-700"
+                        className="rounded-xl border border-gray-300 bg-gray-50 px-3 py-2.5 text-sm font-medium text-gray-700"
                         value={studentRoleFilter}
                         onChange={event => setStudentRoleFilter(event.target.value)}
                     >
@@ -195,7 +188,7 @@ export default function AdminStudentsSection({
                         ))}
                     </select>
                     <select
-                        className="rounded-xl border border-gray-200 bg-gray-50 px-3 py-2.5 text-sm font-medium text-gray-700"
+                        className="rounded-xl border border-gray-300 bg-gray-50 px-3 py-2.5 text-sm font-medium text-gray-700"
                         value={studentDepartmentFilter}
                         onChange={event => setStudentDepartmentFilter(event.target.value)}
                     >
@@ -208,23 +201,23 @@ export default function AdminStudentsSection({
             </section>
 
             <section className="mb-6 grid grid-cols-1 gap-4 md:grid-cols-[2fr_1fr]">
-                <div className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
+                <div className="rounded-2xl border border-gray-300 bg-white p-5 shadow-sm">
                     <p className="mb-3 text-sm font-bold text-gray-600">검색</p>
                     <input
                         type="text"
                         placeholder="이름, 학번 또는 추첨 번호 검색"
-                        className="w-full rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 text-sm"
+                        className="w-full rounded-xl border border-gray-300 bg-gray-50 px-4 py-3 text-sm"
                         value={studentSearch}
                         onChange={e => setStudentSearch(e.target.value)}
                     />
                 </div>
-                <div className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
+                <div className="rounded-2xl border border-gray-300 bg-white p-5 shadow-sm">
                     <p className="mb-3 text-sm font-bold text-gray-600">작업</p>
                     <div className="flex flex-wrap gap-2">
                         <button
                             type="button"
                             onClick={fetchStudents}
-                            className="rounded-xl border border-gray-200 bg-gray-50 px-4 py-2 text-sm font-bold text-gray-700 hover:bg-gray-100"
+                            className="rounded-xl border border-gray-300 bg-gray-50 px-4 py-2 text-sm font-bold text-gray-700 hover:bg-gray-100"
                         >
                             새로고침
                         </button>
@@ -239,8 +232,8 @@ export default function AdminStudentsSection({
                 </div>
             </section>
 
-            <section className="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm">
-                <div className="flex items-center justify-between border-b bg-gray-50 px-5 py-4">
+            <section className="overflow-hidden rounded-2xl border border-gray-300 bg-white shadow-sm">
+                <div className="flex items-center justify-between border-b border-gray-300 bg-gray-50 px-5 py-4">
                     <div>
                         <h3 className="font-bold text-gray-800">
                             등록된 학생 목록 <span className="ml-1 text-blue-600">({filteredStudents.length}명)</span>
@@ -251,7 +244,7 @@ export default function AdminStudentsSection({
 
                 <div className="overflow-x-auto">
                     <table className="w-full text-left text-sm">
-                        <thead className="border-b bg-gray-50 text-gray-500">
+                        <thead className="border-b border-gray-300 bg-gray-50 text-gray-500">
                             <tr>
                                 <th className="px-6 py-3">이름</th>
                                 <th className="px-6 py-3">학번</th>
@@ -265,7 +258,7 @@ export default function AdminStudentsSection({
                         </thead>
                         <tbody>
                             {pagedStudents.map(student => (
-                                <tr key={student.student_id} className="border-b last:border-0 hover:bg-gray-50">
+                                <tr key={student.student_id} className="border-b border-gray-300 last:border-0 hover:bg-gray-50">
                                     <td className="px-6 py-4 font-semibold text-gray-800">{student.name || '-'}</td>
                                     <td className="px-6 py-4 font-bold text-gray-800">{student.student_id}</td>
                                     <td className="px-6 py-4 text-gray-700">{student.student_role || '-'}</td>
@@ -280,7 +273,7 @@ export default function AdminStudentsSection({
                                                     ...prev,
                                                     [student.student_id]: event.target.value.replace(/[^0-9]/g, '').slice(0, 4)
                                                 }))}
-                                                className="w-24 rounded-lg border border-gray-200 bg-white px-2 py-1.5 text-xs font-semibold text-gray-700"
+                                                className="w-24 rounded-lg border border-gray-300 bg-white px-2 py-1.5 text-xs font-semibold text-gray-700"
                                                 placeholder="미지정"
                                             />
                                             <button
@@ -307,14 +300,14 @@ export default function AdminStudentsSection({
                                     <td className="flex justify-end space-x-2 px-6 py-4 text-right">
                                         <button
                                             onClick={() => handleResetStudentVotes(student)}
-                                            className="rounded border border-transparent px-3 py-1.5 font-medium text-gray-500 hover:border-gray-200 hover:bg-gray-100"
+                                            className="rounded border border-transparent px-3 py-1.5 font-medium text-gray-500 hover:border-gray-300 hover:bg-gray-100"
                                             title="투표 기록 초기화"
                                         >
                                             초기화
                                         </button>
                                         <button
                                             onClick={() => handleStudentDetails(student)}
-                                            className="rounded border border-transparent px-3 py-1.5 font-medium text-blue-600 hover:border-blue-100 hover:bg-blue-50"
+                                            className="rounded border border-transparent px-3 py-1.5 font-medium text-blue-600 hover:border-blue-200 hover:bg-blue-50"
                                         >
                                             투표 상세
                                         </button>
@@ -330,7 +323,7 @@ export default function AdminStudentsSection({
                                         </button>
                                         <button
                                             onClick={() => handleDeleteStudent(student)}
-                                            className="rounded border border-transparent px-3 py-1.5 font-medium text-red-500 hover:border-red-100 hover:bg-red-50"
+                                            className="rounded border border-transparent px-3 py-1.5 font-medium text-red-500 hover:border-red-200 hover:bg-red-50"
                                         >
                                             삭제
                                         </button>
@@ -348,7 +341,7 @@ export default function AdminStudentsSection({
                     </table>
                 </div>
 
-                <div className="border-t bg-gray-50 px-4 py-3">
+                <div className="border-t border-gray-300 bg-gray-50 px-4 py-3">
                     <div className="flex items-center justify-between">
                         <p className="text-xs font-medium text-gray-500">
                             페이지 {safePage} / {totalPages} · 페이지당 {PAGE_SIZE}명
@@ -488,4 +481,3 @@ export default function AdminStudentsSection({
         </div>
     );
 }
-
