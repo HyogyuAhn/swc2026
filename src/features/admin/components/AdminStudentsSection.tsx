@@ -25,6 +25,11 @@ type StudentImportResult = {
     failed: number;
 };
 
+type StudentBulkDeleteResult = {
+    deleted: number;
+    failed: number;
+};
+
 type ImportTargetRole = '재학생' | '신입생';
 
 type ImportSummary = {
@@ -42,12 +47,15 @@ type AdminStudentsSectionProps = {
     fetchStudents: () => void;
     studentSearch: string;
     setStudentSearch: (value: string) => void;
+    studentGenderFilter: string;
+    setStudentGenderFilter: (value: string) => void;
     studentRoleFilter: string;
     setStudentRoleFilter: (value: string) => void;
     studentDepartmentFilter: string;
     setStudentDepartmentFilter: (value: string) => void;
     handleAddStudent: (payload: StudentCreatePayload) => Promise<boolean>;
     handleImportStudents: (rows: StudentCreatePayload[]) => Promise<StudentImportResult>;
+    handleBulkDeleteStudents: (studentIds: string[]) => Promise<StudentBulkDeleteResult>;
     handleStudentDetails: (student: any) => void;
 };
 
@@ -132,7 +140,10 @@ const parseStudentRowsFromFile = async (file: File, role: ImportTargetRole) => {
     }
 
     const worksheet = workbook.Sheets[firstSheetName];
-    const rawRows = XLSX.utils.sheet_to_json<Record<string, unknown>>(worksheet, { defval: '' });
+    const rawRows = XLSX.utils.sheet_to_json<Record<string, unknown>>(worksheet, {
+        defval: '',
+        range: 1
+    });
     const drawAliases = role === '재학생'
         ? ['Column 19', 'Column19', '19', '추첨번호', '추첨 번호', 'draw number', 'drawnumber']
         : ['Column 17', 'Column17', '17', '추첨번호', '추첨 번호', 'draw number', 'drawnumber'];
@@ -172,12 +183,15 @@ export default function AdminStudentsSection({
     fetchStudents,
     studentSearch,
     setStudentSearch,
+    studentGenderFilter,
+    setStudentGenderFilter,
     studentRoleFilter,
     setStudentRoleFilter,
     studentDepartmentFilter,
     setStudentDepartmentFilter,
     handleAddStudent,
     handleImportStudents,
+    handleBulkDeleteStudents,
     handleStudentDetails
 }: AdminStudentsSectionProps) {
     const [page, setPage] = useState(1);
@@ -186,6 +200,7 @@ export default function AdminStudentsSection({
     const [importingRole, setImportingRole] = useState<ImportTargetRole | null>(null);
     const [importSummary, setImportSummary] = useState<ImportSummary | null>(null);
     const [creating, setCreating] = useState(false);
+    const [deletingBulk, setDeletingBulk] = useState(false);
     const enrolledFileInputRef = useRef<HTMLInputElement | null>(null);
     const freshmanFileInputRef = useRef<HTMLInputElement | null>(null);
     const [createForm, setCreateForm] = useState({
@@ -197,9 +212,7 @@ export default function AdminStudentsSection({
         drawNumber: ''
     });
 
-    const filteredStudents = useMemo(() => {
-        const keyword = studentSearch.trim().toLowerCase();
-
+    const filteredStudentsByCategory = useMemo(() => {
         return students
             .filter(student => {
                 if (studentRoleFilter !== 'ALL' && String(student.student_role || '') !== studentRoleFilter) {
@@ -210,6 +223,19 @@ export default function AdminStudentsSection({
                     return false;
                 }
 
+                if (studentGenderFilter !== 'ALL' && String(student.gender || '') !== studentGenderFilter) {
+                    return false;
+                }
+
+                return true;
+            });
+    }, [studentDepartmentFilter, studentGenderFilter, studentRoleFilter, students]);
+
+    const filteredStudents = useMemo(() => {
+        const keyword = studentSearch.trim().toLowerCase();
+
+        return filteredStudentsByCategory
+            .filter(student => {
                 if (!keyword) {
                     return true;
                 }
@@ -240,7 +266,7 @@ export default function AdminStudentsSection({
 
                 return String(a.student_id || '').localeCompare(String(b.student_id || ''));
             });
-    }, [studentDepartmentFilter, studentRoleFilter, studentSearch, students]);
+    }, [filteredStudentsByCategory, studentSearch]);
 
     const totalPages = Math.max(1, Math.ceil(filteredStudents.length / PAGE_SIZE));
     const safePage = Math.min(page, totalPages);
@@ -251,7 +277,7 @@ export default function AdminStudentsSection({
 
     useEffect(() => {
         setPage(1);
-    }, [studentSearch, studentRoleFilter, studentDepartmentFilter]);
+    }, [studentSearch, studentGenderFilter, studentRoleFilter, studentDepartmentFilter]);
 
     useEffect(() => {
         if (page > totalPages) {
@@ -334,6 +360,50 @@ export default function AdminStudentsSection({
         }
     };
 
+    const handleDeleteFilteredStudents = async () => {
+        if (deletingBulk) {
+            return;
+        }
+
+        const targetStudentIds = filteredStudentsByCategory
+            .map(student => String(student.student_id || '').trim())
+            .filter(Boolean);
+
+        if (targetStudentIds.length === 0) {
+            alert('현재 필터 조건에 해당하는 학생이 없습니다.');
+            return;
+        }
+
+        const filterSummary = [
+            `성별: ${studentGenderFilter === 'ALL' ? '전체' : studentGenderFilter}`,
+            `학과: ${studentDepartmentFilter === 'ALL' ? '전체' : studentDepartmentFilter}`,
+            `역할: ${studentRoleFilter === 'ALL' ? '전체' : studentRoleFilter}`
+        ].join(', ');
+
+        const confirmed = confirm(
+            `현재 필터 조건(${filterSummary})에 해당하는 학생 ${targetStudentIds.length}명을 전체 삭제하시겠습니까?\n학생 정보/투표 기록/추첨 기록이 모두 삭제됩니다.`
+        );
+        if (!confirmed) {
+            return;
+        }
+
+        setDeletingBulk(true);
+        const result = await handleBulkDeleteStudents(targetStudentIds);
+        setDeletingBulk(false);
+
+        if (result.deleted === 0) {
+            alert('전체 삭제 실패: 삭제된 학생이 없습니다.');
+            return;
+        }
+
+        if (result.failed > 0) {
+            alert(`전체 삭제 완료: ${result.deleted}명 삭제, ${result.failed}명 실패`);
+            return;
+        }
+
+        alert(`전체 삭제 완료: ${result.deleted}명 삭제`);
+    };
+
     return (
         <div className="mx-auto max-w-7xl px-8 pb-10 pt-4">
             <div className="mb-6">
@@ -342,7 +412,17 @@ export default function AdminStudentsSection({
 
             <section className="mb-4 rounded-2xl border border-gray-300 bg-white p-5 shadow-sm">
                 <p className="mb-3 text-sm font-bold text-gray-600">필터링</p>
-                <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+                <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
+                    <select
+                        className="rounded-xl border border-gray-300 bg-gray-50 px-3 py-2.5 text-sm font-medium text-gray-700"
+                        value={studentGenderFilter}
+                        onChange={event => setStudentGenderFilter(event.target.value)}
+                    >
+                        <option value="ALL">성별 전체</option>
+                        {STUDENT_GENDER_OPTIONS.map(gender => (
+                            <option key={gender} value={gender}>{gender}</option>
+                        ))}
+                    </select>
                     <select
                         className="rounded-xl border border-gray-300 bg-gray-50 px-3 py-2.5 text-sm font-medium text-gray-700"
                         value={studentRoleFilter}
@@ -366,7 +446,7 @@ export default function AdminStudentsSection({
                 </div>
             </section>
 
-            <section className="mb-6 grid grid-cols-1 gap-4 md:grid-cols-[2fr_1fr]">
+            <section className="mb-6 grid grid-cols-1 gap-4 md:grid-cols-[1.5fr_1fr]">
                 <div className="rounded-2xl border border-gray-300 bg-white p-5 shadow-sm">
                     <p className="mb-3 text-sm font-bold text-gray-600">검색</p>
                     <input
@@ -400,6 +480,14 @@ export default function AdminStudentsSection({
                             className="rounded-xl border border-blue-300 bg-blue-50 px-4 py-2 text-sm font-bold text-blue-700 hover:bg-blue-100"
                         >
                             엑셀 업로드
+                        </button>
+                        <button
+                            type="button"
+                            onClick={handleDeleteFilteredStudents}
+                            disabled={deletingBulk}
+                            className="rounded-xl border border-red-300 bg-red-50 px-4 py-2 text-sm font-bold text-red-700 hover:bg-red-100 disabled:cursor-not-allowed disabled:opacity-50"
+                        >
+                            {deletingBulk ? '삭제 중...' : '필터 전체 삭제'}
                         </button>
                     </div>
                 </div>

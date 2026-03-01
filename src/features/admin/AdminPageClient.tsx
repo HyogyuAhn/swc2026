@@ -76,6 +76,8 @@ export default function AdminPageClient() {
         students,
         studentSearch,
         setStudentSearch,
+        studentGenderFilter,
+        setStudentGenderFilter,
         studentRoleFilter,
         setStudentRoleFilter,
         studentDepartmentFilter,
@@ -94,6 +96,7 @@ export default function AdminPageClient() {
         fetchStudents,
         handleAddStudent,
         handleImportStudents,
+        handleBulkDeleteStudents,
         handleToggleSuspend,
         handleDeleteStudent,
         executeDeleteStudent,
@@ -218,12 +221,15 @@ export default function AdminPageClient() {
                             fetchStudents={fetchStudents}
                             studentSearch={studentSearch}
                             setStudentSearch={setStudentSearch}
+                            studentGenderFilter={studentGenderFilter}
+                            setStudentGenderFilter={setStudentGenderFilter}
                             studentRoleFilter={studentRoleFilter}
                             setStudentRoleFilter={setStudentRoleFilter}
                             studentDepartmentFilter={studentDepartmentFilter}
                             setStudentDepartmentFilter={setStudentDepartmentFilter}
                             handleAddStudent={handleAddStudent}
                             handleImportStudents={handleImportStudents}
+                            handleBulkDeleteStudents={handleBulkDeleteStudents}
                             handleStudentDetails={handleStudentDetails}
                         />
                         <StudentDeleteModal

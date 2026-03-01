@@ -53,6 +53,11 @@ type StudentImportResult = {
     failed: number;
 };
 
+type StudentBulkDeleteResult = {
+    deleted: number;
+    failed: number;
+};
+
 const isGender = (value: string): value is StudentGender => (
     (STUDENT_GENDER_OPTIONS as readonly string[]).includes(value)
 );
@@ -95,9 +100,18 @@ const buildStudentDuplicateKey = ({
     return `${name.trim().toLowerCase()}|${gender}|${department}|${drawNumber}`;
 };
 
+const chunkArray = <T,>(source: T[], chunkSize: number) => {
+    const result: T[][] = [];
+    for (let index = 0; index < source.length; index += chunkSize) {
+        result.push(source.slice(index, index + chunkSize));
+    }
+    return result;
+};
+
 export default function useStudentManagement({ onVotesChanged }: UseStudentManagementParams) {
     const [students, setStudents] = useState<any[]>([]);
     const [studentSearch, setStudentSearch] = useState('');
+    const [studentGenderFilter, setStudentGenderFilter] = useState('ALL');
     const [studentRoleFilter, setStudentRoleFilter] = useState('ALL');
     const [studentDepartmentFilter, setStudentDepartmentFilter] = useState('ALL');
     const [selectedStudent, setSelectedStudent] = useState<any>(null);
@@ -399,57 +413,107 @@ export default function useStudentManagement({ onVotesChanged }: UseStudentManag
         setShowDeleteModal(true);
     }, []);
 
+    const deleteStudentsByIds = useCallback(async (studentIds: string[]): Promise<StudentBulkDeleteResult> => {
+        const uniqueStudentIds = Array.from(new Set(
+            (studentIds || [])
+                .map(id => String(id || '').trim())
+                .filter(Boolean)
+        ));
+
+        if (uniqueStudentIds.length === 0) {
+            return { deleted: 0, failed: 0 };
+        }
+
+        let deleted = 0;
+        let failed = 0;
+        const chunks = chunkArray(uniqueStudentIds, 200);
+
+        for (const ids of chunks) {
+            const { error: drawWinnerDeleteError } = await supabase
+                .from('draw_winners')
+                .delete()
+                .in('student_id', ids);
+
+            if (drawWinnerDeleteError && drawWinnerDeleteError.code !== '42P01') {
+                failed += ids.length;
+                continue;
+            }
+
+            const { error: historyError } = await supabase
+                .from('vote_records')
+                .delete()
+                .in('student_id', ids);
+
+            if (historyError) {
+                failed += ids.length;
+                continue;
+            }
+
+            const { error: drawEventDeleteError } = await supabase
+                .from('draw_live_events')
+                .delete()
+                .in('winner_student_id', ids);
+
+            if (drawEventDeleteError && drawEventDeleteError.code !== '42P01') {
+                failed += ids.length;
+                continue;
+            }
+
+            const { error: studentDeleteError } = await supabase
+                .from('students')
+                .delete()
+                .in('student_id', ids);
+
+            if (studentDeleteError) {
+                failed += ids.length;
+                continue;
+            }
+
+            deleted += ids.length;
+        }
+
+        return { deleted, failed };
+    }, []);
+
+    const handleBulkDeleteStudents = useCallback(async (studentIds: string[]): Promise<StudentBulkDeleteResult> => {
+        const result = await deleteStudentsByIds(studentIds);
+
+        if (result.deleted > 0) {
+            await fetchStudents();
+        }
+
+        const deletedIdSet = new Set(
+            (studentIds || [])
+                .map(id => String(id || '').trim())
+                .filter(Boolean)
+        );
+        if (selectedStudent?.student_id && deletedIdSet.has(String(selectedStudent.student_id))) {
+            setShowStudentModal(false);
+            setSelectedStudent(null);
+            setStudentHistory([]);
+            setStudentDrawWinners([]);
+        }
+
+        if (deleteTarget?.data?.student_id && deletedIdSet.has(String(deleteTarget.data.student_id))) {
+            setShowDeleteModal(false);
+            setDeleteTarget(null);
+        }
+
+        return result;
+    }, [deleteStudentsByIds, deleteTarget?.data?.student_id, fetchStudents, selectedStudent?.student_id]);
+
     const executeDeleteStudent = useCallback(async () => {
         if (!deleteTarget?.data?.student_id) {
             return;
         }
 
         const studentId = deleteTarget.data.student_id;
-
-        const { error: drawWinnerDeleteError } = await supabase
-            .from('draw_winners')
-            .delete()
-            .eq('student_id', studentId);
-
-        if (drawWinnerDeleteError && drawWinnerDeleteError.code !== '42P01') {
-            alert('삭제 실패(추첨 기록): ' + drawWinnerDeleteError.message);
+        const result = await handleBulkDeleteStudents([studentId]);
+        if (result.deleted === 0) {
+            alert('삭제 실패: 관련 기록 또는 학생 정보를 삭제하지 못했습니다.');
             return;
         }
-
-        const { error: historyError } = await supabase
-            .from('vote_records')
-            .delete()
-            .eq('student_id', studentId);
-
-        if (historyError) {
-            alert(historyError.message);
-            return;
-        }
-
-        const { error: drawEventDeleteError } = await supabase
-            .from('draw_live_events')
-            .delete()
-            .eq('winner_student_id', studentId);
-
-        if (drawEventDeleteError && drawEventDeleteError.code !== '42P01') {
-            alert('삭제 실패(추첨 공개 기록): ' + drawEventDeleteError.message);
-            return;
-        }
-
-        const { error } = await supabase
-            .from('students')
-            .delete()
-            .eq('student_id', studentId);
-
-        if (error) {
-            alert('삭제 실패: ' + error.message);
-            return;
-        }
-
-        fetchStudents();
-        setShowDeleteModal(false);
-        setDeleteTarget(null);
-    }, [deleteTarget, fetchStudents]);
+    }, [deleteTarget, handleBulkDeleteStudents]);
 
     const handleResetStudentVotes = useCallback(async (student: any) => {
         if (!confirm(`${student.student_id} 의 모든 투표 기록을 초기화하시겠습니까?\n이 작업은 되돌릴 수 없습니다.`)) {
@@ -792,6 +856,8 @@ export default function useStudentManagement({ onVotesChanged }: UseStudentManag
         students,
         studentSearch,
         setStudentSearch,
+        studentGenderFilter,
+        setStudentGenderFilter,
         studentRoleFilter,
         setStudentRoleFilter,
         studentDepartmentFilter,
@@ -813,6 +879,7 @@ export default function useStudentManagement({ onVotesChanged }: UseStudentManag
         handleUpdateStudentDrawNumber,
         handleToggleSuspend,
         handleDeleteStudent,
+        handleBulkDeleteStudents,
         executeDeleteStudent,
         handleResetStudentVotes,
         handleDeleteRecord,
