@@ -294,6 +294,7 @@ export default function AdminPageClient() {
                         handleStartDraw={drawManagement.handleStartDraw}
                         handleStartSequence={drawManagement.handleStartSequence}
                         saveItemSettings={drawManagement.saveItemSettings}
+                        handleDeleteItem={drawManagement.handleDeleteItem}
                         startEditWinner={drawManagement.startEditWinner}
                         cancelEditWinner={drawManagement.cancelEditWinner}
                         changeEditWinnerStudent={drawManagement.changeEditWinnerStudent}

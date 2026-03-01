@@ -55,6 +55,7 @@ type DrawManagementSectionProps = {
         is_public: boolean;
         show_recent_winners: boolean;
     }) => Promise<boolean>;
+    handleDeleteItem: (item: DrawItemWithComputed) => Promise<boolean>;
     startEditWinner: (winner: any) => void;
     cancelEditWinner: (winner: any) => void;
     changeEditWinnerStudent: (winnerId: string, studentId: string) => void;
@@ -133,6 +134,7 @@ export default function DrawManagementSection({
     handleStartDraw,
     handleStartSequence,
     saveItemSettings,
+    handleDeleteItem,
     startEditWinner,
     cancelEditWinner,
     changeEditWinnerStudent,
@@ -297,6 +299,17 @@ export default function DrawManagementSection({
             show_recent_winners: settingsRecentPublic
         });
 
+        if (ok) {
+            setSettingsItem(null);
+        }
+    };
+
+    const deleteCurrentItem = async () => {
+        if (!settingsItem) {
+            return;
+        }
+
+        const ok = await handleDeleteItem(settingsItem);
         if (ok) {
             setSettingsItem(null);
         }
@@ -480,6 +493,7 @@ export default function DrawManagementSection({
                 onRealtimePublicChange={setSettingsRealtimePublic}
                 onRecentPublicChange={setSettingsRecentPublic}
                 onSave={saveCurrentItemSettings}
+                onDelete={deleteCurrentItem}
             />
 
             <DrawSequenceModal

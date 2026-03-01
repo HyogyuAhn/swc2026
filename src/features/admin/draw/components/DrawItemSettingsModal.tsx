@@ -15,6 +15,7 @@ type DrawItemSettingsModalProps = {
     onRealtimePublicChange: (checked: boolean) => void;
     onRecentPublicChange: (checked: boolean) => void;
     onSave: () => void;
+    onDelete: () => void;
 };
 
 export default function DrawItemSettingsModal({
@@ -31,7 +32,8 @@ export default function DrawItemSettingsModal({
     onAllowDuplicateChange,
     onRealtimePublicChange,
     onRecentPublicChange,
-    onSave
+    onSave,
+    onDelete
 }: DrawItemSettingsModalProps) {
     if (!isOpen) {
         return null;
@@ -140,22 +142,33 @@ export default function DrawItemSettingsModal({
                     </div>
                 </div>
 
-                <div className="mt-8 flex justify-end gap-3">
+                <div className="mt-8 flex items-center justify-between gap-3">
                     <button
                         type="button"
-                        onClick={onClose}
-                        className="rounded-xl border border-gray-300 bg-white px-5 py-2.5 text-sm font-bold text-gray-700 transition hover:bg-gray-50 hover:text-gray-900 focus:outline-none focus:ring-4 focus:ring-gray-100"
-                    >
-                        취소
-                    </button>
-                    <button
-                        type="button"
-                        onClick={onSave}
+                        onClick={onDelete}
                         disabled={disabled}
-                        className="rounded-xl bg-blue-600 px-6 py-2.5 text-sm font-bold text-white shadow-sm transition hover:bg-blue-700 focus:outline-none focus:ring-4 focus:ring-blue-500/20 disabled:cursor-not-allowed disabled:bg-gray-300"
+                        className="rounded-xl border border-red-200 bg-red-50 px-5 py-2.5 text-sm font-bold text-red-700 transition hover:bg-red-100 focus:outline-none focus:ring-4 focus:ring-red-500/20 disabled:cursor-not-allowed disabled:border-gray-200 disabled:bg-gray-100 disabled:text-gray-400"
                     >
-                        저장
+                        항목 제거
                     </button>
+
+                    <div className="flex items-center gap-3">
+                        <button
+                            type="button"
+                            onClick={onClose}
+                            className="rounded-xl border border-gray-300 bg-white px-5 py-2.5 text-sm font-bold text-gray-700 transition hover:bg-gray-50 hover:text-gray-900 focus:outline-none focus:ring-4 focus:ring-gray-100"
+                        >
+                            취소
+                        </button>
+                        <button
+                            type="button"
+                            onClick={onSave}
+                            disabled={disabled}
+                            className="rounded-xl bg-blue-600 px-6 py-2.5 text-sm font-bold text-white shadow-sm transition hover:bg-blue-700 focus:outline-none focus:ring-4 focus:ring-blue-500/20 disabled:cursor-not-allowed disabled:bg-gray-300"
+                        >
+                            저장
+                        </button>
+                    </div>
                 </div>
             </div>
         </div>

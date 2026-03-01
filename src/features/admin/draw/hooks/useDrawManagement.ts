@@ -5,6 +5,7 @@ import { supabase } from '@/lib/supabase';
 import {
     createDrawItem,
     createDrawLiveEvent,
+    deleteDrawItem,
     deleteDrawWinner,
     fetchDrawItems,
     fetchDrawSettings,
@@ -1294,6 +1295,32 @@ export default function useDrawManagement(showToast: ShowToast, enabled = true) 
         return true;
     }, [refresh, showToast]);
 
+    const handleDeleteItem = useCallback(async (item: DrawItemWithComputed) => {
+        if (drawInProgressItemId === item.id) {
+            showToast('추첨이 진행 중인 항목은 삭제할 수 없습니다.');
+            return false;
+        }
+
+        const hasWinners = item.winnerCount > 0;
+        const warningMessage = hasWinners
+            ? `당첨자 ${item.winnerCount}명 기록도 함께 삭제됩니다.\n정말 "${item.name}" 항목을 제거하시겠습니까?`
+            : `정말 "${item.name}" 항목을 제거하시겠습니까?`;
+
+        if (!confirm(warningMessage)) {
+            return false;
+        }
+
+        const result = await deleteDrawItem(item.id);
+        if (result.error) {
+            showToast(`항목 제거 실패: ${result.error.message}`);
+            return false;
+        }
+
+        showToast('추첨 항목이 제거되었습니다.', 'success');
+        await refresh();
+        return true;
+    }, [drawInProgressItemId, refresh, showToast]);
+
     const toggleWinnerPublic = useCallback(async (item: DrawItemWithComputed, winner: DrawWinner) => {
         if (!item.is_public) {
             showToast('항목이 비공개 상태라 당첨자 공개 전환을 할 수 없습니다.');
@@ -1397,6 +1424,7 @@ export default function useDrawManagement(showToast: ShowToast, enabled = true) 
         toggleItemPublic,
         toggleItemAllowDuplicate,
         saveItemSettings,
+        handleDeleteItem,
         toggleWinnerPublic,
         confirmPendingAction,
         cancelPendingAction

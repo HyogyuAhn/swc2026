@@ -106,6 +106,13 @@ export async function updateDrawItem(
         .eq('id', itemId);
 }
 
+export async function deleteDrawItem(itemId: string) {
+    return supabase
+        .from('draw_items')
+        .delete()
+        .eq('id', itemId);
+}
+
 export async function pickWinnerWithRpc(params: {
     itemId: string;
     mode: 'RANDOM' | 'MANUAL';
