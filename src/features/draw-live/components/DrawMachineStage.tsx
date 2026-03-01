@@ -147,7 +147,7 @@ export default function DrawMachineStage({
             : BATCH_REVEAL_TICK_MS_ONE_BY_ONE;
         const maxTick = batchRevealStyle === 'AT_ONCE'
             ? LIVE_DRAW_DISPLAY_LENGTH
-            : (batchEvents.length * (LIVE_DRAW_DISPLAY_LENGTH + 1));
+            : (batchEvents.length * LIVE_DRAW_DISPLAY_LENGTH);
 
         const timer = setInterval(() => {
             setBatchRevealTick(prev => {
@@ -203,15 +203,24 @@ export default function DrawMachineStage({
 
                 const visibleDigits = batchRevealStyle === 'AT_ONCE'
                     ? Math.max(0, Math.min(batchRevealTick, LIVE_DRAW_DISPLAY_LENGTH))
-                    : Math.max(0, Math.min(batchRevealTick - (index * (LIVE_DRAW_DISPLAY_LENGTH + 1)), LIVE_DRAW_DISPLAY_LENGTH));
+                    : (() => {
+                        const completedCardCount = Math.floor(batchRevealTick / LIVE_DRAW_DISPLAY_LENGTH);
+                        const inCardTick = batchRevealTick % LIVE_DRAW_DISPLAY_LENGTH;
+                        if (index < completedCardCount) {
+                            return LIVE_DRAW_DISPLAY_LENGTH;
+                        }
+                        if (index === completedCardCount) {
+                            return Math.max(0, Math.min(inCardTick, LIVE_DRAW_DISPLAY_LENGTH));
+                        }
+                        return 0;
+                    })();
 
                 const revealed = normalizedNumber.slice(0, visibleDigits);
                 const hidden = '-'.repeat(Math.max(LIVE_DRAW_DISPLAY_LENGTH - visibleDigits, 0));
                 return `${revealed}${hidden}`;
             })();
             const isCurrentRevealing = batchRevealStyle === 'ONE_BY_ONE'
-                && batchRevealTick >= (index * (LIVE_DRAW_DISPLAY_LENGTH + 1))
-                && batchRevealTick < ((index + 1) * (LIVE_DRAW_DISPLAY_LENGTH + 1));
+                && index === Math.min(Math.floor(batchRevealTick / LIVE_DRAW_DISPLAY_LENGTH), Math.max(batchEvents.length - 1, 0));
             return {
                 id: event.id,
                 draw_item_name: event.draw_item_name,

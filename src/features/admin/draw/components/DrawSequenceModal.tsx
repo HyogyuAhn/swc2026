@@ -71,7 +71,7 @@ export default function DrawSequenceModal({
             />
 
             <div className="relative z-10 flex min-h-full items-start justify-center px-4 py-6 sm:py-8">
-                <div className="relative flex max-h-[92vh] w-full max-w-4xl flex-col overflow-hidden rounded-[28px] border border-slate-200 bg-white p-7 shadow-[0_30px_90px_-30px_rgba(15,23,42,0.35)] transition-all sm:p-8">
+                <div className="relative flex max-h-[94vh] w-full max-w-5xl flex-col overflow-hidden rounded-[28px] border border-slate-200 bg-white p-7 shadow-[0_30px_90px_-30px_rgba(15,23,42,0.35)] transition-all sm:p-8">
                     <button
                         type="button"
                         onClick={onClose}
@@ -166,7 +166,7 @@ export default function DrawSequenceModal({
                     </div>
                 </div>
 
-                <div className="min-h-0 flex-1 overflow-y-auto pr-1 sm:pr-2">
+                <div className="min-h-[42vh] flex-1 overflow-y-auto pr-1 sm:pr-2">
                     <div className="space-y-3 rounded-2xl border-2 border-slate-300 bg-slate-50/70 p-3">
                     {steps.map((step, index) => {
                         const stepRandomFilter = step.randomFilter || {
@@ -363,37 +363,39 @@ export default function DrawSequenceModal({
                     </div>
                 </div>
 
-                <div className="mt-7 rounded-2xl border-2 border-slate-300 bg-slate-50 p-4">
-                    <div className="mb-4 flex flex-wrap items-center justify-between gap-2 border-b border-slate-200 pb-4">
-                        <button
-                            type="button"
-                            onClick={onAddStep}
-                            className="inline-flex items-center gap-1.5 rounded-xl border-2 border-slate-300 bg-white px-4 py-2 text-sm font-bold text-gray-700 shadow-sm transition hover:border-slate-400 hover:bg-slate-50"
-                        >
-                            <Plus size={16} />
-                            순서 추가
-                        </button>
-                        <p className={`text-xs font-bold ${isValid ? 'text-emerald-700' : 'text-red-600'}`}>
-                            {isValid ? '모든 순서 설정이 완료되었습니다.' : '항목/번호가 비어 있는 순서가 있습니다.'}
-                        </p>
-                    </div>
+                <div className="mt-5 rounded-2xl border-2 border-slate-300 bg-slate-50 p-4">
+                    <div className="flex items-center justify-between gap-3">
+                        <div className="flex items-center gap-3">
+                            <button
+                                type="button"
+                                onClick={onAddStep}
+                                className="inline-flex items-center gap-1.5 rounded-xl border-2 border-slate-300 bg-white px-4 py-2 text-sm font-bold text-gray-700 shadow-sm transition hover:border-slate-400 hover:bg-slate-50"
+                            >
+                                <Plus size={16} />
+                                순서 추가
+                            </button>
+                            <p className={`text-xs font-bold ${isValid ? 'text-emerald-700' : 'text-red-600'}`}>
+                                {isValid ? '모든 순서 설정이 완료되었습니다.' : '항목/번호가 비어 있는 순서가 있습니다.'}
+                            </p>
+                        </div>
 
-                    <div className="flex items-center justify-end gap-3">
-                        <button
-                            type="button"
-                            onClick={onClose}
-                            className="rounded-xl border-2 border-gray-300 bg-white px-5 py-2.5 text-sm font-bold text-gray-700 transition hover:bg-gray-50 hover:text-gray-900 focus:outline-none focus:ring-4 focus:ring-gray-100"
-                        >
-                            닫기
-                        </button>
-                        <button
-                            type="button"
-                            onClick={onStart}
-                            disabled={disabled || !isValid}
-                            className="rounded-xl bg-blue-600 px-6 py-2.5 text-sm font-extrabold text-white shadow-sm transition hover:bg-blue-700 focus:outline-none focus:ring-4 focus:ring-blue-500/20 disabled:cursor-not-allowed disabled:bg-gray-300"
-                        >
-                            연속 뽑기 시작
-                        </button>
+                        <div className="flex items-center gap-2">
+                            <button
+                                type="button"
+                                onClick={onClose}
+                                className="rounded-xl border-2 border-gray-300 bg-white px-5 py-2.5 text-sm font-bold text-gray-700 transition hover:bg-gray-50 hover:text-gray-900 focus:outline-none focus:ring-4 focus:ring-gray-100"
+                            >
+                                닫기
+                            </button>
+                            <button
+                                type="button"
+                                onClick={onStart}
+                                disabled={disabled || !isValid}
+                                className="rounded-xl bg-blue-600 px-6 py-2.5 text-sm font-extrabold text-white shadow-sm transition hover:bg-blue-700 focus:outline-none focus:ring-4 focus:ring-blue-500/20 disabled:cursor-not-allowed disabled:bg-gray-300"
+                            >
+                                연속 뽑기 시작
+                            </button>
+                        </div>
                     </div>
                 </div>
                 </div>
