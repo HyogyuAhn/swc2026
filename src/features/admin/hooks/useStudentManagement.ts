@@ -207,7 +207,18 @@ export default function useStudentManagement({ onVotesChanged }: UseStudentManag
             return;
         }
 
-        fetchStudents();
+        setSelectedStudent((prev: any) => {
+            if (!prev || prev.student_id !== student.student_id) {
+                return prev;
+            }
+
+            return {
+                ...prev,
+                is_suspended: !Boolean(prev.is_suspended)
+            };
+        });
+
+        await fetchStudents();
     }, [fetchStudents]);
 
     const handleDeleteStudent = useCallback((student: any) => {
@@ -221,6 +232,16 @@ export default function useStudentManagement({ onVotesChanged }: UseStudentManag
         }
 
         const studentId = deleteTarget.data.student_id;
+
+        const { error: drawWinnerDeleteError } = await supabase
+            .from('draw_winners')
+            .delete()
+            .eq('student_id', studentId);
+
+        if (drawWinnerDeleteError && drawWinnerDeleteError.code !== '42P01') {
+            alert('삭제 실패(추첨 기록): ' + drawWinnerDeleteError.message);
+            return;
+        }
 
         if (mode === 'ALL') {
             const { error: historyError } = await supabase
@@ -269,19 +290,27 @@ export default function useStudentManagement({ onVotesChanged }: UseStudentManag
     }, [fetchStudents]);
 
     const handleStudentDetails = useCallback(async (student: any) => {
-        setSelectedStudent(student);
-        setForceVoteData({ targetStudentId: student.student_id, targetVoteId: '', targetOptionId: '' });
+        const { data: latestStudent } = await supabase
+            .from('students')
+            .select('*')
+            .eq('student_id', student.student_id)
+            .maybeSingle();
+
+        const nextStudent = latestStudent || student;
+
+        setSelectedStudent(nextStudent);
+        setForceVoteData({ targetStudentId: nextStudent.student_id, targetVoteId: '', targetOptionId: '' });
 
         const [{ data: voteData }, { data: drawData }] = await Promise.all([
             supabase
                 .from('vote_records')
                 .select('*, votes(title, vote_options(id, name))')
-                .eq('student_id', student.student_id)
+                .eq('student_id', nextStudent.student_id)
                 .order('created_at', { ascending: false }),
             supabase
                 .from('draw_winners')
                 .select('id, draw_item_id, student_id, selected_mode, is_forced, is_public, created_at, draw_items(name)')
-                .eq('student_id', student.student_id)
+                .eq('student_id', nextStudent.student_id)
                 .order('created_at', { ascending: false })
         ]);
 

@@ -64,11 +64,11 @@ const normalizeGender = (value: unknown): '남' | '여' | '' => {
         return '';
     }
 
-    if (text === '남' || text.toLowerCase() === 'male' || text.toLowerCase() === 'm') {
+    if (text === '남' || text === '남자' || text.toLowerCase() === 'male' || text.toLowerCase() === 'm') {
         return '남';
     }
 
-    if (text === '여' || text.toLowerCase() === 'female' || text.toLowerCase() === 'f') {
+    if (text === '여' || text === '여자' || text.toLowerCase() === 'female' || text.toLowerCase() === 'f') {
         return '여';
     }
 
@@ -81,8 +81,29 @@ const normalizeDepartment = (value: unknown): string => {
         return '';
     }
 
+    const upper = text.toUpperCase();
+    if (upper === 'CS') {
+        return '컴퓨터공학과';
+    }
+    if (upper === 'AI') {
+        return '인공지능공학과';
+    }
+    if (upper === 'DT') {
+        return '디자인테크놀로지학과';
+    }
+    if (upper === 'DS') {
+        return '데이터사이언스학과';
+    }
+    if (upper === 'SM' || upper === 'ME') {
+        return '스마트모빌리티공학과';
+    }
+
     if ((STUDENT_DEPARTMENT_OPTIONS as readonly string[]).includes(text)) {
         return text;
+    }
+
+    if (text.includes('컴공')) {
+        return '컴퓨터공학과';
     }
 
     if (text.includes('컴퓨터') && text.includes('공학')) {
@@ -116,6 +137,11 @@ const normalizeStudentRole = (value: unknown): string => {
 
     if ((STUDENT_ROLE_OPTIONS as readonly string[]).includes(text)) {
         return text;
+    }
+
+    const lower = text.toLowerCase();
+    if (lower === 'undergrad' || lower === 'undergraduate') {
+        return '재학생';
     }
 
     if (text.includes('재학')) {
@@ -429,7 +455,7 @@ export default function useDrawManagement(showToast: ShowToast, enabled = true) 
         return { blockingReason: null, warnings, resolvedStudentId };
     }, [items, pool.byId, resolveStudentIdByDrawNumber]);
 
-    const pickRandomCandidate = useCallback((item: DrawItemWithComputed, randomFilter?: DrawRandomFilter) => {
+    const getRandomCandidates = useCallback((item: DrawItemWithComputed, randomFilter?: DrawRandomFilter) => {
         const itemWinnerSet = new Set(item.winners.map(w => w.student_id));
         const allWinnerSet = getAllWinnerStudentIds();
         const nextFilter = randomFilter || getDefaultRandomFilter();
@@ -442,22 +468,31 @@ export default function useDrawManagement(showToast: ShowToast, enabled = true) 
         const hasAllRoles = roleSet.size === STUDENT_ROLE_OPTIONS.length;
         const targetGender = normalizeGender(nextFilter.gender);
 
-        const candidates = pool.activeIds.filter(studentId => {
+        const afterSameItem = pool.activeIds.filter(studentId => !itemWinnerSet.has(studentId));
+
+        const afterCrossItem = afterSameItem.filter(studentId => {
+            if (item.allow_duplicate_winners) {
+                return true;
+            }
+            return !allWinnerSet.has(studentId);
+        });
+
+        const afterGender = afterCrossItem.filter(studentId => {
             const student = pool.byId[studentId];
             if (!student) {
                 return false;
             }
 
-            if (itemWinnerSet.has(studentId)) {
-                return false;
+            if (!targetGender) {
+                return true;
             }
 
-            if (!item.allow_duplicate_winners && allWinnerSet.has(studentId)) {
-                return false;
-            }
+            return normalizeGender(student.gender) === targetGender;
+        });
 
-            const studentGender = normalizeGender(student.gender);
-            if (targetGender && studentGender !== targetGender) {
+        const afterDepartment = afterGender.filter(studentId => {
+            const student = pool.byId[studentId];
+            if (!student) {
                 return false;
             }
 
@@ -467,6 +502,15 @@ export default function useDrawManagement(showToast: ShowToast, enabled = true) 
                     return false;
                 }
             } else if (departmentSet.size > 0 && !studentDepartment && !hasAllDepartments) {
+                return false;
+            }
+
+            return true;
+        });
+
+        const candidates = afterDepartment.filter(studentId => {
+            const student = pool.byId[studentId];
+            if (!student) {
                 return false;
             }
 
@@ -482,13 +526,28 @@ export default function useDrawManagement(showToast: ShowToast, enabled = true) 
             return true;
         });
 
-        if (candidates.length === 0) {
+        return {
+            candidates,
+            stats: {
+                totalActive: pool.activeIds.length,
+                afterSameItem: afterSameItem.length,
+                afterCrossItem: afterCrossItem.length,
+                afterGender: afterGender.length,
+                afterDepartment: afterDepartment.length,
+                final: candidates.length
+            }
+        };
+    }, [getAllWinnerStudentIds, pool.activeIds, pool.byId]);
+
+    const pickRandomCandidate = useCallback((item: DrawItemWithComputed, randomFilter?: DrawRandomFilter) => {
+        const result = getRandomCandidates(item, randomFilter);
+        if (result.candidates.length === 0) {
             return null;
         }
 
-        const index = Math.floor(Math.random() * candidates.length);
-        return candidates[index];
-    }, [getAllWinnerStudentIds, pool.activeIds, pool.byId]);
+        const index = Math.floor(Math.random() * result.candidates.length);
+        return result.candidates[index];
+    }, [getRandomCandidates]);
 
     const startRandomDrawFallback = useCallback(async (
         item: DrawItemWithComputed,
@@ -500,9 +559,22 @@ export default function useDrawManagement(showToast: ShowToast, enabled = true) 
             return false;
         }
 
+        const candidateResult = getRandomCandidates(item, randomFilter);
         const winnerStudentId = pickRandomCandidate(item, randomFilter);
         if (!winnerStudentId) {
-            showToast('조건에 맞는 추첨 대상이 없습니다.');
+            if (candidateResult.stats.totalActive === 0) {
+                showToast('추첨 번호가 등록된 활성 학생이 없습니다. 학생 관리에서 번호를 먼저 등록해주세요.');
+            } else if (candidateResult.stats.afterSameItem === 0) {
+                showToast('해당 항목에서 뽑을 수 있는 남은 번호가 없습니다.');
+            } else if (!item.allow_duplicate_winners && candidateResult.stats.afterCrossItem === 0) {
+                showToast('이미 다른 항목 당첨자만 남았습니다. 항목 설정에서 중복 당첨 허용을 켜거나 당첨자를 조정해주세요.');
+            } else if (candidateResult.stats.afterGender === 0) {
+                showToast('선택한 성별 조건에 맞는 후보가 없습니다.');
+            } else if (candidateResult.stats.afterDepartment === 0) {
+                showToast('선택한 학과 조건에 맞는 후보가 없습니다.');
+            } else {
+                showToast('선택한 역할 조건에 맞는 후보가 없습니다.');
+            }
             return false;
         }
 
@@ -538,7 +610,7 @@ export default function useDrawManagement(showToast: ShowToast, enabled = true) 
         }
 
         return true;
-    }, [clearDrawBusyForItem, getDrawNumberByStudentId, pickRandomCandidate, refresh, showToast]);
+    }, [clearDrawBusyForItem, getDrawNumberByStudentId, getRandomCandidates, pickRandomCandidate, refresh, showToast]);
 
     const startManualDrawFallback = useCallback(async (
         item: DrawItemWithComputed,
