@@ -74,10 +74,6 @@ export default function AdminPageClient() {
 
     const {
         students,
-        studentIdInput,
-        setStudentIdInput,
-        studentNumberInput,
-        setStudentNumberInput,
         studentSearch,
         setStudentSearch,
         studentRoleFilter,
@@ -217,10 +213,7 @@ export default function AdminPageClient() {
                     <>
                         <AdminStudentsSection
                             students={students}
-                            studentIdInput={studentIdInput}
-                            setStudentIdInput={setStudentIdInput}
-                            studentNumberInput={studentNumberInput}
-                            setStudentNumberInput={setStudentNumberInput}
+                            fetchStudents={fetchStudents}
                             studentSearch={studentSearch}
                             setStudentSearch={setStudentSearch}
                             studentRoleFilter={studentRoleFilter}
@@ -267,6 +260,7 @@ export default function AdminPageClient() {
                         items={drawManagement.items}
                         activeStudentIds={drawManagement.activeStudentIds}
                         drawNumberByStudentId={drawManagement.drawNumberByStudentId}
+                        studentInfoById={drawManagement.studentInfoById}
                         newItemName={drawManagement.newItemName}
                         newItemQuota={drawManagement.newItemQuota}
                         newItemAllowDuplicate={drawManagement.newItemAllowDuplicate}

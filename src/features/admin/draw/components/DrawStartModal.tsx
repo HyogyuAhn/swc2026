@@ -1,5 +1,9 @@
 import { X } from 'lucide-react';
-import { DrawMode } from '@/features/admin/draw/types';
+import { DrawMode, DrawRandomFilter, DrawRandomFilterGender } from '@/features/admin/draw/types';
+import {
+    STUDENT_DEPARTMENT_OPTIONS,
+    STUDENT_ROLE_OPTIONS
+} from '@/features/admin/student/constants';
 
 type DrawStartModalProps = {
     isOpen: boolean;
@@ -7,10 +11,14 @@ type DrawStartModalProps = {
     mode: DrawMode;
     manualStudentId: string;
     activeStudentIds: string[];
+    randomFilter: DrawRandomFilter;
     disabled?: boolean;
     onClose: () => void;
     onModeChange: (mode: DrawMode) => void;
     onManualStudentChange: (value: string) => void;
+    onRandomGenderChange: (value: DrawRandomFilterGender) => void;
+    onToggleRandomDepartment: (value: string) => void;
+    onToggleRandomRole: (value: string) => void;
     onConfirm: () => void;
 };
 
@@ -20,10 +28,14 @@ export default function DrawStartModal({
     mode,
     manualStudentId,
     activeStudentIds,
+    randomFilter,
     disabled = false,
     onClose,
     onModeChange,
     onManualStudentChange,
+    onRandomGenderChange,
+    onToggleRandomDepartment,
+    onToggleRandomRole,
     onConfirm
 }: DrawStartModalProps) {
     if (!isOpen) {
@@ -74,6 +86,76 @@ export default function DrawStartModal({
                     </div>
                 </div>
 
+                {mode === 'RANDOM' && (
+                    <div className="mb-6 space-y-4 rounded-2xl border border-gray-200 bg-gray-50/30 p-4">
+                        <div>
+                            <p className="mb-2 text-xs font-bold uppercase tracking-wider text-gray-500">성별</p>
+                            <div className="flex gap-2">
+                                {(['ALL', '남', '여'] as DrawRandomFilterGender[]).map(gender => (
+                                    <button
+                                        key={gender}
+                                        type="button"
+                                        onClick={() => onRandomGenderChange(gender)}
+                                        className={`rounded-xl px-3 py-2 text-xs font-bold transition-all ${
+                                            randomFilter.gender === gender
+                                                ? 'bg-blue-600 text-white'
+                                                : 'border border-gray-200 bg-white text-gray-600 hover:bg-gray-50'
+                                        }`}
+                                    >
+                                        {gender === 'ALL' ? '모두' : gender}
+                                    </button>
+                                ))}
+                            </div>
+                        </div>
+
+                        <div>
+                            <p className="mb-2 text-xs font-bold uppercase tracking-wider text-gray-500">학과 (최소 1개)</p>
+                            <div className="flex flex-wrap gap-2">
+                                {STUDENT_DEPARTMENT_OPTIONS.map(department => {
+                                    const selected = randomFilter.departments.includes(department);
+                                    return (
+                                        <button
+                                            key={department}
+                                            type="button"
+                                            onClick={() => onToggleRandomDepartment(department)}
+                                            className={`rounded-xl px-3 py-2 text-xs font-bold transition-all ${
+                                                selected
+                                                    ? 'bg-indigo-600 text-white'
+                                                    : 'border border-gray-200 bg-white text-gray-600 hover:bg-gray-50'
+                                            }`}
+                                        >
+                                            {department}
+                                        </button>
+                                    );
+                                })}
+                            </div>
+                        </div>
+
+                        <div>
+                            <p className="mb-2 text-xs font-bold uppercase tracking-wider text-gray-500">역할 (최소 1개)</p>
+                            <div className="flex flex-wrap gap-2">
+                                {STUDENT_ROLE_OPTIONS.map(role => {
+                                    const selected = randomFilter.roles.includes(role);
+                                    return (
+                                        <button
+                                            key={role}
+                                            type="button"
+                                            onClick={() => onToggleRandomRole(role)}
+                                            className={`rounded-xl px-3 py-2 text-xs font-bold transition-all ${
+                                                selected
+                                                    ? 'bg-emerald-600 text-white'
+                                                    : 'border border-gray-200 bg-white text-gray-600 hover:bg-gray-50'
+                                            }`}
+                                        >
+                                            {role}
+                                        </button>
+                                    );
+                                })}
+                            </div>
+                        </div>
+                    </div>
+                )}
+
                 {mode === 'MANUAL' && (
                     <label className="mb-6 block text-sm">
                         <span className="mb-2 block font-bold text-gray-700">대상 번호</span>
@@ -104,7 +186,12 @@ export default function DrawStartModal({
                     <button
                         type="button"
                         onClick={onConfirm}
-                        disabled={disabled || (mode === 'MANUAL' && !manualStudentId)}
+                        disabled={
+                            disabled
+                            || (mode === 'MANUAL' && !manualStudentId)
+                            || (mode === 'RANDOM' && randomFilter.departments.length === 0)
+                            || (mode === 'RANDOM' && randomFilter.roles.length === 0)
+                        }
                         className="rounded-xl bg-blue-600 px-6 py-2.5 text-sm font-bold text-white shadow-sm transition hover:bg-blue-700 focus:outline-none focus:ring-4 focus:ring-blue-500/20 disabled:cursor-not-allowed disabled:bg-gray-300"
                     >
                         추첨 시작

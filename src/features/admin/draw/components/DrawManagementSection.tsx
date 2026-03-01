@@ -7,7 +7,11 @@ import DrawItemSettingsModal from '@/features/admin/draw/components/DrawItemSett
 import DrawLiveSettingsModal from '@/features/admin/draw/components/DrawLiveSettingsModal';
 import DrawSequenceModal from '@/features/admin/draw/components/DrawSequenceModal';
 import DrawStartModal from '@/features/admin/draw/components/DrawStartModal';
-import { DrawItemWithComputed, DrawPendingAction, DrawSequenceStep } from '@/features/admin/draw/types';
+import { DrawItemWithComputed, DrawPendingAction, DrawRandomFilter, DrawSequenceStep } from '@/features/admin/draw/types';
+import {
+    DEFAULT_DRAW_RANDOM_ROLES,
+    STUDENT_DEPARTMENT_OPTIONS
+} from '@/features/admin/student/constants';
 
 type DrawManagementSectionProps = {
     loading: boolean;
@@ -17,6 +21,7 @@ type DrawManagementSectionProps = {
     items: DrawItemWithComputed[];
     activeStudentIds: string[];
     drawNumberByStudentId: Record<string, string>;
+    studentInfoById: Record<string, any>;
     newItemName: string;
     newItemQuota: string;
     newItemAllowDuplicate: boolean;
@@ -37,7 +42,11 @@ type DrawManagementSectionProps = {
     toggleRecentWinnersEnabled: () => void;
     setModeForItem: (itemId: string, mode: 'RANDOM' | 'MANUAL') => void;
     setManualStudentForItem: (itemId: string, studentId: string) => void;
-    handleStartDraw: (item: DrawItemWithComputed, options?: { mode: 'RANDOM' | 'MANUAL'; targetStudentId?: string }) => Promise<boolean>;
+    handleStartDraw: (item: DrawItemWithComputed, options?: {
+        mode: 'RANDOM' | 'MANUAL';
+        targetStudentId?: string;
+        randomFilter?: DrawRandomFilter;
+    }) => Promise<boolean>;
     handleStartSequence: (steps: DrawSequenceStep[]) => Promise<boolean>;
     saveItemSettings: (item: DrawItemWithComputed, patch: {
         name: string;
@@ -100,6 +109,7 @@ export default function DrawManagementSection({
     items,
     activeStudentIds,
     drawNumberByStudentId,
+    studentInfoById,
     newItemName,
     newItemQuota,
     newItemAllowDuplicate,
@@ -145,6 +155,12 @@ export default function DrawManagementSection({
     const [settingsRecentPublic, setSettingsRecentPublic] = useState(true);
     const [showSequenceModal, setShowSequenceModal] = useState(false);
     const [sequenceSteps, setSequenceSteps] = useState<DrawSequenceStep[]>([]);
+    const defaultRandomFilter = (): DrawRandomFilter => ({
+        gender: 'ALL',
+        departments: [...STUDENT_DEPARTMENT_OPTIONS],
+        roles: [...DEFAULT_DRAW_RANDOM_ROLES]
+    });
+    const [drawStartRandomFilter, setDrawStartRandomFilter] = useState<DrawRandomFilter>(defaultRandomFilter());
 
     const createSequenceStep = (itemId = ''): DrawSequenceStep => ({
         id: `seq-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
@@ -164,6 +180,7 @@ export default function DrawManagementSection({
         setDrawStartItem(item);
         setDrawStartMode(drawModeByItem[item.id] || 'RANDOM');
         setDrawStartStudentId(manualStudentByItem[item.id] || '');
+        setDrawStartRandomFilter(defaultRandomFilter());
     };
 
     const confirmStartDraw = async () => {
@@ -179,7 +196,28 @@ export default function DrawManagementSection({
         setDrawStartItem(null);
         await handleStartDraw(drawStartItem, {
             mode: drawStartMode,
-            targetStudentId: drawStartMode === 'MANUAL' ? drawStartStudentId : undefined
+            targetStudentId: drawStartMode === 'MANUAL' ? drawStartStudentId : undefined,
+            randomFilter: drawStartMode === 'RANDOM' ? drawStartRandomFilter : undefined
+        });
+    };
+
+    const toggleDrawStartDepartment = (department: string) => {
+        setDrawStartRandomFilter(prev => {
+            const exists = prev.departments.includes(department);
+            if (exists) {
+                return { ...prev, departments: prev.departments.filter(item => item !== department) };
+            }
+            return { ...prev, departments: [...prev.departments, department] };
+        });
+    };
+
+    const toggleDrawStartRole = (role: string) => {
+        setDrawStartRandomFilter(prev => {
+            const exists = prev.roles.includes(role);
+            if (exists) {
+                return { ...prev, roles: prev.roles.filter(item => item !== role) };
+            }
+            return { ...prev, roles: [...prev.roles, role] };
         });
     };
 
@@ -357,6 +395,7 @@ export default function DrawManagementSection({
                             drawInProgressItemId={drawInProgressItemId}
                             activeStudentIds={activeStudentIds}
                             drawNumberByStudentId={drawNumberByStudentId}
+                            studentInfoById={studentInfoById}
                             editingWinnerById={editingWinnerById}
                             editingStudentByWinnerId={editingStudentByWinnerId}
                             disabled={submitting}
@@ -415,10 +454,14 @@ export default function DrawManagementSection({
                 mode={drawStartMode}
                 manualStudentId={drawStartStudentId}
                 activeStudentIds={activeStudentIds}
+                randomFilter={drawStartRandomFilter}
                 disabled={submitting}
                 onClose={() => setDrawStartItem(null)}
                 onModeChange={setDrawStartMode}
                 onManualStudentChange={setDrawStartStudentId}
+                onRandomGenderChange={value => setDrawStartRandomFilter(prev => ({ ...prev, gender: value }))}
+                onToggleRandomDepartment={toggleDrawStartDepartment}
+                onToggleRandomRole={toggleDrawStartRole}
                 onConfirm={confirmStartDraw}
             />
 

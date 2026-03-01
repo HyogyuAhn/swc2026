@@ -76,7 +76,7 @@ export default function VoteDetailsModal({
                     <table className="w-full text-sm text-left">
                         <thead className="bg-gray-50 text-gray-700 font-bold uppercase">
                             <tr>
-                                <th className="px-4 py-3">학번</th>
+                                <th className="px-4 py-3">학생</th>
                                 <th className="px-4 py-3">선택 항목</th>
                                 <th className="px-4 py-3">투표 시간</th>
                                 <th className="px-4 py-3">상태 (유효성)</th>
@@ -88,7 +88,12 @@ export default function VoteDetailsModal({
                                 const optionName = detailsVote.vote_options?.find(o => o.id === record.option_id)?.name || '알수없음';
                                 return (
                                     <tr key={record.id} className="hover:bg-gray-50">
-                                        <td className="px-4 py-3 font-medium text-gray-900">{record.student_id}</td>
+                                        <td className="px-4 py-3">
+                                            <div className="leading-tight">
+                                                <p className="font-semibold text-gray-900">{record.student_name || '이름 미등록'}</p>
+                                                <p className="text-xs text-gray-500">{record.student_id}</p>
+                                            </div>
+                                        </td>
                                         <td className="px-4 py-3 text-gray-600">{optionName}</td>
                                         <td className="px-4 py-3 text-gray-500">{new Date(record.created_at).toLocaleString()}</td>
                                         <td className="px-4 py-3">

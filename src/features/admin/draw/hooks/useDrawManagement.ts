@@ -24,11 +24,16 @@ import {
     DrawItemWithComputed,
     DrawMode,
     DrawPendingAction,
+    DrawRandomFilter,
     DrawSequenceStep,
     DrawSettings,
     DrawWarningCheck,
     DrawWinner
 } from '@/features/admin/draw/types';
+import {
+    DEFAULT_DRAW_RANDOM_ROLES,
+    STUDENT_DEPARTMENT_OPTIONS
+} from '@/features/admin/student/constants';
 
 const isRpcMissingError = (message?: string) => {
     const text = (message || '').toLowerCase();
@@ -44,6 +49,11 @@ const DRAW_SEQUENCE_PRE_DELAY_MS = 120;
 const wait = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
 const normalizeDrawNumberInput = (value: string) => value.replace(/\D/g, '').slice(0, 4);
+const getDefaultRandomFilter = (): DrawRandomFilter => ({
+    gender: 'ALL',
+    departments: [...STUDENT_DEPARTMENT_OPTIONS],
+    roles: [...DEFAULT_DRAW_RANDOM_ROLES]
+});
 
 type DrawExecuteOptions = {
     preDelayMs?: number;
@@ -341,16 +351,37 @@ export default function useDrawManagement(showToast: ShowToast, enabled = true) 
         return { blockingReason: null, warnings, resolvedStudentId };
     }, [items, pool.byId, resolveStudentIdByDrawNumber]);
 
-    const pickRandomCandidate = useCallback((item: DrawItemWithComputed) => {
+    const pickRandomCandidate = useCallback((item: DrawItemWithComputed, randomFilter?: DrawRandomFilter) => {
         const itemWinnerSet = new Set(item.winners.map(w => w.student_id));
         const allWinnerSet = getAllWinnerStudentIds();
+        const nextFilter = randomFilter || getDefaultRandomFilter();
+        const departmentSet = new Set(nextFilter.departments || []);
+        const roleSet = new Set((nextFilter.roles || []).map(role => String(role)));
 
         const candidates = pool.activeIds.filter(studentId => {
+            const student = pool.byId[studentId];
+            if (!student) {
+                return false;
+            }
+
             if (itemWinnerSet.has(studentId)) {
                 return false;
             }
 
             if (!item.allow_duplicate_winners && allWinnerSet.has(studentId)) {
+                return false;
+            }
+
+            if (nextFilter.gender !== 'ALL' && String(student.gender || '') !== nextFilter.gender) {
+                return false;
+            }
+
+            if (departmentSet.size > 0 && !departmentSet.has(String(student.department || ''))) {
+                return false;
+            }
+
+            const roleValue = String(student.student_role || '재학생');
+            if (roleSet.size > 0 && !roleSet.has(roleValue)) {
                 return false;
             }
 
@@ -363,15 +394,19 @@ export default function useDrawManagement(showToast: ShowToast, enabled = true) 
 
         const index = Math.floor(Math.random() * candidates.length);
         return candidates[index];
-    }, [getAllWinnerStudentIds, pool.activeIds]);
+    }, [getAllWinnerStudentIds, pool.activeIds, pool.byId]);
 
-    const startRandomDrawFallback = useCallback(async (item: DrawItemWithComputed, options?: DrawExecuteOptions) => {
+    const startRandomDrawFallback = useCallback(async (
+        item: DrawItemWithComputed,
+        options?: DrawExecuteOptions,
+        randomFilter?: DrawRandomFilter
+    ) => {
         if (item.remainingCount <= 0) {
             showToast('남은 당첨 자리가 없습니다.');
             return false;
         }
 
-        const winnerStudentId = pickRandomCandidate(item);
+        const winnerStudentId = pickRandomCandidate(item, randomFilter);
         if (!winnerStudentId) {
             showToast('조건에 맞는 추첨 대상이 없습니다.');
             return false;
@@ -472,9 +507,23 @@ export default function useDrawManagement(showToast: ShowToast, enabled = true) 
         return true;
     }, [clearDrawBusyForItem, getWarningCheck, refresh, showToast]);
 
-    const executeRandomDraw = useCallback(async (item: DrawItemWithComputed, options?: DrawExecuteOptions) => {
+    const executeRandomDraw = useCallback(async (
+        item: DrawItemWithComputed,
+        options?: DrawExecuteOptions,
+        randomFilter?: DrawRandomFilter
+    ) => {
         if (item.remainingCount <= 0) {
             showToast('남은 당첨 자리가 없습니다.');
+            return false;
+        }
+
+        const nextFilter = randomFilter || getDefaultRandomFilter();
+        if ((nextFilter.departments || []).length === 0) {
+            showToast('랜덤 뽑기 학과를 1개 이상 선택해주세요.');
+            return false;
+        }
+        if ((nextFilter.roles || []).length === 0) {
+            showToast('랜덤 뽑기 역할을 1개 이상 선택해주세요.');
             return false;
         }
 
@@ -484,51 +533,20 @@ export default function useDrawManagement(showToast: ShowToast, enabled = true) 
         await announceDrawStart(item, 'RANDOM');
         await wait(preDelayMs);
 
-        const rpcResult = await pickWinnerWithRpc({
-            itemId: item.id,
-            mode: 'RANDOM',
-            targetStudentId: null,
-            forceOverride: false
-        });
-
-        if (rpcResult.error) {
-            if (isRpcMissingError(rpcResult.error.message)) {
-                const fallbackSuccess = await startRandomDrawFallback(item, options);
-                if (!fallbackSuccess) {
-                    await announceDrawCancel(item, '추첨 실패');
-                    clearDrawBusyForItem(item.id);
-                }
-                setSubmitting(false);
-                return fallbackSuccess;
-            }
-
-            showToast(`추첨 실패: ${rpcResult.error.message}`);
-            await announceDrawCancel(item, rpcResult.error.message);
+        const success = await startRandomDrawFallback(item, options, nextFilter);
+        if (!success) {
+            await announceDrawCancel(item, '추첨 실패');
             clearDrawBusy();
             setSubmitting(false);
             return false;
         }
 
-        if (!rpcResult.parsed.ok) {
-            showToast(rpcResult.parsed.message || '추첨 실패');
-            await announceDrawCancel(item, rpcResult.parsed.message || '추첨 실패');
-            clearDrawBusy();
-            setSubmitting(false);
-            return false;
-        }
-
-        if (!options?.suppressSuccessToast) {
-            const winnerStudentId = String(rpcResult.parsed.winner_student_id || '');
-            const winnerNumber = getDrawNumberByStudentId(winnerStudentId) || '번호 미지정';
-            showToast(`${winnerNumber} 번호가 당첨되었습니다.`, 'success');
-        }
-        await refresh();
         if (options?.releaseBusyImmediately) {
             clearDrawBusyForItem(item.id);
         }
         setSubmitting(false);
         return true;
-    }, [announceDrawCancel, announceDrawStart, clearDrawBusy, clearDrawBusyForItem, getDrawNumberByStudentId, markDrawBusy, refresh, showToast, startRandomDrawFallback]);
+    }, [announceDrawCancel, announceDrawStart, clearDrawBusy, clearDrawBusyForItem, markDrawBusy, showToast, startRandomDrawFallback]);
 
     const executeManualDraw = useCallback(async (
         item: DrawItemWithComputed,
@@ -605,7 +623,7 @@ export default function useDrawManagement(showToast: ShowToast, enabled = true) 
 
     const handleStartDraw = useCallback(async (
         item: DrawItemWithComputed,
-        options?: { mode: DrawMode; targetStudentId?: string }
+        options?: { mode: DrawMode; targetStudentId?: string; randomFilter?: DrawRandomFilter }
     ) => {
         if (drawInProgressItemId) {
             showToast('현재 다른 항목 추첨이 진행 중입니다.');
@@ -615,7 +633,7 @@ export default function useDrawManagement(showToast: ShowToast, enabled = true) 
         const mode = options?.mode || drawModeByItem[item.id] || 'RANDOM';
 
         if (mode === 'RANDOM') {
-            return await executeRandomDraw(item);
+            return await executeRandomDraw(item, undefined, options?.randomFilter);
         }
 
         const targetStudentId = (options?.targetStudentId || manualStudentByItem[item.id] || '').trim();
@@ -658,7 +676,7 @@ export default function useDrawManagement(showToast: ShowToast, enabled = true) 
                     preDelayMs: DRAW_SEQUENCE_PRE_DELAY_MS,
                     releaseBusyImmediately: true,
                     suppressSuccessToast: true
-                });
+                }, getDefaultRandomFilter());
             } else {
                 const targetDrawNumber = (step.targetDrawNumber || '').trim();
                 if (!targetDrawNumber) {
@@ -1188,6 +1206,7 @@ export default function useDrawManagement(showToast: ShowToast, enabled = true) 
         allStudentIds: pool.allIds,
         studentIdByDrawNumber: pool.studentIdByDrawNumber,
         drawNumberByStudentId: pool.drawNumberByStudentId,
+        studentInfoById: pool.byId,
         newItemName,
         setNewItemName,
         newItemQuota,

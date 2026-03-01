@@ -1,22 +1,32 @@
-import { useEffect, useMemo, useState, type FormEvent } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import {
     STUDENT_DEPARTMENT_OPTIONS,
-    STUDENT_ROLE_OPTIONS
+    STUDENT_GENDER_OPTIONS,
+    STUDENT_ROLE_OPTIONS,
+    StudentDepartment,
+    StudentGender,
+    StudentRole
 } from '@/features/admin/student/constants';
+
+type StudentCreatePayload = {
+    name: string;
+    gender: StudentGender;
+    department: StudentDepartment;
+    studentRole: StudentRole;
+    studentId?: string;
+    drawNumber?: string;
+};
 
 type AdminStudentsSectionProps = {
     students: any[];
-    studentIdInput: string;
-    setStudentIdInput: (value: string) => void;
-    studentNumberInput: string;
-    setStudentNumberInput: (value: string) => void;
+    fetchStudents: () => void;
     studentSearch: string;
     setStudentSearch: (value: string) => void;
     studentRoleFilter: string;
     setStudentRoleFilter: (value: string) => void;
     studentDepartmentFilter: string;
     setStudentDepartmentFilter: (value: string) => void;
-    handleAddStudent: (e?: FormEvent<HTMLFormElement>) => void;
+    handleAddStudent: (payload: StudentCreatePayload) => Promise<boolean>;
     handleUpdateStudentDrawNumber: (student: any, drawNumber: string) => Promise<boolean>;
     handleResetStudentVotes: (student: any) => void;
     handleStudentDetails: (student: any) => void;
@@ -24,12 +34,11 @@ type AdminStudentsSectionProps = {
     handleDeleteStudent: (student: any) => void;
 };
 
+const PAGE_SIZE = 50;
+
 export default function AdminStudentsSection({
     students,
-    studentIdInput,
-    setStudentIdInput,
-    studentNumberInput,
-    setStudentNumberInput,
+    fetchStudents,
     studentSearch,
     setStudentSearch,
     studentRoleFilter,
@@ -43,9 +52,18 @@ export default function AdminStudentsSection({
     handleToggleSuspend,
     handleDeleteStudent
 }: AdminStudentsSectionProps) {
-    const PAGE_SIZE = 50;
     const [numberDraftByStudentId, setNumberDraftByStudentId] = useState<Record<string, string>>({});
     const [page, setPage] = useState(1);
+    const [showCreateModal, setShowCreateModal] = useState(false);
+    const [creating, setCreating] = useState(false);
+    const [createForm, setCreateForm] = useState({
+        name: '',
+        gender: STUDENT_GENDER_OPTIONS[0] as StudentGender,
+        department: STUDENT_DEPARTMENT_OPTIONS[0] as StudentDepartment,
+        studentRole: STUDENT_ROLE_OPTIONS[0] as StudentRole,
+        studentId: '',
+        drawNumber: ''
+    });
 
     useEffect(() => {
         const next: Record<string, string> = {};
@@ -117,76 +135,123 @@ export default function AdminStudentsSection({
         }
     }, [page, totalPages]);
 
+    const closeCreateModal = () => {
+        setShowCreateModal(false);
+        setCreateForm({
+            name: '',
+            gender: STUDENT_GENDER_OPTIONS[0],
+            department: STUDENT_DEPARTMENT_OPTIONS[0],
+            studentRole: STUDENT_ROLE_OPTIONS[0],
+            studentId: '',
+            drawNumber: ''
+        });
+    };
+
+    const submitCreate = async () => {
+        if (creating) {
+            return;
+        }
+
+        setCreating(true);
+        const ok = await handleAddStudent({
+            name: createForm.name,
+            gender: createForm.gender,
+            department: createForm.department,
+            studentRole: createForm.studentRole,
+            studentId: createForm.studentId.replace(/\D/g, '').slice(0, 8),
+            drawNumber: createForm.drawNumber.replace(/\D/g, '').slice(0, 4)
+        });
+        setCreating(false);
+
+        if (ok) {
+            closeCreateModal();
+        }
+    };
+
     return (
-        <div className="mx-auto max-w-5xl px-10 pb-10 pt-4">
-            <div className="flex justify-between items-center mb-8">
+        <div className="mx-auto max-w-7xl px-8 pb-10 pt-4">
+            <div className="mb-6 flex items-center justify-between">
                 <h2 className="text-3xl font-bold text-gray-800">학생 관리</h2>
+                <button
+                    type="button"
+                    onClick={() => setShowCreateModal(true)}
+                    className="rounded-xl bg-blue-600 px-5 py-2.5 text-sm font-bold text-white shadow-sm hover:bg-blue-700"
+                >
+                    신규 학생 등록
+                </button>
             </div>
 
-            <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 mb-8">
-                <h3 className="font-bold text-lg mb-4 text-gray-700">신규 학생 등록</h3>
-                <form onSubmit={handleAddStudent} className="flex gap-4">
-                    <input
-                        type="text"
-                        placeholder="학번 8자리 (예: 12240000)"
-                        className="flex-1 p-3 border rounded-xl text-lg"
-                        maxLength={8}
-                        value={studentIdInput}
-                        onChange={e => setStudentIdInput(e.target.value.replace(/[^0-9]/g, ''))}
-                    />
-                    <input
-                        type="text"
-                        placeholder="추첨 번호 필수 (예: 1, 3)"
-                        className="w-44 p-3 border rounded-xl text-lg"
-                        maxLength={4}
-                        required
-                        value={studentNumberInput}
-                        onChange={e => setStudentNumberInput(e.target.value.replace(/[^0-9]/g, ''))}
-                    />
-                    <button type="submit" className="px-6 py-3 bg-blue-600 text-white font-bold rounded-xl hover:bg-blue-700 shadow-sm whitespace-nowrap">
-                        등록하기
-                    </button>
-                </form>
-            </div>
+            <section className="mb-4 rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
+                <p className="mb-3 text-sm font-bold text-gray-600">필터링</p>
+                <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+                    <select
+                        className="rounded-xl border border-gray-200 bg-gray-50 px-3 py-2.5 text-sm font-medium text-gray-700"
+                        value={studentRoleFilter}
+                        onChange={event => setStudentRoleFilter(event.target.value)}
+                    >
+                        <option value="ALL">역할 전체</option>
+                        {STUDENT_ROLE_OPTIONS.map(role => (
+                            <option key={role} value={role}>{role}</option>
+                        ))}
+                    </select>
+                    <select
+                        className="rounded-xl border border-gray-200 bg-gray-50 px-3 py-2.5 text-sm font-medium text-gray-700"
+                        value={studentDepartmentFilter}
+                        onChange={event => setStudentDepartmentFilter(event.target.value)}
+                    >
+                        <option value="ALL">학과 전체</option>
+                        {STUDENT_DEPARTMENT_OPTIONS.map(department => (
+                            <option key={department} value={department}>{department}</option>
+                        ))}
+                    </select>
+                </div>
+            </section>
 
-            <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
-                <div className="p-4 border-b flex justify-between items-center bg-gray-50">
-                    <h3 className="font-bold text-gray-700">
-                        등록된 학생 목록 <span className="text-blue-600 ml-1">({filteredStudents.length}명)</span>
-                    </h3>
-                    <div className="flex items-center gap-2">
-                        <select
-                            className="rounded-lg border p-2 text-sm"
-                            value={studentRoleFilter}
-                            onChange={event => setStudentRoleFilter(event.target.value)}
+            <section className="mb-6 grid grid-cols-1 gap-4 md:grid-cols-[2fr_1fr]">
+                <div className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
+                    <p className="mb-3 text-sm font-bold text-gray-600">검색</p>
+                    <input
+                        type="text"
+                        placeholder="이름, 학번 또는 추첨 번호 검색"
+                        className="w-full rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 text-sm"
+                        value={studentSearch}
+                        onChange={e => setStudentSearch(e.target.value)}
+                    />
+                </div>
+                <div className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
+                    <p className="mb-3 text-sm font-bold text-gray-600">작업</p>
+                    <div className="flex flex-wrap gap-2">
+                        <button
+                            type="button"
+                            onClick={fetchStudents}
+                            className="rounded-xl border border-gray-200 bg-gray-50 px-4 py-2 text-sm font-bold text-gray-700 hover:bg-gray-100"
                         >
-                            <option value="ALL">역할 전체</option>
-                            {STUDENT_ROLE_OPTIONS.map(role => (
-                                <option key={role} value={role}>{role}</option>
-                            ))}
-                        </select>
-                        <select
-                            className="rounded-lg border p-2 text-sm"
-                            value={studentDepartmentFilter}
-                            onChange={event => setStudentDepartmentFilter(event.target.value)}
+                            새로고침
+                        </button>
+                        <button
+                            type="button"
+                            onClick={() => setShowCreateModal(true)}
+                            className="rounded-xl bg-blue-600 px-4 py-2 text-sm font-bold text-white hover:bg-blue-700"
                         >
-                            <option value="ALL">학과 전체</option>
-                            {STUDENT_DEPARTMENT_OPTIONS.map(department => (
-                                <option key={department} value={department}>{department}</option>
-                            ))}
-                        </select>
-                        <input
-                            type="text"
-                            placeholder="학번/번호/이름 검색"
-                            className="p-2 border rounded-lg text-sm w-64"
-                            value={studentSearch}
-                            onChange={e => setStudentSearch(e.target.value)}
-                        />
+                            학생 추가
+                        </button>
                     </div>
                 </div>
+            </section>
+
+            <section className="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm">
+                <div className="flex items-center justify-between border-b bg-gray-50 px-5 py-4">
+                    <div>
+                        <h3 className="font-bold text-gray-800">
+                            등록된 학생 목록 <span className="ml-1 text-blue-600">({filteredStudents.length}명)</span>
+                        </h3>
+                        <p className="mt-1 text-xs font-medium text-gray-500">정렬 기준: 추첨 번호 오름차순</p>
+                    </div>
+                </div>
+
                 <div className="overflow-x-auto">
-                    <table className="w-full text-sm text-left">
-                        <thead className="text-gray-500 bg-gray-50 border-b">
+                    <table className="w-full text-left text-sm">
+                        <thead className="border-b bg-gray-50 text-gray-500">
                             <tr>
                                 <th className="px-6 py-3">이름</th>
                                 <th className="px-6 py-3">학번</th>
@@ -232,45 +297,44 @@ export default function AdminStudentsSection({
                                         </div>
                                     </td>
                                     <td className="px-6 py-4">
-                                            {student.is_suspended ? (
-                                                <span className="bg-red-100 text-red-600 px-2 py-1 rounded text-xs font-bold">정지됨</span>
-                                            ) : (
-                                                <span className="bg-green-100 text-green-600 px-2 py-1 rounded text-xs font-bold">정상</span>
-                                            )}
-                                        </td>
-                                        <td className="px-6 py-4 text-gray-500">
-                                            {new Date(student.created_at).toLocaleDateString()}
-                                        </td>
-                                        <td className="px-6 py-4 text-right space-x-2 flex justify-end">
-                                            <button
-                                                onClick={() => handleResetStudentVotes(student)}
-                                                className="text-gray-500 hover:bg-gray-100 px-3 py-1.5 rounded font-medium border border-transparent hover:border-gray-200"
-                                                title="투표 기록 초기화"
-                                            >
-                                                초기화
-                                            </button>
-                                            <button
-                                                onClick={() => handleStudentDetails(student)}
-                                                className="text-blue-600 hover:bg-blue-50 px-3 py-1.5 rounded font-medium border border-transparent hover:border-blue-100"
-                                            >
-                                                투표 상세
-                                            </button>
-                                            <button
-                                                onClick={() => handleToggleSuspend(student)}
-                                                className={`px-3 py-1.5 rounded font-medium border transition-colors
-                                                            ${student.is_suspended
-                                                        ? 'text-green-600 border-green-200 hover:bg-green-50'
-                                                        : 'text-orange-500 border-orange-200 hover:bg-orange-50'}`}
-                                            >
-                                                {student.is_suspended ? '정지 해제' : '정지'}
-                                            </button>
-                                            <button
-                                                onClick={() => handleDeleteStudent(student)}
-                                                className="text-red-500 hover:bg-red-50 px-3 py-1.5 rounded font-medium border border-transparent hover:border-red-100"
-                                            >
-                                                삭제
-                                            </button>
-                                        </td>
+                                        {student.is_suspended ? (
+                                            <span className="rounded bg-red-100 px-2 py-1 text-xs font-bold text-red-600">정지됨</span>
+                                        ) : (
+                                            <span className="rounded bg-green-100 px-2 py-1 text-xs font-bold text-green-600">정상</span>
+                                        )}
+                                    </td>
+                                    <td className="px-6 py-4 text-gray-500">{new Date(student.created_at).toLocaleDateString()}</td>
+                                    <td className="flex justify-end space-x-2 px-6 py-4 text-right">
+                                        <button
+                                            onClick={() => handleResetStudentVotes(student)}
+                                            className="rounded border border-transparent px-3 py-1.5 font-medium text-gray-500 hover:border-gray-200 hover:bg-gray-100"
+                                            title="투표 기록 초기화"
+                                        >
+                                            초기화
+                                        </button>
+                                        <button
+                                            onClick={() => handleStudentDetails(student)}
+                                            className="rounded border border-transparent px-3 py-1.5 font-medium text-blue-600 hover:border-blue-100 hover:bg-blue-50"
+                                        >
+                                            투표 상세
+                                        </button>
+                                        <button
+                                            onClick={() => handleToggleSuspend(student)}
+                                            className={`rounded border px-3 py-1.5 font-medium transition-colors ${
+                                                student.is_suspended
+                                                    ? 'border-green-200 text-green-600 hover:bg-green-50'
+                                                    : 'border-orange-200 text-orange-500 hover:bg-orange-50'
+                                            }`}
+                                        >
+                                            {student.is_suspended ? '정지 해제' : '정지'}
+                                        </button>
+                                        <button
+                                            onClick={() => handleDeleteStudent(student)}
+                                            className="rounded border border-transparent px-3 py-1.5 font-medium text-red-500 hover:border-red-100 hover:bg-red-50"
+                                        >
+                                            삭제
+                                        </button>
+                                    </td>
                                 </tr>
                             ))}
                             {pagedStudents.length === 0 && (
@@ -283,6 +347,7 @@ export default function AdminStudentsSection({
                         </tbody>
                     </table>
                 </div>
+
                 <div className="border-t bg-gray-50 px-4 py-3">
                     <div className="flex items-center justify-between">
                         <p className="text-xs font-medium text-gray-500">
@@ -308,7 +373,119 @@ export default function AdminStudentsSection({
                         </div>
                     </div>
                 </div>
-            </div>
+            </section>
+
+            {showCreateModal && (
+                <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/50 p-4">
+                    <div className="w-full max-w-xl rounded-2xl bg-white shadow-2xl">
+                        <div className="flex items-center justify-between border-b px-6 py-4">
+                            <h3 className="text-xl font-bold text-gray-900">신규 학생 등록</h3>
+                            <button
+                                type="button"
+                                onClick={closeCreateModal}
+                                className="rounded-md px-2 py-1 text-sm font-semibold text-gray-500 hover:bg-gray-100"
+                            >
+                                닫기
+                            </button>
+                        </div>
+                        <div className="space-y-4 px-6 py-5">
+                            <label className="block">
+                                <span className="mb-1 block text-sm font-semibold text-gray-700">이름</span>
+                                <input
+                                    type="text"
+                                    className="w-full rounded-lg border px-3 py-2 text-sm"
+                                    value={createForm.name}
+                                    onChange={event => setCreateForm(prev => ({ ...prev, name: event.target.value }))}
+                                    placeholder="이름 입력"
+                                />
+                            </label>
+                            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                                <label className="block">
+                                    <span className="mb-1 block text-sm font-semibold text-gray-700">성별</span>
+                                    <select
+                                        className="w-full rounded-lg border px-3 py-2 text-sm"
+                                        value={createForm.gender}
+                                        onChange={event => setCreateForm(prev => ({ ...prev, gender: event.target.value as StudentGender }))}
+                                    >
+                                        {STUDENT_GENDER_OPTIONS.map(gender => (
+                                            <option key={gender} value={gender}>{gender}</option>
+                                        ))}
+                                    </select>
+                                </label>
+                                <label className="block">
+                                    <span className="mb-1 block text-sm font-semibold text-gray-700">역할</span>
+                                    <select
+                                        className="w-full rounded-lg border px-3 py-2 text-sm"
+                                        value={createForm.studentRole}
+                                        onChange={event => setCreateForm(prev => ({ ...prev, studentRole: event.target.value as StudentRole }))}
+                                    >
+                                        {STUDENT_ROLE_OPTIONS.map(role => (
+                                            <option key={role} value={role}>{role}</option>
+                                        ))}
+                                    </select>
+                                </label>
+                            </div>
+                            <label className="block">
+                                <span className="mb-1 block text-sm font-semibold text-gray-700">학과</span>
+                                <select
+                                    className="w-full rounded-lg border px-3 py-2 text-sm"
+                                    value={createForm.department}
+                                    onChange={event => setCreateForm(prev => ({ ...prev, department: event.target.value as StudentDepartment }))}
+                                >
+                                    {STUDENT_DEPARTMENT_OPTIONS.map(department => (
+                                        <option key={department} value={department}>{department}</option>
+                                    ))}
+                                </select>
+                            </label>
+                            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                                <label className="block">
+                                    <span className="mb-1 block text-sm font-semibold text-gray-700">학번 (선택)</span>
+                                    <input
+                                        type="text"
+                                        maxLength={8}
+                                        className="w-full rounded-lg border px-3 py-2 text-sm"
+                                        value={createForm.studentId}
+                                        onChange={event => setCreateForm(prev => ({ ...prev, studentId: event.target.value.replace(/[^0-9]/g, '').slice(0, 8) }))}
+                                        placeholder="8자리 숫자"
+                                    />
+                                </label>
+                                <label className="block">
+                                    <span className="mb-1 block text-sm font-semibold text-gray-700">추첨 번호 (선택)</span>
+                                    <input
+                                        type="text"
+                                        maxLength={4}
+                                        className="w-full rounded-lg border px-3 py-2 text-sm"
+                                        value={createForm.drawNumber}
+                                        onChange={event => setCreateForm(prev => ({ ...prev, drawNumber: event.target.value.replace(/[^0-9]/g, '').slice(0, 4) }))}
+                                        placeholder="최대 4자리"
+                                    />
+                                </label>
+                            </div>
+                            <p className="text-xs text-gray-500">
+                                학번을 비워두면 임시 번호(`TMP-...`)가 자동 생성되어 투표 로그인은 불가능합니다.
+                            </p>
+                        </div>
+                        <div className="flex items-center justify-end gap-2 border-t px-6 py-4">
+                            <button
+                                type="button"
+                                onClick={closeCreateModal}
+                                className="rounded-lg border px-4 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50"
+                            >
+                                취소
+                            </button>
+                            <button
+                                type="button"
+                                onClick={submitCreate}
+                                disabled={creating}
+                                className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700 disabled:cursor-not-allowed disabled:bg-gray-300"
+                            >
+                                {creating ? '등록 중...' : '등록하기'}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }
+

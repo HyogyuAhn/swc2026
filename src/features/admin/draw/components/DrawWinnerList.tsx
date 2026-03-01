@@ -4,6 +4,7 @@ type DrawWinnerListProps = {
     item: DrawItemWithComputed;
     activeStudentIds: string[];
     drawNumberByStudentId: Record<string, string>;
+    studentInfoById: Record<string, any>;
     editingWinnerById: Record<string, boolean>;
     editingStudentByWinnerId: Record<string, string>;
     disabled?: boolean;
@@ -25,6 +26,7 @@ export default function DrawWinnerList({
     item,
     activeStudentIds,
     drawNumberByStudentId,
+    studentInfoById,
     editingWinnerById,
     editingStudentByWinnerId,
     disabled = false,
@@ -48,6 +50,10 @@ export default function DrawWinnerList({
             {item.winners.map((winner, index) => {
                 const isEditing = Boolean(editingWinnerById[winner.id]);
                 const winnerDrawNumber = drawNumberByStudentId[winner.student_id] || '번호 미지정';
+                const winnerInfo = studentInfoById[winner.student_id];
+                const winnerName = String(winnerInfo?.name || '이름 미등록');
+                const winnerDepartment = String(winnerInfo?.department || '-');
+                const winnerRole = String(winnerInfo?.student_role || '-');
                 const editingValue = editingStudentByWinnerId[winner.id] || (winnerDrawNumber === '번호 미지정' ? '' : winnerDrawNumber);
                 const datalistId = `draw-winner-edit-${winner.id}`;
                 const winnerPublic = winner.is_public ?? true;
@@ -70,6 +76,9 @@ export default function DrawWinnerList({
                                     </span>
                                 )}
                             </div>
+                            <p className="text-xs font-medium text-gray-500">
+                                {winnerName} · {winnerDepartment} · {winnerRole}
+                            </p>
 
                             {!isEditing && (
                                 <div className="flex items-center gap-1">

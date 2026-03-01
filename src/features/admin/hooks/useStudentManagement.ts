@@ -1,7 +1,15 @@
 'use client';
 
-import { useCallback, useState, type FormEvent } from 'react';
+import { useCallback, useState } from 'react';
 import { supabase } from '@/lib/supabase';
+import {
+    STUDENT_DEPARTMENT_OPTIONS,
+    STUDENT_GENDER_OPTIONS,
+    STUDENT_ROLE_OPTIONS,
+    StudentDepartment,
+    StudentGender,
+    StudentRole
+} from '@/features/admin/student/constants';
 
 type ForceVoteData = {
     targetStudentId: string;
@@ -19,10 +27,35 @@ type ForceAddVoteContext = {
     refreshVoteDetails: (vote: any) => Promise<void> | void;
 };
 
+type StudentCreatePayload = {
+    name: string;
+    gender: StudentGender;
+    department: StudentDepartment;
+    studentRole: StudentRole;
+    studentId?: string;
+    drawNumber?: string;
+};
+
+const isGender = (value: string): value is StudentGender => (
+    (STUDENT_GENDER_OPTIONS as readonly string[]).includes(value)
+);
+
+const isDepartment = (value: string): value is StudentDepartment => (
+    (STUDENT_DEPARTMENT_OPTIONS as readonly string[]).includes(value)
+);
+
+const isRole = (value: string): value is StudentRole => (
+    (STUDENT_ROLE_OPTIONS as readonly string[]).includes(value)
+);
+
+const createTemporaryStudentId = () => {
+    const stamp = Date.now().toString().slice(-8);
+    const random = Math.floor(Math.random() * 1000).toString().padStart(3, '0');
+    return `TMP-${stamp}${random}`;
+};
+
 export default function useStudentManagement({ onVotesChanged }: UseStudentManagementParams) {
     const [students, setStudents] = useState<any[]>([]);
-    const [studentIdInput, setStudentIdInput] = useState('');
-    const [studentNumberInput, setStudentNumberInput] = useState('');
     const [studentSearch, setStudentSearch] = useState('');
     const [studentRoleFilter, setStudentRoleFilter] = useState('ALL');
     const [studentDepartmentFilter, setStudentDepartmentFilter] = useState('ALL');
@@ -54,65 +87,83 @@ export default function useStudentManagement({ onVotesChanged }: UseStudentManag
         }
     }, []);
 
-    const handleAddStudent = useCallback(async (e?: FormEvent<HTMLFormElement>) => {
-        e?.preventDefault();
+    const handleAddStudent = useCallback(async (payload: StudentCreatePayload) => {
+        const normalizedName = payload.name.trim();
+        if (!normalizedName) {
+            alert('이름을 입력해주세요.');
+            return false;
+        }
 
-        if (!/^\d{8}$/.test(studentIdInput)) {
+        if (!isGender(payload.gender)) {
+            alert('성별을 선택해주세요.');
+            return false;
+        }
+
+        if (!isDepartment(payload.department)) {
+            alert('학과를 선택해주세요.');
+            return false;
+        }
+
+        if (!isRole(payload.studentRole)) {
+            alert('역할을 선택해주세요.');
+            return false;
+        }
+
+        const normalizedStudentId = (payload.studentId || '').trim();
+        if (normalizedStudentId && !/^\d{8}$/.test(normalizedStudentId)) {
             alert('학번은 8자리 숫자여야 합니다.');
-            return;
+            return false;
         }
 
-        const normalizedDrawNumber = studentNumberInput.trim().replace(/\D/g, '');
-        if (!normalizedDrawNumber) {
-            alert('추첨 번호를 함께 입력해주세요.');
-            return;
-        }
-
-        if (!/^\d{1,4}$/.test(normalizedDrawNumber)) {
+        const normalizedDrawNumber = (payload.drawNumber || '').trim().replace(/\D/g, '');
+        if (normalizedDrawNumber && !/^\d{1,4}$/.test(normalizedDrawNumber)) {
             alert('추첨 번호는 1~4자리 숫자여야 합니다.');
-            return;
+            return false;
         }
+
+        const studentIdToUse = normalizedStudentId || createTemporaryStudentId();
 
         const { error } = await supabase
             .from('students')
             .insert({
-                student_id: studentIdInput,
-                draw_number: normalizedDrawNumber
+                student_id: studentIdToUse,
+                name: normalizedName,
+                gender: payload.gender,
+                department: payload.department,
+                student_role: payload.studentRole,
+                draw_number: normalizedDrawNumber || null
             });
 
         if (error) {
             if (error.code === '23505') {
-                if ((error.message || '').toLowerCase().includes('draw_number')) {
-                    alert('이미 사용 중인 번호입니다.');
+                const lowerMessage = (error.message || '').toLowerCase();
+                if (lowerMessage.includes('draw_number')) {
+                    alert('이미 사용 중인 추첨 번호입니다.');
+                } else if (lowerMessage.includes('student_id')) {
+                    alert('이미 등록된 학번/임시번호입니다.');
                 } else {
-                    alert('이미 등록된 학번입니다.');
+                    alert('중복된 값이 있습니다.');
                 }
             } else {
                 alert('등록 실패: ' + error.message);
             }
-            return;
-        }
-
-        setStudentIdInput('');
-        setStudentNumberInput('');
-        fetchStudents();
-    }, [fetchStudents, studentIdInput, studentNumberInput]);
-
-    const handleUpdateStudentDrawNumber = useCallback(async (student: any, drawNumber: string) => {
-        const normalizedDrawNumber = drawNumber.trim().replace(/\D/g, '');
-        if (!normalizedDrawNumber) {
-            alert('추첨 번호는 비워둘 수 없습니다.');
             return false;
         }
 
-        if (!/^\d{1,4}$/.test(normalizedDrawNumber)) {
+        await fetchStudents();
+        return true;
+    }, [fetchStudents]);
+
+    const handleUpdateStudentDrawNumber = useCallback(async (student: any, drawNumber: string) => {
+        const normalizedDrawNumber = drawNumber.trim().replace(/\D/g, '');
+        if (normalizedDrawNumber && !/^\d{1,4}$/.test(normalizedDrawNumber)) {
             alert('추첨 번호는 1~4자리 숫자여야 합니다.');
             return false;
         }
 
         const { error } = await supabase
             .from('students')
-            .update({ draw_number: normalizedDrawNumber })
+            .update({ draw_number: normalizedDrawNumber || null })
             .eq('student_id', student.student_id);
 
         if (error) {
@@ -321,10 +372,6 @@ export default function useStudentManagement({ onVotesChanged }: UseStudentManag
 
     return {
         students,
-        studentIdInput,
-        setStudentIdInput,
-        studentNumberInput,
-        setStudentNumberInput,
         studentSearch,
         setStudentSearch,
         studentRoleFilter,

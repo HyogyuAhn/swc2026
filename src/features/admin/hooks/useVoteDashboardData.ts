@@ -172,7 +172,31 @@ export default function useVoteDashboardData(isAuthenticated: boolean) {
             .order('created_at', { ascending: false });
 
         if (data) {
-            setVoteRecords(data);
+            const studentIds = Array.from(new Set(
+                data
+                    .map(record => String(record.student_id || ''))
+                    .filter(Boolean)
+            ));
+
+            let nameById: Record<string, string> = {};
+            if (studentIds.length > 0) {
+                const { data: studentRows } = await supabase
+                    .from('students')
+                    .select('student_id, name')
+                    .in('student_id', studentIds);
+
+                if (studentRows) {
+                    nameById = studentRows.reduce((acc: Record<string, string>, row: any) => {
+                        acc[String(row.student_id)] = String(row.name || '');
+                        return acc;
+                    }, {});
+                }
+            }
+
+            setVoteRecords(data.map(record => ({
+                ...record,
+                student_name: nameById[String(record.student_id)] || ''
+            })));
         }
 
         setShowDetailsModal(true);
