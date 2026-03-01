@@ -231,6 +231,7 @@ export default function AdminStudentsSection({
                             <tr>
                                 <th className="px-6 py-3">이름</th>
                                 <th className="px-6 py-3">학번</th>
+                                <th className="px-6 py-3">성별</th>
                                 <th className="px-6 py-3">역할</th>
                                 <th className="px-6 py-3">학과</th>
                                 <th className="px-6 py-3">번호</th>
@@ -244,6 +245,17 @@ export default function AdminStudentsSection({
                                 <tr key={student.student_id} className="border-b border-gray-300 last:border-0 hover:bg-gray-50">
                                     <td className="px-6 py-4 font-semibold text-gray-800">{student.name || '-'}</td>
                                     <td className="px-6 py-4 font-bold text-gray-800">{student.student_id}</td>
+                                    <td className="px-6 py-4">
+                                        <span className={`rounded px-2 py-1 text-xs font-bold ${
+                                            student.gender === '남'
+                                                ? 'bg-blue-100 text-blue-700'
+                                                : student.gender === '여'
+                                                    ? 'bg-red-100 text-red-600'
+                                                    : 'bg-gray-100 text-gray-500'
+                                        }`}>
+                                            {student.gender || '-'}
+                                        </span>
+                                    </td>
                                     <td className="px-6 py-4 text-gray-700">{student.student_role || '-'}</td>
                                     <td className="px-6 py-4 text-gray-700">{student.department || '-'}</td>
                                     <td className="px-6 py-4 font-mono text-sm font-semibold text-gray-700">{student.draw_number || '-'}</td>
@@ -267,7 +279,7 @@ export default function AdminStudentsSection({
                             ))}
                             {pagedStudents.length === 0 && (
                                 <tr>
-                                    <td colSpan={8} className="px-6 py-10 text-center text-sm text-gray-400">
+                                    <td colSpan={9} className="px-6 py-10 text-center text-sm text-gray-400">
                                         조건에 맞는 학생이 없습니다.
                                     </td>
                                 </tr>

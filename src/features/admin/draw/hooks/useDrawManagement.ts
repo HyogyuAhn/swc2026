@@ -32,7 +32,8 @@ import {
 } from '@/features/admin/draw/types';
 import {
     DEFAULT_DRAW_RANDOM_ROLES,
-    STUDENT_DEPARTMENT_OPTIONS
+    STUDENT_DEPARTMENT_OPTIONS,
+    STUDENT_ROLE_OPTIONS
 } from '@/features/admin/student/constants';
 
 const isRpcMissingError = (message?: string) => {
@@ -54,6 +55,83 @@ const getDefaultRandomFilter = (): DrawRandomFilter => ({
     departments: [...STUDENT_DEPARTMENT_OPTIONS],
     roles: [...DEFAULT_DRAW_RANDOM_ROLES]
 });
+
+const normalizeText = (value: unknown) => String(value ?? '').trim();
+
+const normalizeGender = (value: unknown): '남' | '여' | '' => {
+    const text = normalizeText(value);
+    if (!text) {
+        return '';
+    }
+
+    if (text === '남' || text.toLowerCase() === 'male' || text.toLowerCase() === 'm') {
+        return '남';
+    }
+
+    if (text === '여' || text.toLowerCase() === 'female' || text.toLowerCase() === 'f') {
+        return '여';
+    }
+
+    return '';
+};
+
+const normalizeDepartment = (value: unknown): string => {
+    const text = normalizeText(value);
+    if (!text) {
+        return '';
+    }
+
+    if ((STUDENT_DEPARTMENT_OPTIONS as readonly string[]).includes(text)) {
+        return text;
+    }
+
+    if (text.includes('컴퓨터') && text.includes('공학')) {
+        return '컴퓨터공학과';
+    }
+
+    if (text.includes('인공지능')) {
+        return '인공지능공학과';
+    }
+
+    if (text.includes('디자인')) {
+        return '디자인테크놀로지학과';
+    }
+
+    if (text.includes('데이터')) {
+        return '데이터사이언스학과';
+    }
+
+    if (text.includes('모빌리티')) {
+        return '스마트모빌리티공학과';
+    }
+
+    return text;
+};
+
+const normalizeStudentRole = (value: unknown): string => {
+    const text = normalizeText(value);
+    if (!text) {
+        return '';
+    }
+
+    if ((STUDENT_ROLE_OPTIONS as readonly string[]).includes(text)) {
+        return text;
+    }
+
+    if (text.includes('재학')) {
+        return '재학생';
+    }
+
+    if (text.includes('신입')) {
+        return '신입생';
+    }
+
+    if (text.includes('새내') || text.includes('새준')) {
+        return '새준위';
+    }
+
+    return text;
+};
 
 type DrawExecuteOptions = {
     preDelayMs?: number;
@@ -355,8 +433,14 @@ export default function useDrawManagement(showToast: ShowToast, enabled = true) 
         const itemWinnerSet = new Set(item.winners.map(w => w.student_id));
         const allWinnerSet = getAllWinnerStudentIds();
         const nextFilter = randomFilter || getDefaultRandomFilter();
-        const departmentSet = new Set(nextFilter.departments || []);
-        const roleSet = new Set((nextFilter.roles || []).map(role => String(role)));
+        const normalizedFilterDepartments = (nextFilter.departments || [])
+            .map(department => normalizeDepartment(department))
+            .filter(Boolean);
+        const departmentSet = new Set(normalizedFilterDepartments);
+        const hasAllDepartments = departmentSet.size === STUDENT_DEPARTMENT_OPTIONS.length;
+        const roleSet = new Set((nextFilter.roles || []).map(role => normalizeStudentRole(role)).filter(Boolean));
+        const hasAllRoles = roleSet.size === STUDENT_ROLE_OPTIONS.length;
+        const targetGender = normalizeGender(nextFilter.gender);
 
         const candidates = pool.activeIds.filter(studentId => {
             const student = pool.byId[studentId];
@@ -372,16 +456,26 @@ export default function useDrawManagement(showToast: ShowToast, enabled = true) 
                 return false;
             }
 
-            if (nextFilter.gender !== 'ALL' && String(student.gender || '') !== nextFilter.gender) {
+            const studentGender = normalizeGender(student.gender);
+            if (targetGender && studentGender !== targetGender) {
                 return false;
             }
 
-            if (departmentSet.size > 0 && !departmentSet.has(String(student.department || ''))) {
+            const studentDepartment = normalizeDepartment(student.department);
+            if (departmentSet.size > 0 && studentDepartment) {
+                if (!departmentSet.has(studentDepartment)) {
+                    return false;
+                }
+            } else if (departmentSet.size > 0 && !studentDepartment && !hasAllDepartments) {
                 return false;
             }
 
-            const roleValue = String(student.student_role || '재학생');
-            if (roleSet.size > 0 && !roleSet.has(roleValue)) {
+            const roleValue = normalizeStudentRole(student.student_role || '재학생');
+            if (roleSet.size > 0 && roleValue) {
+                if (!roleSet.has(roleValue)) {
+                    return false;
+                }
+            } else if (roleSet.size > 0 && !roleValue && !hasAllRoles) {
                 return false;
             }
 
