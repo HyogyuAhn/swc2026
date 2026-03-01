@@ -239,7 +239,7 @@ export default function useStudentManagement({ onVotesChanged }: UseStudentManag
         setShowDeleteModal(true);
     }, []);
 
-    const executeDeleteStudent = useCallback(async (mode: 'ID_ONLY' | 'ALL') => {
+    const executeDeleteStudent = useCallback(async () => {
         if (!deleteTarget?.data?.student_id) {
             return;
         }
@@ -256,16 +256,24 @@ export default function useStudentManagement({ onVotesChanged }: UseStudentManag
             return;
         }
 
-        if (mode === 'ALL') {
-            const { error: historyError } = await supabase
-                .from('vote_records')
-                .delete()
-                .eq('student_id', studentId);
+        const { error: historyError } = await supabase
+            .from('vote_records')
+            .delete()
+            .eq('student_id', studentId);
 
-            if (historyError) {
-                alert(historyError.message);
-                return;
-            }
+        if (historyError) {
+            alert(historyError.message);
+            return;
+        }
+
+        const { error: drawEventDeleteError } = await supabase
+            .from('draw_live_events')
+            .delete()
+            .eq('winner_student_id', studentId);
+
+        if (drawEventDeleteError && drawEventDeleteError.code !== '42P01') {
+            alert('삭제 실패(추첨 공개 기록): ' + drawEventDeleteError.message);
+            return;
         }
 
         const { error } = await supabase

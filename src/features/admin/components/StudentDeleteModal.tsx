@@ -3,7 +3,7 @@ import { Trash2 } from 'lucide-react';
 type StudentDeleteModalProps = {
     showDeleteModal: boolean;
     deleteTarget: any;
-    executeDeleteStudent: (mode: 'ID_ONLY' | 'ALL') => void;
+    executeDeleteStudent: () => void;
     setShowDeleteModal: (show: boolean) => void;
     setDeleteTarget: (target: any) => void;
 };
@@ -27,15 +27,12 @@ export default function StudentDeleteModal({
                 </div>
                 <h3 className="text-xl font-bold text-gray-900 mb-2">{deleteTarget.data.student_id} 학번 삭제</h3>
                 <p className="text-sm text-gray-500 mb-6">
-                    해당 학번을 삭제하시겠습니까?<br />
-                    삭제 시 복구할 수 있는 방법은 없습니다.
+                    정말 삭제하시겠습니까?<br />
+                    학생 정보와 관련 기록이 모두 삭제되며 복구할 수 없습니다.
                 </p>
                 <div className="space-y-2">
-                    <button onClick={() => executeDeleteStudent('ALL')} className="w-full py-3 bg-red-600 text-white font-bold rounded-xl hover:bg-red-700">
-                        초기화 후 제거 (투표기록 포함)
-                    </button>
-                    <button onClick={() => executeDeleteStudent('ID_ONLY')} className="w-full py-3 bg-red-100 text-red-600 font-bold rounded-xl hover:bg-red-200">
-                        학번만 제거 (투표기록 유지)
+                    <button onClick={executeDeleteStudent} className="w-full py-3 bg-red-600 text-white font-bold rounded-xl hover:bg-red-700">
+                        삭제
                     </button>
                     <button onClick={() => { setShowDeleteModal(false); setDeleteTarget(null); }} className="w-full py-3 bg-gray-100 text-gray-600 font-bold rounded-xl hover:bg-gray-200">
                         취소
