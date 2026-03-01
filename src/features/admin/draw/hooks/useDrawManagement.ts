@@ -929,13 +929,7 @@ export default function useDrawManagement(showToast: ShowToast, enabled = true) 
         }
 
         const sequenceItemNames = sequenceItems.map(entry => entry.item!.name);
-        const expectedPublicCount = steps.reduce((count, step) => {
-            const matched = items.find(item => item.id === step.itemId);
-            if (!matched || !matched.is_public) {
-                return count;
-            }
-            return count + 1;
-        }, 0);
+        const expectedPublicCount = steps.length;
 
         const isBatchReveal = revealMode === 'BATCH';
         await announceSequenceStart({

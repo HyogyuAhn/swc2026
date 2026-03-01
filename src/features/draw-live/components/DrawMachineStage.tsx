@@ -293,7 +293,7 @@ export default function DrawMachineStage({
 
                 {sequenceStatus.itemNames.length > 0 && (
                     <div className="mt-3 flex flex-wrap items-center justify-center gap-1 text-xs font-bold text-blue-700/80">
-                        <span className="mr-1 text-blue-600">연속 순서</span>
+                        <span className="mr-1 text-blue-600">순서:</span>
                         {sequenceStatus.itemNames.map((name, index) => {
                             const isCurrent = sequenceStatus.currentIndex === index;
                             return (

@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { supabase } from '@/lib/supabase';
 import {
     fetchDrawSettings,
+    fetchRecentLiveEvents,
     fetchPublicRecentWinners,
     fetchStudentPool
 } from '@/features/admin/draw/api';
@@ -85,6 +86,8 @@ export default function useDrawLiveFeed() {
         collected: DrawLiveEventRecord[];
         label: string;
         batchRevealStyle: DrawBatchRevealStyle;
+        startedAt?: string;
+        itemNames?: string[];
     } | null>(null);
     const pendingTimelineProfileByItemIdRef = useRef<Record<string, 'NORMAL' | 'FAST'>>({});
     const sequenceEndPendingRef = useRef(false);
@@ -287,6 +290,8 @@ export default function useDrawLiveFeed() {
         collected: DrawLiveEventRecord[];
         label: string;
         batchRevealStyle: DrawBatchRevealStyle;
+        startedAt?: string;
+        itemNames?: string[];
     }) => {
         if (capture.collected.length < capture.expectedCount) {
             return false;
@@ -307,6 +312,62 @@ export default function useDrawLiveFeed() {
         enqueueLiveEvent(syntheticBatchEvent);
         return true;
     }, [clearBatchCapture, enqueueLiveEvent]);
+
+    const recoverBatchCaptureEvents = useCallback(async (capture: {
+        expectedCount: number;
+        collected: DrawLiveEventRecord[];
+        label: string;
+        batchRevealStyle: DrawBatchRevealStyle;
+        startedAt?: string;
+        itemNames?: string[];
+    }) => {
+        const recentResult = await fetchRecentLiveEvents(Math.max(capture.expectedCount * 12, 120));
+        if (recentResult.error) {
+            return capture.collected;
+        }
+
+        const startedAtMs = Date.parse(capture.startedAt || '');
+        const allowedNames = new Set((capture.itemNames || []).filter(Boolean));
+
+        const recovered = (recentResult.data || [])
+            .map(row => row as DrawLiveEventRecord & { seq?: number })
+            .filter(event => Boolean(event?.id))
+            .filter(event => {
+                if (allowedNames.size === 0) {
+                    return true;
+                }
+                return allowedNames.has(event.draw_item_name);
+            })
+            .filter(event => {
+                if (!Number.isFinite(startedAtMs)) {
+                    return true;
+                }
+                const eventMs = Date.parse(event.created_at || '');
+                if (!Number.isFinite(eventMs)) {
+                    return true;
+                }
+                return eventMs >= startedAtMs - 1500;
+            })
+            .sort((a, b) => {
+                const aSeq = Number(a.seq || 0);
+                const bSeq = Number(b.seq || 0);
+                if (aSeq > 0 && bSeq > 0) {
+                    return aSeq - bSeq;
+                }
+                return Date.parse(a.created_at || '') - Date.parse(b.created_at || '');
+            }) as DrawLiveEventRecord[];
+
+        const mergedById = new Map<string, DrawLiveEventRecord>();
+        [...capture.collected, ...recovered].forEach(event => {
+            mergedById.set(event.id, event);
+        });
+
+        const mergedOrdered = Array.from(mergedById.values()).sort((a, b) => {
+            return Date.parse(a.created_at || '') - Date.parse(b.created_at || '');
+        });
+
+        return mergedOrdered.slice(-capture.expectedCount);
+    }, []);
 
     useEffect(() => {
         startNextQueuedEventRef.current = startNextQueuedEvent;
@@ -378,7 +439,7 @@ export default function useDrawLiveFeed() {
                     delete pendingTimelineProfileByItemIdRef.current[String(rawEvent.draw_item_id)];
                 }
 
-                if (!settingsRef.current.live_page_enabled || !event?.is_public) {
+                if (!settingsRef.current.live_page_enabled) {
                     return;
                 }
 
@@ -386,6 +447,10 @@ export default function useDrawLiveFeed() {
                 if (activeBatchCapture && activeBatchCapture.expectedCount > 0) {
                     activeBatchCapture.collected = [...activeBatchCapture.collected, event];
                     flushBatchCaptureIfReady(activeBatchCapture);
+                    return;
+                }
+
+                if (!event?.is_public) {
                     return;
                 }
 
@@ -502,7 +567,9 @@ export default function useDrawLiveFeed() {
                     expectedCount: expectedPublicCount,
                     collected: [],
                     label,
-                    batchRevealStyle: nextBatchStyle
+                    batchRevealStyle: nextBatchStyle,
+                    startedAt: String(payload?.payload?.startedAt || ''),
+                    itemNames
                 };
                 batchCaptureRef.current = capture;
 
@@ -510,8 +577,7 @@ export default function useDrawLiveFeed() {
                 if (phaseRef.current === 'idle' && !currentEventRef.current && queueRef.current.length > 0) {
                     const queuedBeforeStart = [...queueRef.current];
                     const queuedCandidates = queuedBeforeStart.filter(event => (
-                        event.is_public
-                        && !event.id.startsWith('batch-seq-')
+                        !event.id.startsWith('batch-seq-')
                         && (itemNames.length === 0 || itemNames.includes(event.draw_item_name))
                     ));
                     if (queuedCandidates.length > 0) {
@@ -525,36 +591,36 @@ export default function useDrawLiveFeed() {
                 activatePreStart(`${label} 준비 중`);
                 flushBatchCaptureIfReady(capture);
             })
-            .on('broadcast', { event: 'draw-sequence-progress' }, payload => {
-                const currentIndex = Number(payload?.payload?.currentIndex ?? -1);
-                setSequenceStatus(prev => {
-                    if (!prev.active) {
-                        return prev;
-                    }
-
-                    if (!Number.isFinite(currentIndex)) {
-                        return prev;
-                    }
-
-                    if (prev.revealMode === 'BATCH') {
-                        return prev;
-                    }
-
-                    if (phaseRef.current !== 'idle' || currentEventRef.current) {
-                        return prev;
-                    }
-
-                    return {
-                        ...prev,
-                        currentIndex
-                    };
-                });
+            .on('broadcast', { event: 'draw-sequence-progress' }, () => {
+                // 순서 강조는 실제 재생 중 이벤트 기준으로 반영 (startNextQueuedEvent)
             })
             .on('broadcast', { event: 'draw-sequence-end' }, () => {
                 sequenceEndPendingRef.current = true;
-                clearBatchCapture();
                 clearPreStartTimer();
                 setPreStartItemName(null);
+                const pendingCapture = batchCaptureRef.current;
+
+                if (
+                    pendingCapture
+                    && pendingCapture.expectedCount > 0
+                    && pendingCapture.collected.length < pendingCapture.expectedCount
+                ) {
+                    void (async () => {
+                        const recovered = await recoverBatchCaptureEvents(pendingCapture);
+                        pendingCapture.collected = recovered;
+                        const completed = flushBatchCaptureIfReady(pendingCapture);
+                        if (!completed) {
+                            clearBatchCapture();
+                        }
+
+                        if (phaseRef.current === 'idle' && !currentEventRef.current && queueRef.current.length === 0) {
+                            finalizeSequenceStatus();
+                        }
+                    })();
+                    return;
+                }
+
+                clearBatchCapture();
                 if (phaseRef.current === 'idle' && !currentEventRef.current && queueRef.current.length === 0) {
                     finalizeSequenceStatus();
                 }
@@ -592,7 +658,7 @@ export default function useDrawLiveFeed() {
             supabase.removeChannel(dbChannel);
             supabase.removeChannel(controlChannel);
         };
-    }, [activatePreStart, clearBatchCapture, clearPreStartTimer, clearRecentRefreshTimer, clearTimers, enqueueLiveEvent, flushBatchCaptureIfReady, loadRecentWinners, loadStudentNumbers]);
+    }, [activatePreStart, clearBatchCapture, clearPreStartTimer, clearRecentRefreshTimer, clearTimers, enqueueLiveEvent, finalizeSequenceStatus, flushBatchCaptureIfReady, loadRecentWinners, loadStudentNumbers, recoverBatchCaptureEvents]);
 
     useEffect(() => {
         const poller = setInterval(async () => {

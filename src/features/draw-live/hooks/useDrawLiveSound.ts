@@ -11,6 +11,10 @@ const SINGLE_REVEAL_TICK_SEC_NORMAL = 0.96;
 const SINGLE_REVEAL_TICK_SEC_FAST = 0.76;
 const BATCH_REVEAL_TICK_SEC_ONE_BY_ONE = 0.54;
 const BATCH_REVEAL_TICK_SEC_AT_ONCE = 0.74;
+const SINGLE_REVEAL_SYNC_DELAY_SEC_NORMAL = 0.1;
+const SINGLE_REVEAL_SYNC_DELAY_SEC_FAST = 0.14;
+const BATCH_REVEAL_SYNC_DELAY_SEC_ONE_BY_ONE = 0.06;
+const BATCH_REVEAL_SYNC_DELAY_SEC_AT_ONCE = 0.04;
 
 type UseDrawLiveSoundParams = {
     phase: DrawAnimationPhase;
@@ -453,7 +457,12 @@ export default function useDrawLiveSound({
             ? BATCH_REVEAL_TICK_SEC_AT_ONCE
             : BATCH_REVEAL_TICK_SEC_ONE_BY_ONE;
         const normalizedBatchCount = Math.max(1, Math.min(24, Number(options.batchTotalCount || 1)));
-        const digitRevealStart = silenceEnd + (normalizedBatchCount > 1 ? batchRevealTick : singleRevealGap);
+        const revealSyncDelay = normalizedBatchCount > 1
+            ? (options.batchRevealStyle === 'AT_ONCE'
+                ? BATCH_REVEAL_SYNC_DELAY_SEC_AT_ONCE
+                : BATCH_REVEAL_SYNC_DELAY_SEC_ONE_BY_ONE)
+            : (fast ? SINGLE_REVEAL_SYNC_DELAY_SEC_FAST : SINGLE_REVEAL_SYNC_DELAY_SEC_NORMAL);
+        const digitRevealStart = silenceEnd + (normalizedBatchCount > 1 ? batchRevealTick : singleRevealGap) + revealSyncDelay;
         if (normalizedBatchCount > 1 && options.batchRevealStyle === 'ONE_BY_ONE') {
             const hitGap = batchRevealTick * (LIVE_DRAW_DISPLAY_LENGTH + 1);
             for (let i = 0; i < normalizedBatchCount; i += 1) {
