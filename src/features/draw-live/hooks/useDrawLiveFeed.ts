@@ -198,7 +198,7 @@ export default function useDrawLiveFeed() {
 
         const map: Record<string, string> = {};
         (result.data || []).forEach(student => {
-            const drawNumber = String(student.draw_number || '').replace(/\D/g, '').slice(0, 4);
+            const drawNumber = String(student.draw_number || '').replace(/\D/g, '').slice(0, 3);
             if (!drawNumber) {
                 return;
             }

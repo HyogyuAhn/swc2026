@@ -432,7 +432,6 @@ export default function useDrawLiveSound({ phase, eventId }: UseDrawLiveSoundPar
         scheduleImpact(engine, digitRevealStart, 0.98, 1.12);
         scheduleImpact(engine, digitRevealStart + 1.0, 1.08, 1.18);
         scheduleImpact(engine, digitRevealStart + 2.0, 1.18, 1.24);
-        scheduleImpact(engine, digitRevealStart + 3.0, 1.28, 1.32);
 
         trackNoise(engine, engine.musicBus, digitRevealStart, numbersEnd - digitRevealStart, {
             filterType: 'bandpass',

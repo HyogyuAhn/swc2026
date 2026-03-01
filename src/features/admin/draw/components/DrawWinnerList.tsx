@@ -122,8 +122,8 @@ export default function DrawWinnerList({
                                 <input
                                     list={datalistId}
                                     value={editingValue}
-                                    onChange={event => onChangeEditStudent(winner.id, event.target.value.replace(/\D/g, '').slice(0, 4))}
-                                    maxLength={4}
+                                    onChange={event => onChangeEditStudent(winner.id, event.target.value.replace(/\D/g, '').slice(0, 3))}
+                                    maxLength={3}
                                     className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm"
                                 />
                                 <datalist id={datalistId}>

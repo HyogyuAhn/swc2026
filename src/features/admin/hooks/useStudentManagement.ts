@@ -45,6 +45,14 @@ type StudentUpdatePayload = {
     drawNumber?: string;
 };
 
+type StudentImportResult = {
+    total: number;
+    added: StudentCreatePayload[];
+    skippedDuplicates: number;
+    skippedInvalid: number;
+    failed: number;
+};
+
 const isGender = (value: string): value is StudentGender => (
     (STUDENT_GENDER_OPTIONS as readonly string[]).includes(value)
 );
@@ -71,6 +79,20 @@ const normalizeDrawNumber = (value?: string) => {
 
     const withoutLeadingZeros = digits.replace(/^0+/, '');
     return withoutLeadingZeros || '0';
+};
+
+const buildStudentDuplicateKey = ({
+    name,
+    gender,
+    department,
+    drawNumber
+}: {
+    name: string;
+    gender: StudentGender;
+    department: StudentDepartment;
+    drawNumber: string;
+}) => {
+    return `${name.trim().toLowerCase()}|${gender}|${department}|${drawNumber}`;
 };
 
 export default function useStudentManagement({ onVotesChanged }: UseStudentManagementParams) {
@@ -136,8 +158,8 @@ export default function useStudentManagement({ onVotesChanged }: UseStudentManag
         }
 
         const rawDrawNumber = (payload.drawNumber || '').trim().replace(/\D/g, '');
-        if (rawDrawNumber && !/^\d{1,4}$/.test(rawDrawNumber)) {
-            alert('추첨 번호는 1~4자리 숫자여야 합니다.');
+        if (rawDrawNumber && !/^\d{1,3}$/.test(rawDrawNumber)) {
+            alert('추첨 번호는 1~3자리 숫자여야 합니다.');
             return false;
         }
         const normalizedDrawNumber = normalizeDrawNumber(rawDrawNumber);
@@ -175,10 +197,148 @@ export default function useStudentManagement({ onVotesChanged }: UseStudentManag
         return true;
     }, [fetchStudents]);
 
+    const handleImportStudents = useCallback(async (rows: StudentCreatePayload[]): Promise<StudentImportResult> => {
+        const result: StudentImportResult = {
+            total: Array.isArray(rows) ? rows.length : 0,
+            added: [],
+            skippedDuplicates: 0,
+            skippedInvalid: 0,
+            failed: 0
+        };
+
+        if (!Array.isArray(rows) || rows.length === 0) {
+            return result;
+        }
+
+        const usedStudentIds = new Set<string>(
+            students
+                .map(student => String(student.student_id || ''))
+                .filter(Boolean)
+        );
+        const existingDrawNumbers = new Set<string>();
+        const existingCompositeKeys = new Set<string>();
+        students.forEach(student => {
+            const drawNumber = normalizeDrawNumber(String(student.draw_number || ''));
+            if (!drawNumber) {
+                return;
+            }
+
+            existingDrawNumbers.add(drawNumber);
+            const gender = String(student.gender || '');
+            const department = String(student.department || '');
+            if (isGender(gender) && isDepartment(department)) {
+                existingCompositeKeys.add(buildStudentDuplicateKey({
+                    name: String(student.name || ''),
+                    gender,
+                    department,
+                    drawNumber
+                }));
+            }
+        });
+
+        const batchDrawNumbers = new Set<string>();
+        const batchCompositeKeys = new Set<string>();
+        for (const row of rows) {
+            const normalizedName = (row.name || '').trim();
+            const genderValue = String(row.gender || '');
+            const departmentValue = String(row.department || '');
+            const roleValue = String(row.studentRole || '');
+            const rawDrawNumber = String(row.drawNumber || '').trim().replace(/\D/g, '');
+            const normalizedDrawNumber = normalizeDrawNumber(rawDrawNumber);
+
+            if (
+                !normalizedName
+                || !isGender(genderValue)
+                || !isDepartment(departmentValue)
+                || !isRole(roleValue)
+                || !rawDrawNumber
+                || !/^\d{1,3}$/.test(rawDrawNumber)
+                || !normalizedDrawNumber
+            ) {
+                result.skippedInvalid += 1;
+                continue;
+            }
+
+            if (existingDrawNumbers.has(normalizedDrawNumber) || batchDrawNumbers.has(normalizedDrawNumber)) {
+                result.skippedDuplicates += 1;
+                continue;
+            }
+
+            const compositeKey = buildStudentDuplicateKey({
+                name: normalizedName,
+                gender: genderValue,
+                department: departmentValue,
+                drawNumber: normalizedDrawNumber
+            });
+
+            if (existingCompositeKeys.has(compositeKey) || batchCompositeKeys.has(compositeKey)) {
+                result.skippedDuplicates += 1;
+                continue;
+            }
+
+            let studentIdToUse = '';
+            for (let tryCount = 0; tryCount < 20; tryCount += 1) {
+                const generated = createTemporaryStudentId();
+                if (!usedStudentIds.has(generated)) {
+                    studentIdToUse = generated;
+                    usedStudentIds.add(generated);
+                    break;
+                }
+            }
+
+            if (!studentIdToUse) {
+                studentIdToUse = `TMP-${Date.now()}-${Math.floor(Math.random() * 100000).toString().padStart(5, '0')}`;
+                if (usedStudentIds.has(studentIdToUse)) {
+                    result.failed += 1;
+                    continue;
+                }
+                usedStudentIds.add(studentIdToUse);
+            }
+
+            const { error } = await supabase
+                .from('students')
+                .insert({
+                    student_id: studentIdToUse,
+                    name: normalizedName,
+                    gender: genderValue,
+                    department: departmentValue,
+                    student_role: roleValue,
+                    draw_number: normalizedDrawNumber
+                });
+
+            if (error) {
+                if (error.code === '23505') {
+                    result.skippedDuplicates += 1;
+                } else {
+                    result.failed += 1;
+                }
+                continue;
+            }
+
+            existingDrawNumbers.add(normalizedDrawNumber);
+            batchDrawNumbers.add(normalizedDrawNumber);
+            existingCompositeKeys.add(compositeKey);
+            batchCompositeKeys.add(compositeKey);
+            result.added.push({
+                name: normalizedName,
+                gender: genderValue,
+                department: departmentValue,
+                studentRole: roleValue,
+                drawNumber: normalizedDrawNumber
+            });
+        }
+
+        if (result.added.length > 0) {
+            await fetchStudents();
+        }
+
+        return result;
+    }, [fetchStudents, students]);
+
     const handleUpdateStudentDrawNumber = useCallback(async (student: any, drawNumber: string) => {
         const rawDrawNumber = drawNumber.trim().replace(/\D/g, '');
-        if (rawDrawNumber && !/^\d{1,4}$/.test(rawDrawNumber)) {
-            alert('추첨 번호는 1~4자리 숫자여야 합니다.');
+        if (rawDrawNumber && !/^\d{1,3}$/.test(rawDrawNumber)) {
+            alert('추첨 번호는 1~3자리 숫자여야 합니다.');
             return false;
         }
         const normalizedDrawNumber = normalizeDrawNumber(rawDrawNumber);
@@ -373,8 +533,8 @@ export default function useStudentManagement({ onVotesChanged }: UseStudentManag
         }
 
         const rawDrawNumber = (payload.drawNumber || '').trim().replace(/\D/g, '');
-        if (rawDrawNumber && !/^\d{1,4}$/.test(rawDrawNumber)) {
-            alert('추첨 번호는 1~4자리 숫자여야 합니다.');
+        if (rawDrawNumber && !/^\d{1,3}$/.test(rawDrawNumber)) {
+            alert('추첨 번호는 1~3자리 숫자여야 합니다.');
             return false;
         }
         const normalizedDrawNumber = normalizeDrawNumber(rawDrawNumber);
@@ -649,6 +809,7 @@ export default function useStudentManagement({ onVotesChanged }: UseStudentManag
         setForceVoteData,
         fetchStudents,
         handleAddStudent,
+        handleImportStudents,
         handleUpdateStudentDrawNumber,
         handleToggleSuspend,
         handleDeleteStudent,

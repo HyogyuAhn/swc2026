@@ -50,7 +50,7 @@ const statusTextByPhase: Record<DrawAnimationPhase, string> = {
     paper: '당첨자 종이를 열고 있어요',
     reveal: '당첨자 공개'
 };
-const LIVE_DRAW_DISPLAY_LENGTH = 4;
+const LIVE_DRAW_DISPLAY_LENGTH = 3;
 const normalizeLiveDrawNumber = (value: string) => {
     const digits = value.replace(/\D/g, '');
     if (!digits) {

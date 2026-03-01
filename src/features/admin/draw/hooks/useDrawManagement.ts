@@ -49,7 +49,7 @@ const DRAW_SEQUENCE_STEP_GAP_MS = 500;
 const DRAW_SEQUENCE_PRE_DELAY_MS = 120;
 const wait = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
-const normalizeDrawNumberInput = (value: string) => value.replace(/\D/g, '').slice(0, 4);
+const normalizeDrawNumberInput = (value: string) => value.replace(/\D/g, '').slice(0, 3);
 const getDefaultRandomFilter = (): DrawRandomFilter => ({
     gender: 'ALL',
     departments: [...STUDENT_DEPARTMENT_OPTIONS],

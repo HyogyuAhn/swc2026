@@ -114,7 +114,7 @@ export default function StudentHistoryModal({
             gender: infoForm.gender,
             department: infoForm.department,
             studentRole: infoForm.studentRole,
-            drawNumber: infoForm.drawNumber.replace(/\D/g, '').slice(0, 4)
+            drawNumber: infoForm.drawNumber.replace(/\D/g, '').slice(0, 3)
         });
         setSavingInfo(false);
 
@@ -299,10 +299,10 @@ export default function StudentHistoryModal({
                                     <span className="mb-1 block text-sm font-semibold text-gray-700">추첨 번호</span>
                                     <input
                                         type="text"
-                                        maxLength={4}
+                                        maxLength={3}
                                         className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm font-mono"
                                         value={infoForm.drawNumber}
-                                        onChange={event => setInfoForm(prev => ({ ...prev, drawNumber: event.target.value.replace(/[^0-9]/g, '').slice(0, 4) }))}
+                                        onChange={event => setInfoForm(prev => ({ ...prev, drawNumber: event.target.value.replace(/[^0-9]/g, '').slice(0, 3) }))}
                                         placeholder="미지정"
                                     />
                                 </label>

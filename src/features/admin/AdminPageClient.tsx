@@ -93,6 +93,7 @@ export default function AdminPageClient() {
         setForceVoteData,
         fetchStudents,
         handleAddStudent,
+        handleImportStudents,
         handleToggleSuspend,
         handleDeleteStudent,
         executeDeleteStudent,
@@ -222,6 +223,7 @@ export default function AdminPageClient() {
                             studentDepartmentFilter={studentDepartmentFilter}
                             setStudentDepartmentFilter={setStudentDepartmentFilter}
                             handleAddStudent={handleAddStudent}
+                            handleImportStudents={handleImportStudents}
                             handleStudentDetails={handleStudentDetails}
                         />
                         <StudentDeleteModal

@@ -240,7 +240,7 @@ export default function DrawManagementSection({
 
             const nextStep = { ...step, ...patch };
             if (typeof patch.targetDrawNumber === 'string') {
-                nextStep.targetDrawNumber = patch.targetDrawNumber.replace(/\D/g, '').slice(0, 4);
+                nextStep.targetDrawNumber = patch.targetDrawNumber.replace(/\D/g, '').slice(0, 3);
             }
 
             if (patch.mode === 'RANDOM') {
