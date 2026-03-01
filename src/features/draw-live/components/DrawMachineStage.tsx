@@ -1,9 +1,11 @@
 import { useEffect, useMemo, useState } from 'react';
-import { DrawAnimationPhase, DrawLiveEventRecord } from '@/features/draw-live/types';
+import { DrawAnimationPhase, DrawLiveEventRecord, DrawSequenceStatus } from '@/features/draw-live/types';
 
 type DrawMachineStageProps = {
     phase: DrawAnimationPhase;
     currentEvent: DrawLiveEventRecord | null;
+    batchEvents: DrawLiveEventRecord[] | null;
+    sequenceStatus: DrawSequenceStatus;
     preStartItemName: string | null;
     studentNumberById: Record<string, string>;
     soundEnabled: boolean;
@@ -63,12 +65,15 @@ const normalizeLiveDrawNumber = (value: string) => {
 export default function DrawMachineStage({
     phase,
     currentEvent,
+    batchEvents,
+    sequenceStatus,
     preStartItemName,
     studentNumberById,
     soundEnabled,
     onToggleSound
 }: DrawMachineStageProps) {
     const [revealedDigitCount, setRevealedDigitCount] = useState(0);
+    const [batchRevealTick, setBatchRevealTick] = useState(0);
     const isMixing = phase === 'mixing' || phase === 'ball';
     const isCinematic = phase === 'mixing' || phase === 'ball' || phase === 'paper';
     const isBallSequence = phase === 'ball' || phase === 'paper' || phase === 'reveal';
@@ -76,14 +81,23 @@ export default function DrawMachineStage({
     const isPaperVisible = phase === 'paper' || phase === 'reveal';
     const isReveal = phase === 'reveal';
     const isStageActive = phase !== 'idle';
-    const currentItemName = currentEvent?.draw_item_name || preStartItemName;
+    const isBatchReveal = Boolean(
+        phase === 'reveal'
+        && currentEvent?.id?.startsWith('batch-seq-')
+        && batchEvents
+        && batchEvents.length > 1
+    );
+    const batchRevealStyle = currentEvent?.batch_reveal_style || sequenceStatus.batchRevealStyle || 'ONE_BY_ONE';
+    const currentItemName = isBatchReveal
+        ? `연속 결과 ${batchEvents?.length || 0}개 공개`
+        : (currentEvent?.draw_item_name || preStartItemName);
     const winnerDisplayNumber = useMemo(() => {
-        if (!currentEvent) {
+        if (!currentEvent || isBatchReveal) {
             return '';
         }
 
         return studentNumberById[currentEvent.winner_student_id] || '번호 미지정';
-    }, [currentEvent, studentNumberById]);
+    }, [currentEvent, isBatchReveal, studentNumberById]);
     const winnerDisplayNumberPadded = useMemo(() => {
         if (!winnerDisplayNumber || winnerDisplayNumber === '번호 미지정') {
             return '';
@@ -115,6 +129,32 @@ export default function DrawMachineStage({
         };
     }, [currentEvent, phase, winnerDisplayNumberPadded]);
 
+    useEffect(() => {
+        if (!isBatchReveal || phase !== 'reveal' || !batchEvents || batchEvents.length === 0) {
+            setBatchRevealTick(0);
+            return;
+        }
+
+        setBatchRevealTick(0);
+        const tickInterval = batchRevealStyle === 'AT_ONCE' ? 860 : 620;
+        const maxTick = batchRevealStyle === 'AT_ONCE'
+            ? LIVE_DRAW_DISPLAY_LENGTH
+            : (batchEvents.length * (LIVE_DRAW_DISPLAY_LENGTH + 1));
+
+        const timer = setInterval(() => {
+            setBatchRevealTick(prev => {
+                if (prev >= maxTick) {
+                    return prev;
+                }
+                return prev + 1;
+            });
+        }, tickInterval);
+
+        return () => {
+            clearInterval(timer);
+        };
+    }, [batchEvents, batchRevealStyle, isBatchReveal, phase]);
+
     const stagedWinnerDisplay = useMemo(() => {
         if (!currentEvent || phase !== 'reveal') {
             return '-'.repeat(LIVE_DRAW_DISPLAY_LENGTH);
@@ -139,6 +179,65 @@ export default function DrawMachineStage({
 
         return `${revealed}${hidden}`;
     }, [currentEvent, phase, revealedDigitCount, winnerDisplayNumber, winnerDisplayNumberPadded]);
+
+    const batchWinnerEntries = useMemo(() => {
+        if (!isBatchReveal || !batchEvents) {
+            return [];
+        }
+
+        return batchEvents.map((event, index) => {
+            const rawNumber = studentNumberById[event.winner_student_id] || '번호 미지정';
+            const normalizedNumber = rawNumber === '번호 미지정' ? rawNumber : normalizeLiveDrawNumber(rawNumber);
+            const displayNumber = (() => {
+                if (normalizedNumber === '번호 미지정') {
+                    return normalizedNumber;
+                }
+
+                const visibleDigits = batchRevealStyle === 'AT_ONCE'
+                    ? Math.max(0, Math.min(batchRevealTick, LIVE_DRAW_DISPLAY_LENGTH))
+                    : Math.max(0, Math.min(batchRevealTick - (index * (LIVE_DRAW_DISPLAY_LENGTH + 1)), LIVE_DRAW_DISPLAY_LENGTH));
+
+                const revealed = normalizedNumber.slice(0, visibleDigits);
+                const hidden = '-'.repeat(Math.max(LIVE_DRAW_DISPLAY_LENGTH - visibleDigits, 0));
+                return `${revealed}${hidden}`;
+            })();
+            const isCurrentRevealing = batchRevealStyle === 'ONE_BY_ONE'
+                && batchRevealTick >= (index * (LIVE_DRAW_DISPLAY_LENGTH + 1))
+                && batchRevealTick < ((index + 1) * (LIVE_DRAW_DISPLAY_LENGTH + 1));
+            return {
+                id: event.id,
+                draw_item_name: event.draw_item_name,
+                displayNumber,
+                isCurrentRevealing
+            };
+        });
+    }, [batchEvents, batchRevealStyle, batchRevealTick, isBatchReveal, studentNumberById]);
+
+    const batchPaperMaxWidth = useMemo(() => {
+        const count = batchWinnerEntries.length;
+        if (count <= 2) {
+            return 340;
+        }
+        if (count <= 4) {
+            return 460;
+        }
+        if (count <= 8) {
+            return 580;
+        }
+        return 700;
+    }, [batchWinnerEntries.length]);
+
+    const batchGridClass = batchWinnerEntries.length <= 3
+        ? 'grid-cols-1'
+        : batchWinnerEntries.length <= 8
+            ? 'grid-cols-1 sm:grid-cols-2'
+            : 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-3';
+
+    const batchMaxHeightClass = batchWinnerEntries.length <= 4
+        ? 'max-h-[200px]'
+        : batchWinnerEntries.length <= 8
+            ? 'max-h-[260px]'
+            : 'max-h-[320px]';
 
     const statusText = phase === 'idle' && preStartItemName
         ? '추첨 시작 안내'
@@ -173,6 +272,23 @@ export default function DrawMachineStage({
                     </>
                 ) : (
                     <p className="text-sm font-medium text-gray-500">추첨 대기 중입니다.</p>
+                )}
+
+                {sequenceStatus.itemNames.length > 0 && (
+                    <div className="mt-3 flex flex-wrap items-center justify-center gap-1 text-xs font-bold text-blue-700/80">
+                        <span className="mr-1 text-blue-600">연속 순서</span>
+                        {sequenceStatus.itemNames.map((name, index) => {
+                            const isCurrent = sequenceStatus.currentIndex === index;
+                            return (
+                                <span key={`${name}-${index}`} className="inline-flex items-center gap-1">
+                                    <span className={isCurrent ? 'font-extrabold text-blue-900 underline underline-offset-2' : ''}>
+                                        {name}
+                                    </span>
+                                    {index < sequenceStatus.itemNames.length - 1 && <span className="text-blue-400">→</span>}
+                                </span>
+                            );
+                        })}
+                    </div>
                 )}
             </div>
 
@@ -233,11 +349,41 @@ export default function DrawMachineStage({
                 </div>
 
                 <div className={`draw-paper-wrap ${isPaperVisible ? 'show' : ''} ${isReveal ? 'reveal' : ''}`}>
-                    <div className="draw-paper-card">
-                        <p className="text-xs font-semibold text-gray-500">당첨 번호</p>
-                        <p className="mt-1 font-mono text-3xl font-extrabold text-gray-900">
-                            {stagedWinnerDisplay}
-                        </p>
+                    <div
+                        className={`draw-paper-card ${isBatchReveal ? 'batch' : ''}`}
+                        style={isBatchReveal ? ({ ['--batch-paper-max-width' as any]: `${batchPaperMaxWidth}px` }) : undefined}
+                    >
+                        {isBatchReveal ? (
+                            <>
+                                <p className="text-xs font-semibold text-gray-500">
+                                    연속 당첨 결과 ({batchRevealStyle === 'AT_ONCE' ? '한 번에 공개' : '차례대로 공개'})
+                                </p>
+                                <div className={`mt-2 grid gap-2 overflow-y-auto pr-1 ${batchGridClass} ${batchMaxHeightClass}`}>
+                                    {batchWinnerEntries.map(entry => (
+                                        <div
+                                            key={entry.id}
+                                            className={`rounded-xl border px-3 py-2 text-left transition ${
+                                                entry.isCurrentRevealing
+                                                    ? 'border-blue-400 bg-blue-100 shadow-[0_0_0_1px_rgba(59,130,246,0.25)]'
+                                                    : 'border-blue-200 bg-blue-50'
+                                            }`}
+                                        >
+                                            <p className="truncate text-[11px] font-bold text-blue-700">{entry.draw_item_name}</p>
+                                            <p className="font-mono text-2xl font-extrabold tracking-wide text-blue-900">
+                                                {entry.displayNumber}
+                                            </p>
+                                        </div>
+                                    ))}
+                                </div>
+                            </>
+                        ) : (
+                            <>
+                                <p className="text-xs font-semibold text-gray-500">당첨 번호</p>
+                                <p className="mt-1 font-mono text-3xl font-extrabold text-gray-900">
+                                    {stagedWinnerDisplay}
+                                </p>
+                            </>
+                        )}
                     </div>
                 </div>
             </div>
@@ -588,6 +734,10 @@ export default function DrawMachineStage({
                     padding: 18px 14px;
                     text-align: center;
                     box-shadow: 0 14px 28px rgba(15, 23, 42, 0.18);
+                }
+
+                .draw-paper-card.batch {
+                    width: min(var(--batch-paper-max-width, 320px), calc(100vw - 2.5rem));
                 }
 
                 @keyframes rotorSpin {

@@ -12,12 +12,17 @@ export default function DrawLivePageClient() {
         recentWinners,
         studentNumberById,
         currentEvent,
+        batchRevealEvents,
+        sequenceStatus,
         preStartItemName,
         phase
     } = useDrawLiveFeed();
     const { soundEnabled, toggleSoundEnabled } = useDrawLiveSound({
         phase,
-        eventId: currentEvent?.id ?? null
+        eventId: currentEvent?.id ?? null,
+        timelineProfile: currentEvent?.timeline_profile ?? 'NORMAL',
+        batchRevealStyle: currentEvent?.batch_reveal_style ?? sequenceStatus.batchRevealStyle,
+        batchTotalCount: currentEvent?.batch_total_count ?? batchRevealEvents?.length ?? 1
     });
 
     return (
@@ -36,6 +41,8 @@ export default function DrawLivePageClient() {
                         <DrawMachineStage
                             phase={phase}
                             currentEvent={currentEvent}
+                            batchEvents={batchRevealEvents}
+                            sequenceStatus={sequenceStatus}
                             preStartItemName={preStartItemName}
                             studentNumberById={studentNumberById}
                             soundEnabled={soundEnabled}

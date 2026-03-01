@@ -7,6 +7,8 @@ import { VoteStatus } from '@/features/vote/user/types';
 
 type VoteDashboardProps = {
     studentId: string;
+    studentName: string;
+    studentRole: string;
     filter: string;
     setFilter: (filter: string) => void;
     loading: boolean;
@@ -27,6 +29,8 @@ type VoteDashboardProps = {
 
 export default function VoteDashboard({
     studentId,
+    studentName,
+    studentRole,
     filter,
     setFilter,
     loading,
@@ -46,7 +50,12 @@ export default function VoteDashboard({
 }: VoteDashboardProps) {
     return (
         <div className="min-h-screen bg-gray-50">
-            <VotePageHeader studentId={studentId} onLogout={handleLogout} />
+            <VotePageHeader
+                studentId={studentId}
+                studentName={studentName}
+                studentRole={studentRole}
+                onLogout={handleLogout}
+            />
 
             <main className="max-w-4xl mx-auto p-6">
                 <VoteFilterTabs filter={filter} onFilterChange={setFilter} />

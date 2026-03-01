@@ -7,7 +7,14 @@ import DrawItemSettingsModal from '@/features/admin/draw/components/DrawItemSett
 import DrawLiveSettingsModal from '@/features/admin/draw/components/DrawLiveSettingsModal';
 import DrawSequenceModal from '@/features/admin/draw/components/DrawSequenceModal';
 import DrawStartModal from '@/features/admin/draw/components/DrawStartModal';
-import { DrawItemWithComputed, DrawPendingAction, DrawRandomFilter, DrawSequenceStep } from '@/features/admin/draw/types';
+import {
+    DrawItemWithComputed,
+    DrawPendingAction,
+    DrawRandomFilter,
+    DrawSequenceBatchRevealStyle,
+    DrawSequenceRevealMode,
+    DrawSequenceStep
+} from '@/features/admin/draw/types';
 import {
     DEFAULT_DRAW_RANDOM_ROLES,
     STUDENT_DEPARTMENT_OPTIONS
@@ -47,7 +54,11 @@ type DrawManagementSectionProps = {
         targetStudentId?: string;
         randomFilter?: DrawRandomFilter;
     }) => Promise<boolean>;
-    handleStartSequence: (steps: DrawSequenceStep[]) => Promise<boolean>;
+    handleStartSequence: (
+        steps: DrawSequenceStep[],
+        revealMode: DrawSequenceRevealMode,
+        batchRevealStyle: DrawSequenceBatchRevealStyle
+    ) => Promise<boolean>;
     saveItemSettings: (item: DrawItemWithComputed, patch: {
         name: string;
         winner_quota: number;
@@ -157,6 +168,8 @@ export default function DrawManagementSection({
     const [settingsRecentPublic, setSettingsRecentPublic] = useState(true);
     const [showSequenceModal, setShowSequenceModal] = useState(false);
     const [sequenceSteps, setSequenceSteps] = useState<DrawSequenceStep[]>([]);
+    const [sequenceRevealMode, setSequenceRevealMode] = useState<DrawSequenceRevealMode>('STEP');
+    const [sequenceBatchRevealStyle, setSequenceBatchRevealStyle] = useState<DrawSequenceBatchRevealStyle>('ONE_BY_ONE');
     const defaultRandomFilter = (): DrawRandomFilter => ({
         gender: 'ALL',
         departments: [...STUDENT_DEPARTMENT_OPTIONS],
@@ -168,7 +181,8 @@ export default function DrawManagementSection({
         id: `seq-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
         itemId,
         mode: 'RANDOM',
-        targetDrawNumber: ''
+        targetDrawNumber: '',
+        randomFilter: defaultRandomFilter()
     });
 
     const handleCreateWithClose = async () => {
@@ -227,6 +241,8 @@ export default function DrawManagementSection({
         const selectableItems = items.filter(item => item.remainingCount > 0);
         const firstItemId = selectableItems[0]?.id || '';
         const secondItemId = selectableItems[1]?.id || firstItemId;
+        setSequenceRevealMode('STEP');
+        setSequenceBatchRevealStyle('ONE_BY_ONE');
         setSequenceSteps([
             createSequenceStep(firstItemId),
             createSequenceStep(secondItemId)
@@ -271,7 +287,7 @@ export default function DrawManagementSection({
     };
 
     const startSequence = async () => {
-        const ok = await handleStartSequence(sequenceSteps);
+        const ok = await handleStartSequence(sequenceSteps, sequenceRevealMode, sequenceBatchRevealStyle);
         if (ok) {
             setShowSequenceModal(false);
         }
@@ -501,8 +517,12 @@ export default function DrawManagementSection({
                 steps={sequenceSteps}
                 items={items}
                 activeDrawNumbers={activeStudentIds}
+                revealMode={sequenceRevealMode}
+                batchRevealStyle={sequenceBatchRevealStyle}
                 disabled={submitting}
                 onClose={() => setShowSequenceModal(false)}
+                onChangeRevealMode={setSequenceRevealMode}
+                onChangeBatchRevealStyle={setSequenceBatchRevealStyle}
                 onChangeStep={changeSequenceStep}
                 onAddStep={addSequenceStep}
                 onRemoveStep={removeSequenceStep}

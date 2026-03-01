@@ -26,6 +26,8 @@ import {
     DrawMode,
     DrawPendingAction,
     DrawRandomFilter,
+    DrawSequenceBatchRevealStyle,
+    DrawSequenceRevealMode,
     DrawSequenceStep,
     DrawSettings,
     DrawWarningCheck,
@@ -46,8 +48,10 @@ type ShowToast = (message: string, kind?: 'error' | 'info' | 'success') => void;
 const DRAW_LIVE_CONTROL_CHANNEL = 'draw-live-control';
 const DRAW_BUSY_MS = 14500;
 const DRAW_PRE_START_DELAY_MS = 1100;
-const DRAW_SEQUENCE_STEP_GAP_MS = 500;
-const DRAW_SEQUENCE_PRE_DELAY_MS = 120;
+const DRAW_SEQUENCE_STEP_GAP_MS = 220;
+const DRAW_SEQUENCE_PRE_DELAY_MS = 80;
+const DRAW_SEQUENCE_BATCH_STEP_GAP_MS = 90;
+const DRAW_SEQUENCE_BATCH_PRE_DELAY_MS = 20;
 const wait = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
 const normalizeDrawNumberInput = (value: string) => value.replace(/\D/g, '').slice(0, 3);
@@ -164,6 +168,8 @@ type DrawExecuteOptions = {
     preDelayMs?: number;
     releaseBusyImmediately?: boolean;
     suppressSuccessToast?: boolean;
+    suppressStartBroadcast?: boolean;
+    timelineProfile?: 'NORMAL' | 'FAST';
 };
 
 export default function useDrawManagement(showToast: ShowToast, enabled = true) {
@@ -364,7 +370,11 @@ export default function useDrawManagement(showToast: ShowToast, enabled = true) 
         };
     }, [clearDrawBusy, clearDrawBusyForItem, enabled, markDrawBusy]);
 
-    const announceDrawStart = useCallback(async (item: DrawItemWithComputed, mode: DrawMode) => {
+    const announceDrawStart = useCallback(async (
+        item: DrawItemWithComputed,
+        mode: DrawMode,
+        timelineProfile: 'NORMAL' | 'FAST' = 'NORMAL'
+    ) => {
         const channel = liveControlChannelRef.current;
         if (!channel) {
             return;
@@ -377,6 +387,7 @@ export default function useDrawManagement(showToast: ShowToast, enabled = true) 
                 itemId: item.id,
                 itemName: item.name,
                 mode,
+                timelineProfile,
                 startedAt: new Date().toISOString()
             }
         });
@@ -394,6 +405,82 @@ export default function useDrawManagement(showToast: ShowToast, enabled = true) 
             payload: {
                 itemId: item.id,
                 itemName: item.name,
+                reason
+            }
+        });
+    }, []);
+
+    const announceSequenceStart = useCallback(async (params: {
+        revealMode: DrawSequenceRevealMode;
+        batchRevealStyle: DrawSequenceBatchRevealStyle;
+        expectedPublicCount: number;
+        label: string;
+        itemNames: string[];
+    }) => {
+        const channel = liveControlChannelRef.current;
+        if (!channel) {
+            return;
+        }
+
+        await channel.send({
+            type: 'broadcast',
+            event: 'draw-sequence-start',
+            payload: {
+                revealMode: params.revealMode,
+                batchRevealStyle: params.batchRevealStyle,
+                expectedPublicCount: params.expectedPublicCount,
+                label: params.label,
+                itemNames: params.itemNames,
+                startedAt: new Date().toISOString()
+            }
+        });
+    }, []);
+
+    const announceSequenceProgress = useCallback(async (params: {
+        currentIndex: number;
+        itemName: string;
+    }) => {
+        const channel = liveControlChannelRef.current;
+        if (!channel) {
+            return;
+        }
+
+        await channel.send({
+            type: 'broadcast',
+            event: 'draw-sequence-progress',
+            payload: {
+                currentIndex: params.currentIndex,
+                itemName: params.itemName,
+                updatedAt: new Date().toISOString()
+            }
+        });
+    }, []);
+
+    const announceSequenceEnd = useCallback(async () => {
+        const channel = liveControlChannelRef.current;
+        if (!channel) {
+            return;
+        }
+
+        await channel.send({
+            type: 'broadcast',
+            event: 'draw-sequence-end',
+            payload: {
+                endedAt: new Date().toISOString()
+            }
+        });
+    }, []);
+
+    const announceSequenceCancel = useCallback(async (reason: string) => {
+        const channel = liveControlChannelRef.current;
+        if (!channel) {
+            return;
+        }
+
+        await channel.send({
+            type: 'broadcast',
+            event: 'draw-sequence-cancel',
+            payload: {
                 reason
             }
         });
@@ -687,8 +774,12 @@ export default function useDrawManagement(showToast: ShowToast, enabled = true) 
         const preDelayMs = options?.preDelayMs ?? DRAW_PRE_START_DELAY_MS;
         markDrawBusy(item.id);
         setSubmitting(true);
-        await announceDrawStart(item, 'RANDOM');
-        await wait(preDelayMs);
+        if (!options?.suppressStartBroadcast) {
+            await announceDrawStart(item, 'RANDOM', options?.timelineProfile ?? 'NORMAL');
+        }
+        if (preDelayMs > 0) {
+            await wait(preDelayMs);
+        }
 
         const success = await startRandomDrawFallback(item, options, nextFilter);
         if (!success) {
@@ -731,8 +822,12 @@ export default function useDrawManagement(showToast: ShowToast, enabled = true) 
         const preDelayMs = options?.preDelayMs ?? DRAW_PRE_START_DELAY_MS;
         markDrawBusy(item.id);
         setSubmitting(true);
-        await announceDrawStart(item, 'MANUAL');
-        await wait(preDelayMs);
+        if (!options?.suppressStartBroadcast) {
+            await announceDrawStart(item, 'MANUAL', options?.timelineProfile ?? 'NORMAL');
+        }
+        if (preDelayMs > 0) {
+            await wait(preDelayMs);
+        }
 
         const rpcResult = await pickWinnerWithRpc({
             itemId: item.id,
@@ -802,7 +897,11 @@ export default function useDrawManagement(showToast: ShowToast, enabled = true) 
         return await executeManualDraw(item, targetStudentId, false);
     }, [drawInProgressItemId, drawModeByItem, executeManualDraw, executeRandomDraw, manualStudentByItem, showToast]);
 
-    const handleStartSequence = useCallback(async (steps: DrawSequenceStep[]) => {
+    const handleStartSequence = useCallback(async (
+        steps: DrawSequenceStep[],
+        revealMode: DrawSequenceRevealMode = 'STEP',
+        batchRevealStyle: DrawSequenceBatchRevealStyle = 'ONE_BY_ONE'
+    ) => {
         if (!steps.length) {
             showToast('연속 뽑기 순서를 1개 이상 설정해주세요.');
             return false;
@@ -813,15 +912,55 @@ export default function useDrawManagement(showToast: ShowToast, enabled = true) 
             return false;
         }
 
+        const sequenceItems = steps.map((step, index) => {
+            const foundItem = items.find(item => item.id === step.itemId);
+            return {
+                index,
+                step,
+                item: foundItem
+            };
+        });
+
+        const hasUnknownItem = sequenceItems.some(entry => !entry.item);
+        if (hasUnknownItem) {
+            showToast('연속 뽑기 항목 중 유효하지 않은 항목이 있습니다.');
+            return false;
+        }
+
+        const sequenceItemNames = sequenceItems.map(entry => entry.item!.name);
+        const expectedPublicCount = steps.reduce((count, step) => {
+            const matched = items.find(item => item.id === step.itemId);
+            if (!matched || !matched.is_public) {
+                return count;
+            }
+            return count + 1;
+        }, 0);
+
+        const isBatchReveal = revealMode === 'BATCH';
+        await announceSequenceStart({
+            revealMode,
+            batchRevealStyle,
+            expectedPublicCount,
+            label: `연속 뽑기 (${steps.length}개)`,
+            itemNames: sequenceItemNames
+        });
+
         for (let index = 0; index < steps.length; index += 1) {
             const step = steps[index];
             const stepItem = items.find(item => item.id === step.itemId);
             if (!stepItem) {
+                await announceSequenceCancel('연속 뽑기 항목 조회 실패');
                 showToast(`${index + 1}번 순서의 항목을 찾을 수 없습니다.`);
                 return false;
             }
 
+            await announceSequenceProgress({
+                currentIndex: index,
+                itemName: stepItem.name
+            });
+
             if (stepItem.remainingCount <= 0) {
+                await announceSequenceCancel('연속 뽑기 남은 수량 없음');
                 showToast(`${index + 1}번 순서(${stepItem.name})의 남은 수량이 없습니다.`);
                 return false;
             }
@@ -829,39 +968,62 @@ export default function useDrawManagement(showToast: ShowToast, enabled = true) 
             let ok = false;
 
             if (step.mode === 'RANDOM') {
+                const randomFilter = step.randomFilter || getDefaultRandomFilter();
+                if ((randomFilter.departments || []).length === 0) {
+                    await announceSequenceCancel('연속 뽑기 학과 필터 미선택');
+                    showToast(`${index + 1}번 순서의 랜덤 필터 학과를 1개 이상 선택해주세요.`);
+                    return false;
+                }
+                if ((randomFilter.roles || []).length === 0) {
+                    await announceSequenceCancel('연속 뽑기 역할 필터 미선택');
+                    showToast(`${index + 1}번 순서의 랜덤 필터 역할을 1개 이상 선택해주세요.`);
+                    return false;
+                }
+
                 ok = await executeRandomDraw(stepItem, {
-                    preDelayMs: DRAW_SEQUENCE_PRE_DELAY_MS,
+                    preDelayMs: isBatchReveal ? DRAW_SEQUENCE_BATCH_PRE_DELAY_MS : DRAW_SEQUENCE_PRE_DELAY_MS,
                     releaseBusyImmediately: true,
-                    suppressSuccessToast: true
-                }, getDefaultRandomFilter());
+                    suppressSuccessToast: true,
+                    suppressStartBroadcast: isBatchReveal,
+                    timelineProfile: isBatchReveal ? 'NORMAL' : 'FAST'
+                }, randomFilter);
             } else {
                 const targetDrawNumber = (step.targetDrawNumber || '').trim();
                 if (!targetDrawNumber) {
+                    await announceSequenceCancel('연속 뽑기 번호 미입력');
                     showToast(`${index + 1}번 순서의 대상 번호를 입력해주세요.`);
                     return false;
                 }
 
                 ok = await executeManualDraw(stepItem, targetDrawNumber, false, {
-                    preDelayMs: DRAW_SEQUENCE_PRE_DELAY_MS,
+                    preDelayMs: isBatchReveal ? DRAW_SEQUENCE_BATCH_PRE_DELAY_MS : DRAW_SEQUENCE_PRE_DELAY_MS,
                     releaseBusyImmediately: true,
-                    suppressSuccessToast: true
+                    suppressSuccessToast: true,
+                    suppressStartBroadcast: isBatchReveal,
+                    timelineProfile: isBatchReveal ? 'NORMAL' : 'FAST'
                 });
             }
 
             if (!ok) {
+                await announceSequenceCancel(`${index + 1}번 순서 실패`);
                 showToast(`${index + 1}번 순서에서 연속 뽑기를 중단했습니다.`);
                 return false;
             }
 
             if (index < steps.length - 1) {
-                await wait(DRAW_SEQUENCE_STEP_GAP_MS);
+                await wait(isBatchReveal ? DRAW_SEQUENCE_BATCH_STEP_GAP_MS : DRAW_SEQUENCE_STEP_GAP_MS);
             }
         }
 
         await refresh();
-        showToast('연속 뽑기가 완료되었습니다.', 'success');
+        await announceSequenceEnd();
+        if (isBatchReveal) {
+            showToast('연속 뽑기 일괄 공개 실행이 완료되었습니다.', 'success');
+        } else {
+            showToast('연속 뽑기가 완료되었습니다.', 'success');
+        }
         return true;
-    }, [drawInProgressItemId, executeManualDraw, executeRandomDraw, items, refresh, showToast]);
+    }, [announceSequenceCancel, announceSequenceEnd, announceSequenceProgress, announceSequenceStart, drawInProgressItemId, executeManualDraw, executeRandomDraw, items, refresh, showToast]);
 
     const handleForceAdd = useCallback(async (item: DrawItemWithComputed) => {
         const targetDrawNumber = normalizeDrawNumberInput((forceStudentByItem[item.id] || '').trim());

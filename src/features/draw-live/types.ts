@@ -7,6 +7,20 @@ export type DrawLiveEventRecord = {
     is_forced: boolean;
     is_public: boolean;
     created_at: string;
+    timeline_profile?: 'NORMAL' | 'FAST';
+    batch_reveal_style?: DrawBatchRevealStyle;
+    batch_total_count?: number;
+};
+
+export type DrawBatchRevealStyle = 'ONE_BY_ONE' | 'AT_ONCE';
+export type DrawSequenceRevealMode = 'STEP' | 'BATCH';
+
+export type DrawSequenceStatus = {
+    active: boolean;
+    revealMode: DrawSequenceRevealMode;
+    batchRevealStyle: DrawBatchRevealStyle;
+    itemNames: string[];
+    currentIndex: number;
 };
 
 export type DrawRecentWinner = {

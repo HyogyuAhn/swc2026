@@ -9,7 +9,9 @@ import {
 } from '@/features/admin/draw/api';
 import {
     DrawAnimationPhase,
+    DrawBatchRevealStyle,
     DrawLiveEventRecord,
+    DrawSequenceStatus,
     DrawLiveSettings,
     DrawRecentWinner
 } from '@/features/draw-live/types';
@@ -18,6 +20,20 @@ const MAX_RECENT_WINNERS = 30;
 const PRE_START_TIMEOUT_MS = 6000;
 const DRAW_CHAIN_GAP_MS = 260;
 const DRAW_LIVE_CONTROL_CHANNEL = 'draw-live-control';
+const FAST_TIMELINE = {
+    mixingAt: 760,
+    ballAt: 2600,
+    paperAt: 4300,
+    revealAt: 6000,
+    endAt: 9800
+};
+const NORMAL_TIMELINE = {
+    mixingAt: 1100,
+    ballAt: 3900,
+    paperAt: 6700,
+    revealAt: 8600,
+    endAt: 15000
+};
 
 const toRecentWinner = (row: any): DrawRecentWinner | null => {
     const drawItem = Array.isArray(row.draw_items)
@@ -49,6 +65,14 @@ export default function useDrawLiveFeed() {
     const [studentNumberById, setStudentNumberById] = useState<Record<string, string>>({});
     const [queue, setQueue] = useState<DrawLiveEventRecord[]>([]);
     const [currentEvent, setCurrentEvent] = useState<DrawLiveEventRecord | null>(null);
+    const [batchRevealEvents, setBatchRevealEvents] = useState<DrawLiveEventRecord[] | null>(null);
+    const [sequenceStatus, setSequenceStatus] = useState<DrawSequenceStatus>({
+        active: false,
+        revealMode: 'STEP',
+        batchRevealStyle: 'ONE_BY_ONE',
+        itemNames: [],
+        currentIndex: -1
+    });
     const [preStartItemName, setPreStartItemName] = useState<string | null>(null);
     const [phase, setPhase] = useState<DrawAnimationPhase>('idle');
 
@@ -56,6 +80,13 @@ export default function useDrawLiveFeed() {
     const preStartTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
     const kickoffTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
     const queueRef = useRef<DrawLiveEventRecord[]>([]);
+    const batchCaptureRef = useRef<{
+        expectedCount: number;
+        collected: DrawLiveEventRecord[];
+        label: string;
+        batchRevealStyle: DrawBatchRevealStyle;
+    } | null>(null);
+    const pendingTimelineProfileByItemIdRef = useRef<Record<string, 'NORMAL' | 'FAST'>>({});
     const startNextQueuedEventRef = useRef<() => boolean>(() => false);
     const runTimelineRef = useRef<() => void>(() => { });
     const phaseRef = useRef<DrawAnimationPhase>('idle');
@@ -83,6 +114,10 @@ export default function useDrawLiveFeed() {
             clearTimeout(preStartTimerRef.current);
             preStartTimerRef.current = null;
         }
+    }, []);
+
+    const clearBatchCapture = useCallback(() => {
+        batchCaptureRef.current = null;
     }, []);
 
     const activatePreStart = useCallback((itemName: string) => {
@@ -121,6 +156,31 @@ export default function useDrawLiveFeed() {
         setQueue(rest);
         clearPreStartTimer();
         setPreStartItemName(null);
+        if (!next.id.startsWith('batch-seq-')) {
+            setBatchRevealEvents(null);
+        }
+        setSequenceStatus(prev => {
+            if (!prev.active || prev.itemNames.length === 0) {
+                return prev;
+            }
+
+            if (next.id.startsWith('batch-seq-')) {
+                return {
+                    ...prev,
+                    currentIndex: Math.max(prev.itemNames.length - 1, 0)
+                };
+            }
+
+            const matchedIndex = prev.itemNames.findIndex(name => name === next.draw_item_name);
+            if (matchedIndex < 0) {
+                return prev;
+            }
+
+            return {
+                ...prev,
+                currentIndex: matchedIndex
+            };
+        });
         setCurrentEvent(next);
         setPhase('announce');
         return true;
@@ -141,11 +201,13 @@ export default function useDrawLiveFeed() {
 
     const scheduleCurrentAnimation = useCallback(() => {
         clearTimers();
+        const timelineProfile = currentEventRef.current?.timeline_profile || 'NORMAL';
+        const timeline = timelineProfile === 'FAST' ? FAST_TIMELINE : NORMAL_TIMELINE;
 
-        timersRef.current.push(setTimeout(() => setPhase('mixing'), 1100));
-        timersRef.current.push(setTimeout(() => setPhase('ball'), 3900));
-        timersRef.current.push(setTimeout(() => setPhase('paper'), 6700));
-        timersRef.current.push(setTimeout(() => setPhase('reveal'), 8600));
+        timersRef.current.push(setTimeout(() => setPhase('mixing'), timeline.mixingAt));
+        timersRef.current.push(setTimeout(() => setPhase('ball'), timeline.ballAt));
+        timersRef.current.push(setTimeout(() => setPhase('paper'), timeline.paperAt));
+        timersRef.current.push(setTimeout(() => setPhase('reveal'), timeline.revealAt));
         timersRef.current.push(setTimeout(async () => {
             if (settings.show_recent_winners) {
                 await loadRecentWinners();
@@ -158,6 +220,7 @@ export default function useDrawLiveFeed() {
                 timersRef.current.push(setTimeout(() => {
                     const started = startNextQueuedEventRef.current();
                     if (!started) {
+                        setBatchRevealEvents(null);
                         setPhase('idle');
                         return;
                     }
@@ -167,9 +230,10 @@ export default function useDrawLiveFeed() {
                 return;
             }
 
+            setBatchRevealEvents(null);
             setPhase('idle');
             setCurrentEvent(null);
-        }, 15000));
+        }, timeline.endAt));
     }, [clearTimers, loadRecentWinners, settings.show_recent_winners]);
 
     const startNextQueuedEventWithTimeline = useCallback(() => {
@@ -242,21 +306,63 @@ export default function useDrawLiveFeed() {
                 schema: 'public',
                 table: 'draw_live_events'
             }, payload => {
-                const event = payload.new as DrawLiveEventRecord;
+                const rawEvent = payload.new as DrawLiveEventRecord;
+                const pendingTimelineProfile = pendingTimelineProfileByItemIdRef.current[String(rawEvent.draw_item_id)];
+                const event: DrawLiveEventRecord = {
+                    ...rawEvent,
+                    timeline_profile: pendingTimelineProfile || 'NORMAL'
+                };
+                if (pendingTimelineProfileByItemIdRef.current[String(rawEvent.draw_item_id)]) {
+                    delete pendingTimelineProfileByItemIdRef.current[String(rawEvent.draw_item_id)];
+                }
 
-                if (settingsRef.current.live_page_enabled && event?.is_public) {
-                    setQueue(prev => {
-                        const next = [...prev, event];
-                        queueRef.current = next;
-                        return next;
-                    });
+                if (!settingsRef.current.live_page_enabled || !event?.is_public) {
+                    return;
+                }
 
-                    if (!kickoffTimerRef.current && phaseRef.current === 'idle' && !currentEventRef.current) {
-                        kickoffTimerRef.current = setTimeout(() => {
-                            kickoffTimerRef.current = null;
-                            startNextQueuedEventWithTimeline();
-                        }, 24);
+                const activeBatchCapture = batchCaptureRef.current;
+                if (activeBatchCapture && activeBatchCapture.expectedCount > 0) {
+                    const nextCollected = [...activeBatchCapture.collected, event];
+                    activeBatchCapture.collected = nextCollected;
+
+                    if (nextCollected.length >= activeBatchCapture.expectedCount) {
+                        const syntheticBatchEvent: DrawLiveEventRecord = {
+                            ...nextCollected[nextCollected.length - 1],
+                            id: `batch-seq-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+                            draw_item_name: activeBatchCapture.label || `연속 뽑기 (${nextCollected.length}개)`,
+                            batch_reveal_style: activeBatchCapture.batchRevealStyle,
+                            batch_total_count: nextCollected.length,
+                            timeline_profile: 'NORMAL'
+                        };
+                        clearBatchCapture();
+                        setBatchRevealEvents(nextCollected);
+                        setQueue(prev => {
+                            const next = [...prev, syntheticBatchEvent];
+                            queueRef.current = next;
+                            return next;
+                        });
+
+                        if (!kickoffTimerRef.current && phaseRef.current === 'idle' && !currentEventRef.current) {
+                            kickoffTimerRef.current = setTimeout(() => {
+                                kickoffTimerRef.current = null;
+                                startNextQueuedEventWithTimeline();
+                            }, 24);
+                        }
                     }
+                    return;
+                }
+
+                setQueue(prev => {
+                    const next = [...prev, event];
+                    queueRef.current = next;
+                    return next;
+                });
+
+                if (!kickoffTimerRef.current && phaseRef.current === 'idle' && !currentEventRef.current) {
+                    kickoffTimerRef.current = setTimeout(() => {
+                        kickoffTimerRef.current = null;
+                        startNextQueuedEventWithTimeline();
+                    }, 24);
                 }
             })
             .on('postgres_changes', {
@@ -321,12 +427,98 @@ export default function useDrawLiveFeed() {
         const controlChannel = supabase
             .channel(DRAW_LIVE_CONTROL_CHANNEL)
             .on('broadcast', { event: 'draw-start' }, payload => {
+                const itemId = String(payload?.payload?.itemId || '');
                 const itemName = String(payload?.payload?.itemName || '');
+                const timelineProfile = String(payload?.payload?.timelineProfile || 'NORMAL').toUpperCase();
+                if (itemId) {
+                    pendingTimelineProfileByItemIdRef.current[itemId] = timelineProfile === 'FAST' ? 'FAST' : 'NORMAL';
+                }
+
                 if (!itemName) {
                     return;
                 }
 
                 activatePreStart(itemName);
+            })
+            .on('broadcast', { event: 'draw-sequence-start' }, payload => {
+                const revealMode = String(payload?.payload?.revealMode || 'STEP');
+                const batchRevealStyle = String(payload?.payload?.batchRevealStyle || 'ONE_BY_ONE');
+                const itemNamesRaw = payload?.payload?.itemNames;
+                const itemNames = Array.isArray(itemNamesRaw)
+                    ? itemNamesRaw.map((value: unknown) => String(value || '').trim()).filter(Boolean)
+                    : [];
+                const nextBatchStyle: DrawBatchRevealStyle = batchRevealStyle === 'AT_ONCE' ? 'AT_ONCE' : 'ONE_BY_ONE';
+
+                setSequenceStatus({
+                    active: true,
+                    revealMode: revealMode === 'BATCH' ? 'BATCH' : 'STEP',
+                    batchRevealStyle: nextBatchStyle,
+                    itemNames,
+                    currentIndex: -1
+                });
+
+                if (revealMode !== 'BATCH') {
+                    clearBatchCapture();
+                    setBatchRevealEvents(null);
+                    return;
+                }
+
+                const expectedPublicCount = Number(payload?.payload?.expectedPublicCount || 0);
+                if (!Number.isFinite(expectedPublicCount) || expectedPublicCount <= 0) {
+                    clearBatchCapture();
+                    setBatchRevealEvents(null);
+                    return;
+                }
+
+                const label = String(payload?.payload?.label || `연속 뽑기 (${expectedPublicCount}개)`);
+                batchCaptureRef.current = {
+                    expectedCount: expectedPublicCount,
+                    collected: [],
+                    label,
+                    batchRevealStyle: nextBatchStyle
+                };
+                setBatchRevealEvents(null);
+                activatePreStart(`${label} 준비 중`);
+            })
+            .on('broadcast', { event: 'draw-sequence-progress' }, payload => {
+                const currentIndex = Number(payload?.payload?.currentIndex ?? -1);
+                setSequenceStatus(prev => {
+                    if (!prev.active) {
+                        return prev;
+                    }
+
+                    if (!Number.isFinite(currentIndex)) {
+                        return prev;
+                    }
+
+                    return {
+                        ...prev,
+                        currentIndex
+                    };
+                });
+            })
+            .on('broadcast', { event: 'draw-sequence-end' }, () => {
+                setSequenceStatus(prev => ({
+                    ...prev,
+                    active: false,
+                    itemNames: [],
+                    currentIndex: -1
+                }));
+                clearBatchCapture();
+                clearPreStartTimer();
+                setPreStartItemName(null);
+            })
+            .on('broadcast', { event: 'draw-sequence-cancel' }, () => {
+                clearBatchCapture();
+                setBatchRevealEvents(null);
+                setSequenceStatus(prev => ({
+                    ...prev,
+                    active: false,
+                    itemNames: [],
+                    currentIndex: -1
+                }));
+                clearPreStartTimer();
+                setPreStartItemName(null);
             })
             .on('broadcast', { event: 'draw-cancel' }, () => {
                 clearPreStartTimer();
@@ -338,6 +530,8 @@ export default function useDrawLiveFeed() {
             clearTimers();
             clearPreStartTimer();
             clearRecentRefreshTimer();
+            clearBatchCapture();
+            pendingTimelineProfileByItemIdRef.current = {};
             if (kickoffTimerRef.current) {
                 clearTimeout(kickoffTimerRef.current);
                 kickoffTimerRef.current = null;
@@ -345,7 +539,7 @@ export default function useDrawLiveFeed() {
             supabase.removeChannel(dbChannel);
             supabase.removeChannel(controlChannel);
         };
-    }, [activatePreStart, clearPreStartTimer, clearRecentRefreshTimer, clearTimers, loadRecentWinners, loadStudentNumbers, startNextQueuedEventWithTimeline]);
+    }, [activatePreStart, clearBatchCapture, clearPreStartTimer, clearRecentRefreshTimer, clearTimers, loadRecentWinners, loadStudentNumbers, startNextQueuedEventWithTimeline]);
 
     useEffect(() => {
         const poller = setInterval(async () => {
@@ -398,6 +592,8 @@ export default function useDrawLiveFeed() {
         recentWinners,
         studentNumberById,
         currentEvent,
+        batchRevealEvents,
+        sequenceStatus,
         preStartItemName,
         phase,
         isAnimating,

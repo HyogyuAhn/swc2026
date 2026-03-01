@@ -25,7 +25,7 @@ export async function fetchVoteSnapshot() {
 export async function fetchStudentStatus(studentId: string) {
     return supabase
         .from('students')
-        .select('is_suspended')
+        .select('is_suspended, name, student_role')
         .eq('student_id', studentId)
         .maybeSingle();
 }

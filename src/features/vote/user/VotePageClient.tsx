@@ -7,6 +7,8 @@ import useVotePageController from '@/features/vote/user/hooks/useVotePageControl
 export default function VotePageClient() {
     const {
         studentId,
+        studentName,
+        studentRole,
         setStudentId,
         isLoggedIn,
         filter,
@@ -46,6 +48,8 @@ export default function VotePageClient() {
     return (
         <VoteDashboard
             studentId={studentId}
+            studentName={studentName}
+            studentRole={studentRole}
             filter={filter}
             setFilter={setFilter}
             loading={loading}

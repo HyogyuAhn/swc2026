@@ -1,5 +1,7 @@
 export type DrawMode = 'RANDOM' | 'MANUAL';
 export type DrawWinnerMode = DrawMode | 'FORCED';
+export type DrawSequenceRevealMode = 'STEP' | 'BATCH';
+export type DrawSequenceBatchRevealStyle = 'ONE_BY_ONE' | 'AT_ONCE';
 
 export type DrawRandomFilterGender = 'ALL' | '남' | '여';
 
@@ -98,4 +100,5 @@ export type DrawSequenceStep = {
     itemId: string;
     mode: DrawMode;
     targetDrawNumber: string;
+    randomFilter: DrawRandomFilter;
 };

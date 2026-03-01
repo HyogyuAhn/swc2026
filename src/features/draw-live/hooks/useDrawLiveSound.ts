@@ -5,10 +5,14 @@ import { DrawAnimationPhase } from '@/features/draw-live/types';
 
 const LIVE_SOUND_STORAGE_KEY = 'draw_live_tension_sound_enabled';
 const TRACK_TOTAL_MS = 15000;
+const TRACK_TOTAL_FAST_MS = 9800;
 
 type UseDrawLiveSoundParams = {
     phase: DrawAnimationPhase;
     eventId?: string | null;
+    timelineProfile?: 'NORMAL' | 'FAST';
+    batchRevealStyle?: 'ONE_BY_ONE' | 'AT_ONCE';
+    batchTotalCount?: number;
 };
 
 type AudioEngine = {
@@ -76,7 +80,13 @@ const stopTrackedNode = (tracked: TrackedNode) => {
     }
 };
 
-export default function useDrawLiveSound({ phase, eventId }: UseDrawLiveSoundParams) {
+export default function useDrawLiveSound({
+    phase,
+    eventId,
+    timelineProfile = 'NORMAL',
+    batchRevealStyle = 'ONE_BY_ONE',
+    batchTotalCount = 1
+}: UseDrawLiveSoundParams) {
     const [soundEnabled, setSoundEnabled] = useState(false);
     const engineRef = useRef<AudioEngine | null>(null);
     const activeNodesRef = useRef<TrackedNode[]>([]);
@@ -293,7 +303,11 @@ export default function useDrawLiveSound({ phase, eventId }: UseDrawLiveSoundPar
         });
     }, [trackNoise, trackOscillator]);
 
-    const playPromptTimelineTrack = useCallback(async (eventIdToPlay: string) => {
+    const playPromptTimelineTrack = useCallback(async (eventIdToPlay: string, options: {
+        timelineProfile: 'NORMAL' | 'FAST';
+        batchRevealStyle: 'ONE_BY_ONE' | 'AT_ONCE';
+        batchTotalCount: number;
+    }) => {
         const engine = await ensureEngine();
         if (!engine) {
             return;
@@ -303,12 +317,13 @@ export default function useDrawLiveSound({ phase, eventId }: UseDrawLiveSoundPar
         playingEventIdRef.current = eventIdToPlay;
 
         const now = engine.context.currentTime + 0.02;
-        const introEnd = now + 1.1;
-        const mixingEnd = now + 3.9;
-        const extractionEnd = now + 6.7;
-        const silenceEnd = now + 8.6;
-        const numbersEnd = now + 12.6;
-        const finaleEnd = now + 15.0;
+        const fast = options.timelineProfile === 'FAST';
+        const introEnd = now + (fast ? 0.72 : 1.1);
+        const mixingEnd = now + (fast ? 2.6 : 3.9);
+        const extractionEnd = now + (fast ? 4.3 : 6.7);
+        const silenceEnd = now + (fast ? 6.0 : 8.6);
+        const numbersEnd = now + (fast ? 7.6 : 12.6);
+        const finaleEnd = now + (fast ? 9.8 : 15.0);
 
         engine.musicBus.gain.setValueAtTime(0.0001, now);
         engine.musicBus.gain.exponentialRampToValueAtTime(0.22, introEnd - 0.08);
@@ -428,10 +443,25 @@ export default function useDrawLiveSound({ phase, eventId }: UseDrawLiveSoundPar
             release: 0.5
         }); 
 
-        const digitRevealStart = silenceEnd + 1.0;
-        scheduleImpact(engine, digitRevealStart, 0.98, 1.12);
-        scheduleImpact(engine, digitRevealStart + 1.0, 1.08, 1.18);
-        scheduleImpact(engine, digitRevealStart + 2.0, 1.18, 1.24);
+        const digitRevealStart = silenceEnd + (fast ? 0.38 : 1.0);
+        const normalizedBatchCount = Math.max(1, Math.min(24, Number(options.batchTotalCount || 1)));
+        if (normalizedBatchCount > 1 && options.batchRevealStyle === 'ONE_BY_ONE') {
+            const hitGap = fast ? 0.36 : 0.72;
+            for (let i = 0; i < normalizedBatchCount; i += 1) {
+                scheduleImpact(engine, digitRevealStart + i * hitGap, 0.98 + i * 0.03, 1.02 + Math.min(i * 0.05, 0.5));
+            }
+        } else if (normalizedBatchCount > 1 && options.batchRevealStyle === 'AT_ONCE') {
+            const simultaneousHits = Math.min(normalizedBatchCount, 6);
+            const burstGap = fast ? 0.1 : 0.18;
+            for (let i = 0; i < simultaneousHits; i += 1) {
+                scheduleImpact(engine, digitRevealStart + i * burstGap, 1.0 + i * 0.03, 1.05 + i * 0.04);
+            }
+        } else {
+            const impactGap = fast ? 0.45 : 1.0;
+            scheduleImpact(engine, digitRevealStart, 0.98, 1.12);
+            scheduleImpact(engine, digitRevealStart + impactGap, 1.08, 1.18);
+            scheduleImpact(engine, digitRevealStart + impactGap * 2, 1.18, 1.24);
+        }
 
         trackNoise(engine, engine.musicBus, digitRevealStart, numbersEnd - digitRevealStart, {
             filterType: 'bandpass',
@@ -499,7 +529,7 @@ export default function useDrawLiveSound({ phase, eventId }: UseDrawLiveSoundPar
             if (playingEventIdRef.current === eventIdToPlay) {
                 stopCurrentTrack();
             }
-        }, TRACK_TOTAL_MS + 120);
+        }, (fast ? TRACK_TOTAL_FAST_MS : TRACK_TOTAL_MS) + 120);
         activeTimersRef.current.push(endTimer);
     }, [ensureEngine, scheduleImpact, stopCurrentTrack, trackNoise, trackOscillator]);
 
@@ -520,8 +550,12 @@ export default function useDrawLiveSound({ phase, eventId }: UseDrawLiveSoundPar
         }
 
         pendingEventIdRef.current = null;
-        await playPromptTimelineTrack(targetEventId);
-    }, [ensureEngine, playPromptTimelineTrack]);
+        await playPromptTimelineTrack(targetEventId, {
+            timelineProfile: timelineProfile === 'FAST' ? 'FAST' : 'NORMAL',
+            batchRevealStyle: batchRevealStyle === 'AT_ONCE' ? 'AT_ONCE' : 'ONE_BY_ONE',
+            batchTotalCount: Math.max(1, Number(batchTotalCount || 1))
+        });
+    }, [batchRevealStyle, batchTotalCount, ensureEngine, playPromptTimelineTrack, timelineProfile]);
 
     const toggleSoundEnabled = useCallback(() => {
         setSoundEnabled(prev => {

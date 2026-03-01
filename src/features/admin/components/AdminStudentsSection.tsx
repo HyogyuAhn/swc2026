@@ -341,6 +341,9 @@ export default function AdminStudentsSection({
         const start = (safePage - 1) * PAGE_SIZE;
         return filteredStudents.slice(start, start + PAGE_SIZE);
     }, [filteredStudents, safePage]);
+    const pageNumbers = useMemo(() => (
+        Array.from({ length: totalPages }, (_, index) => index + 1)
+    ), [totalPages]);
 
     useEffect(() => {
         setPage(1);
@@ -575,7 +578,6 @@ export default function AdminStudentsSection({
                         <h3 className="font-bold text-gray-800">
                             등록된 학생 목록 <span className="ml-1 text-blue-600">({filteredStudents.length}명)</span>
                         </h3>
-                        <p className="mt-1 text-xs font-medium text-gray-500">정렬 기준: 추첨 번호 오름차순</p>
                     </div>
                 </div>
 
@@ -595,9 +597,11 @@ export default function AdminStudentsSection({
                             </tr>
                         </thead>
                         <tbody>
-                            {pagedStudents.map(student => (
+                            {pagedStudents.map((student, index) => (
                                 <tr key={student.student_id} className="border-b border-gray-300 last:border-0 hover:bg-gray-50">
-                                    <td className="px-6 py-4 font-semibold text-gray-800">{student.name || '-'}</td>
+                                    <td className="px-6 py-4 font-semibold text-gray-800">
+                                        {(safePage - 1) * PAGE_SIZE + index + 1}. {student.name || '-'}
+                                    </td>
                                     <td className="px-6 py-4 font-bold text-gray-800">{student.student_id}</td>
                                     <td className="px-6 py-4">
                                         <span className={`rounded px-2 py-1 text-xs font-bold ${
@@ -647,7 +651,7 @@ export default function AdminStudentsSection({
                         <p className="text-xs font-medium text-gray-500">
                             페이지 {safePage} / {totalPages} · 페이지당 {PAGE_SIZE}명
                         </p>
-                        <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-2 overflow-x-auto">
                             <button
                                 type="button"
                                 onClick={() => setPage(prev => Math.max(1, prev - 1))}
@@ -656,6 +660,20 @@ export default function AdminStudentsSection({
                             >
                                 이전
                             </button>
+                            {pageNumbers.map(pageNumber => (
+                                <button
+                                    key={pageNumber}
+                                    type="button"
+                                    onClick={() => setPage(pageNumber)}
+                                    className={`rounded-md border px-3 py-1.5 text-xs font-semibold ${
+                                        pageNumber === safePage
+                                            ? 'border-blue-500 bg-blue-600 text-white'
+                                            : 'border-gray-300 bg-white text-gray-700'
+                                    }`}
+                                >
+                                    {pageNumber}
+                                </button>
+                            ))}
                             <button
                                 type="button"
                                 onClick={() => setPage(prev => Math.min(totalPages, prev + 1))}
@@ -799,7 +817,7 @@ export default function AdminStudentsSection({
                                 파일 형식: <span className="font-semibold">.xlsx, .xls, .csv</span>
                             </p>
                             <p className="text-xs text-gray-500">
-                                공통 매핑: 이름, 성별, 소속 학과(또는 학과), 추첨번호 컬럼 사용. 학번은 비워둬도 정상 등록됩니다.
+                                공통 매핑: 이름, 성별, 소속 학과(또는 학과)를 자동 인식합니다. 학번은 비워둬도 정상 등록됩니다.
                             </p>
 
                             <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
@@ -821,10 +839,6 @@ export default function AdminStudentsSection({
                                 </button>
                             </div>
 
-                            <div className="rounded-xl border border-gray-200 bg-gray-50 p-3 text-xs text-gray-500">
-                                <p>재학생 파일: 추첨 번호 컬럼 `Column 19`</p>
-                                <p>신입생 파일: 추첨 번호 컬럼 `Column 17`</p>
-                            </div>
                         </div>
                     </div>
                 </div>

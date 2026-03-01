@@ -60,6 +60,8 @@ const buildVoteCounts = (records: any[]) => {
 
 export default function useVotePageController() {
     const [studentId, setStudentId] = useState('');
+    const [studentName, setStudentName] = useState('');
+    const [studentRole, setStudentRole] = useState('');
     const [isLoggedIn, setIsLoggedIn] = useState(false);
 
     const [votes, setVotes] = useState<any[]>([]);
@@ -94,6 +96,8 @@ export default function useVotePageController() {
     const handleLogout = useCallback(() => {
         localStorage.removeItem('swc_vote_student_id');
         setStudentId('');
+        setStudentName('');
+        setStudentRole('');
         setIsLoggedIn(false);
         setUserVotes(new Set<string>());
         setSelectedOptions({});
@@ -115,6 +119,8 @@ export default function useVotePageController() {
 
             const idToCheck = currentId || localStorage.getItem('swc_vote_student_id');
             if (!idToCheck) {
+                setStudentName('');
+                setStudentRole('');
                 return;
             }
 
@@ -130,6 +136,9 @@ export default function useVotePageController() {
                 handleLogout();
                 return;
             }
+
+            setStudentName(String(studentData.name || ''));
+            setStudentRole(String(studentData.student_role || ''));
 
             const { data: myVotes } = await fetchStudentVotes(idToCheck);
             if (!myVotes) {
@@ -377,6 +386,8 @@ export default function useVotePageController() {
             return;
         }
 
+        setStudentName(String(student.name || ''));
+        setStudentRole(String(student.student_role || ''));
         localStorage.setItem('swc_vote_student_id', sanitizedStudentId);
         setIsLoggedIn(true);
         fetchVotesData(sanitizedStudentId);
@@ -484,6 +495,8 @@ export default function useVotePageController() {
 
     return {
         studentId,
+        studentName,
+        studentRole,
         setStudentId,
         isLoggedIn,
         filter,
