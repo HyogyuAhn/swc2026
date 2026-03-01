@@ -1,6 +1,14 @@
 export type DrawMode = 'RANDOM' | 'MANUAL';
 export type DrawWinnerMode = DrawMode | 'FORCED';
 
+export type DrawRandomFilterGender = 'ALL' | '남' | '여';
+
+export type DrawRandomFilter = {
+    gender: DrawRandomFilterGender;
+    departments: string[];
+    roles: string[];
+};
+
 export type DrawItem = {
     id: string;
     name: string;

@@ -43,7 +43,7 @@ export default function AdminSidebar({
                     className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl font-bold transition-all text-sm
                         ${view === 'STUDENTS' ? 'bg-blue-600 text-white shadow-md' : 'bg-gray-50 text-gray-600 hover:bg-gray-100'}`}
                 >
-                    <Users size={18} /> 학번 관리
+                    <Users size={18} /> 학생 관리
                 </button>
                 <button
                     onClick={() => setView('DRAW')}

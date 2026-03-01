@@ -9,6 +9,10 @@ import {
 export type StudentPoolRecord = {
     student_id: string;
     is_suspended: boolean;
+    name?: string | null;
+    gender?: string | null;
+    department?: string | null;
+    student_role?: string | null;
     draw_number?: string | null;
 };
 
@@ -65,7 +69,7 @@ export async function fetchDrawItems() {
 export async function fetchStudentPool() {
     return supabase
         .from('students')
-        .select('student_id, is_suspended, draw_number')
+        .select('student_id, is_suspended, name, gender, department, student_role, draw_number')
         .order('student_id', { ascending: true });
 }
 

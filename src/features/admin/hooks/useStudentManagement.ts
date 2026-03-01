@@ -24,6 +24,8 @@ export default function useStudentManagement({ onVotesChanged }: UseStudentManag
     const [studentIdInput, setStudentIdInput] = useState('');
     const [studentNumberInput, setStudentNumberInput] = useState('');
     const [studentSearch, setStudentSearch] = useState('');
+    const [studentRoleFilter, setStudentRoleFilter] = useState('ALL');
+    const [studentDepartmentFilter, setStudentDepartmentFilter] = useState('ALL');
     const [selectedStudent, setSelectedStudent] = useState<any>(null);
     const [studentHistory, setStudentHistory] = useState<any[]>([]);
     const [showStudentModal, setShowStudentModal] = useState(false);
@@ -325,6 +327,10 @@ export default function useStudentManagement({ onVotesChanged }: UseStudentManag
         setStudentNumberInput,
         studentSearch,
         setStudentSearch,
+        studentRoleFilter,
+        setStudentRoleFilter,
+        studentDepartmentFilter,
+        setStudentDepartmentFilter,
         selectedStudent,
         studentHistory,
         showStudentModal,

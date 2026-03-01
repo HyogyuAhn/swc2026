@@ -1,4 +1,8 @@
-import { useEffect, useState, type FormEvent } from 'react';
+import { useEffect, useMemo, useState, type FormEvent } from 'react';
+import {
+    STUDENT_DEPARTMENT_OPTIONS,
+    STUDENT_ROLE_OPTIONS
+} from '@/features/admin/student/constants';
 
 type AdminStudentsSectionProps = {
     students: any[];
@@ -8,6 +12,10 @@ type AdminStudentsSectionProps = {
     setStudentNumberInput: (value: string) => void;
     studentSearch: string;
     setStudentSearch: (value: string) => void;
+    studentRoleFilter: string;
+    setStudentRoleFilter: (value: string) => void;
+    studentDepartmentFilter: string;
+    setStudentDepartmentFilter: (value: string) => void;
     handleAddStudent: (e?: FormEvent<HTMLFormElement>) => void;
     handleUpdateStudentDrawNumber: (student: any, drawNumber: string) => Promise<boolean>;
     handleResetStudentVotes: (student: any) => void;
@@ -24,6 +32,10 @@ export default function AdminStudentsSection({
     setStudentNumberInput,
     studentSearch,
     setStudentSearch,
+    studentRoleFilter,
+    setStudentRoleFilter,
+    studentDepartmentFilter,
+    setStudentDepartmentFilter,
     handleAddStudent,
     handleUpdateStudentDrawNumber,
     handleResetStudentVotes,
@@ -31,7 +43,9 @@ export default function AdminStudentsSection({
     handleToggleSuspend,
     handleDeleteStudent
 }: AdminStudentsSectionProps) {
+    const PAGE_SIZE = 50;
     const [numberDraftByStudentId, setNumberDraftByStudentId] = useState<Record<string, string>>({});
+    const [page, setPage] = useState(1);
 
     useEffect(() => {
         const next: Record<string, string> = {};
@@ -41,14 +55,76 @@ export default function AdminStudentsSection({
         setNumberDraftByStudentId(next);
     }, [students]);
 
+    const filteredStudents = useMemo(() => {
+        const keyword = studentSearch.trim().toLowerCase();
+
+        return students
+            .filter(student => {
+                if (studentRoleFilter !== 'ALL' && String(student.student_role || '') !== studentRoleFilter) {
+                    return false;
+                }
+
+                if (studentDepartmentFilter !== 'ALL' && String(student.department || '') !== studentDepartmentFilter) {
+                    return false;
+                }
+
+                if (!keyword) {
+                    return true;
+                }
+
+                const byStudentId = String(student.student_id || '').toLowerCase().includes(keyword);
+                const byDrawNumber = String(student.draw_number || '').toLowerCase().includes(keyword);
+                const byName = String(student.name || '').toLowerCase().includes(keyword);
+
+                return byStudentId || byDrawNumber || byName;
+            })
+            .sort((a, b) => {
+                const drawA = Number.parseInt(String(a.draw_number || ''), 10);
+                const drawB = Number.parseInt(String(b.draw_number || ''), 10);
+                const hasA = Number.isFinite(drawA);
+                const hasB = Number.isFinite(drawB);
+
+                if (hasA && hasB && drawA !== drawB) {
+                    return drawA - drawB;
+                }
+
+                if (hasA && !hasB) {
+                    return -1;
+                }
+
+                if (!hasA && hasB) {
+                    return 1;
+                }
+
+                return String(a.student_id || '').localeCompare(String(b.student_id || ''));
+            });
+    }, [studentDepartmentFilter, studentRoleFilter, studentSearch, students]);
+
+    const totalPages = Math.max(1, Math.ceil(filteredStudents.length / PAGE_SIZE));
+    const safePage = Math.min(page, totalPages);
+    const pagedStudents = useMemo(() => {
+        const start = (safePage - 1) * PAGE_SIZE;
+        return filteredStudents.slice(start, start + PAGE_SIZE);
+    }, [filteredStudents, safePage]);
+
+    useEffect(() => {
+        setPage(1);
+    }, [studentSearch, studentRoleFilter, studentDepartmentFilter]);
+
+    useEffect(() => {
+        if (page > totalPages) {
+            setPage(totalPages);
+        }
+    }, [page, totalPages]);
+
     return (
         <div className="mx-auto max-w-5xl px-10 pb-10 pt-4">
             <div className="flex justify-between items-center mb-8">
-                <h2 className="text-3xl font-bold text-gray-800">학번 관리</h2>
+                <h2 className="text-3xl font-bold text-gray-800">학생 관리</h2>
             </div>
 
             <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 mb-8">
-                <h3 className="font-bold text-lg mb-4 text-gray-700">신규 학번 등록</h3>
+                <h3 className="font-bold text-lg mb-4 text-gray-700">신규 학생 등록</h3>
                 <form onSubmit={handleAddStudent} className="flex gap-4">
                     <input
                         type="text"
@@ -76,21 +152,46 @@ export default function AdminStudentsSection({
             <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
                 <div className="p-4 border-b flex justify-between items-center bg-gray-50">
                     <h3 className="font-bold text-gray-700">
-                        등록된 학번 목록 <span className="text-blue-600 ml-1">({students.length}명)</span>
+                        등록된 학생 목록 <span className="text-blue-600 ml-1">({filteredStudents.length}명)</span>
                     </h3>
-                    <input
-                        type="text"
-                        placeholder="학번/번호 검색"
-                        className="p-2 border rounded-lg text-sm w-64"
-                        value={studentSearch}
-                        onChange={e => setStudentSearch(e.target.value)}
-                    />
+                    <div className="flex items-center gap-2">
+                        <select
+                            className="rounded-lg border p-2 text-sm"
+                            value={studentRoleFilter}
+                            onChange={event => setStudentRoleFilter(event.target.value)}
+                        >
+                            <option value="ALL">역할 전체</option>
+                            {STUDENT_ROLE_OPTIONS.map(role => (
+                                <option key={role} value={role}>{role}</option>
+                            ))}
+                        </select>
+                        <select
+                            className="rounded-lg border p-2 text-sm"
+                            value={studentDepartmentFilter}
+                            onChange={event => setStudentDepartmentFilter(event.target.value)}
+                        >
+                            <option value="ALL">학과 전체</option>
+                            {STUDENT_DEPARTMENT_OPTIONS.map(department => (
+                                <option key={department} value={department}>{department}</option>
+                            ))}
+                        </select>
+                        <input
+                            type="text"
+                            placeholder="학번/번호/이름 검색"
+                            className="p-2 border rounded-lg text-sm w-64"
+                            value={studentSearch}
+                            onChange={e => setStudentSearch(e.target.value)}
+                        />
+                    </div>
                 </div>
                 <div className="overflow-x-auto">
                     <table className="w-full text-sm text-left">
                         <thead className="text-gray-500 bg-gray-50 border-b">
                             <tr>
+                                <th className="px-6 py-3">이름</th>
                                 <th className="px-6 py-3">학번</th>
+                                <th className="px-6 py-3">역할</th>
+                                <th className="px-6 py-3">학과</th>
                                 <th className="px-6 py-3">번호</th>
                                 <th className="px-6 py-3">상태</th>
                                 <th className="px-6 py-3">등록일</th>
@@ -98,41 +199,39 @@ export default function AdminStudentsSection({
                             </tr>
                         </thead>
                         <tbody>
-                            {students
-                                .filter(s => (
-                                    s.student_id.includes(studentSearch) ||
-                                    String(s.draw_number || '').includes(studentSearch)
-                                ))
-                                .map(student => (
-                                    <tr key={student.student_id} className="border-b last:border-0 hover:bg-gray-50">
-                                        <td className="px-6 py-4 font-bold text-gray-800">{student.student_id}</td>
-                                        <td className="px-6 py-4">
-                                            <div className="flex items-center gap-2">
-                                                <input
-                                                    type="text"
-                                                    value={numberDraftByStudentId[student.student_id] ?? String(student.draw_number || '')}
-                                                    maxLength={4}
-                                                    onChange={event => setNumberDraftByStudentId(prev => ({
-                                                        ...prev,
-                                                        [student.student_id]: event.target.value.replace(/[^0-9]/g, '').slice(0, 4)
-                                                    }))}
-                                                    className="w-24 rounded-lg border border-gray-200 bg-white px-2 py-1.5 text-xs font-semibold text-gray-700"
-                                                    placeholder="미지정"
-                                                />
-                                                <button
-                                                    onClick={async () => {
-                                                        await handleUpdateStudentDrawNumber(
-                                                            student,
-                                                            numberDraftByStudentId[student.student_id] ?? ''
-                                                        );
-                                                    }}
-                                                    className="rounded-md border border-blue-200 bg-blue-50 px-2 py-1 text-xs font-bold text-blue-700 hover:bg-blue-100"
-                                                >
-                                                    저장
-                                                </button>
-                                            </div>
-                                        </td>
-                                        <td className="px-6 py-4">
+                            {pagedStudents.map(student => (
+                                <tr key={student.student_id} className="border-b last:border-0 hover:bg-gray-50">
+                                    <td className="px-6 py-4 font-semibold text-gray-800">{student.name || '-'}</td>
+                                    <td className="px-6 py-4 font-bold text-gray-800">{student.student_id}</td>
+                                    <td className="px-6 py-4 text-gray-700">{student.student_role || '-'}</td>
+                                    <td className="px-6 py-4 text-gray-700">{student.department || '-'}</td>
+                                    <td className="px-6 py-4">
+                                        <div className="flex items-center gap-2">
+                                            <input
+                                                type="text"
+                                                value={numberDraftByStudentId[student.student_id] ?? String(student.draw_number || '')}
+                                                maxLength={4}
+                                                onChange={event => setNumberDraftByStudentId(prev => ({
+                                                    ...prev,
+                                                    [student.student_id]: event.target.value.replace(/[^0-9]/g, '').slice(0, 4)
+                                                }))}
+                                                className="w-24 rounded-lg border border-gray-200 bg-white px-2 py-1.5 text-xs font-semibold text-gray-700"
+                                                placeholder="미지정"
+                                            />
+                                            <button
+                                                onClick={async () => {
+                                                    await handleUpdateStudentDrawNumber(
+                                                        student,
+                                                        numberDraftByStudentId[student.student_id] ?? ''
+                                                    );
+                                                }}
+                                                className="rounded-md border border-blue-200 bg-blue-50 px-2 py-1 text-xs font-bold text-blue-700 hover:bg-blue-100"
+                                            >
+                                                저장
+                                            </button>
+                                        </div>
+                                    </td>
+                                    <td className="px-6 py-4">
                                             {student.is_suspended ? (
                                                 <span className="bg-red-100 text-red-600 px-2 py-1 rounded text-xs font-bold">정지됨</span>
                                             ) : (
@@ -172,10 +271,42 @@ export default function AdminStudentsSection({
                                                 삭제
                                             </button>
                                         </td>
-                                    </tr>
-                                ))}
+                                </tr>
+                            ))}
+                            {pagedStudents.length === 0 && (
+                                <tr>
+                                    <td colSpan={8} className="px-6 py-10 text-center text-sm text-gray-400">
+                                        조건에 맞는 학생이 없습니다.
+                                    </td>
+                                </tr>
+                            )}
                         </tbody>
                     </table>
+                </div>
+                <div className="border-t bg-gray-50 px-4 py-3">
+                    <div className="flex items-center justify-between">
+                        <p className="text-xs font-medium text-gray-500">
+                            페이지 {safePage} / {totalPages} · 페이지당 {PAGE_SIZE}명
+                        </p>
+                        <div className="flex items-center gap-2">
+                            <button
+                                type="button"
+                                onClick={() => setPage(prev => Math.max(1, prev - 1))}
+                                disabled={safePage <= 1}
+                                className="rounded-md border bg-white px-3 py-1.5 text-xs font-semibold text-gray-700 disabled:cursor-not-allowed disabled:text-gray-300"
+                            >
+                                이전
+                            </button>
+                            <button
+                                type="button"
+                                onClick={() => setPage(prev => Math.min(totalPages, prev + 1))}
+                                disabled={safePage >= totalPages}
+                                className="rounded-md border bg-white px-3 py-1.5 text-xs font-semibold text-gray-700 disabled:cursor-not-allowed disabled:text-gray-300"
+                            >
+                                다음
+                            </button>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>

@@ -80,6 +80,10 @@ export default function AdminPageClient() {
         setStudentNumberInput,
         studentSearch,
         setStudentSearch,
+        studentRoleFilter,
+        setStudentRoleFilter,
+        studentDepartmentFilter,
+        setStudentDepartmentFilter,
         selectedStudent,
         studentHistory,
         showStudentModal,
@@ -219,6 +223,10 @@ export default function AdminPageClient() {
                             setStudentNumberInput={setStudentNumberInput}
                             studentSearch={studentSearch}
                             setStudentSearch={setStudentSearch}
+                            studentRoleFilter={studentRoleFilter}
+                            setStudentRoleFilter={setStudentRoleFilter}
+                            studentDepartmentFilter={studentDepartmentFilter}
+                            setStudentDepartmentFilter={setStudentDepartmentFilter}
                             handleAddStudent={handleAddStudent}
                             handleUpdateStudentDrawNumber={handleUpdateStudentDrawNumber}
                             handleResetStudentVotes={handleResetStudentVotes}
